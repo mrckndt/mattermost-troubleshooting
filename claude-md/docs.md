@@ -22,15 +22,12 @@ This is the primary reference for all admin, deployment, and configuration docum
 | LDAP group sync | `administration-guide/onboard/ad-ldap-groups-synchronization.rst` |
 | **SAML SSO** (multiple providers) | `administration-guide/onboard/sso-saml-*.rst` |
 | OpenID Connect SSO | `administration-guide/onboard/sso-openidconnect.rst` |
-| MFA | `administration-guide/onboard/multi-factor-authentication.rst` |
 | Certificate-based auth | `administration-guide/onboard/certificate-based-authentication.rst` |
-| Migrate from Slack | `administration-guide/onboard/migrate-from-slack.rst` |
 | **High availability / clustering** | `administration-guide/scale/high-availability-cluster-based-deployment.rst` |
 | Elasticsearch setup | `administration-guide/scale/elasticsearch-setup.rst` |
 | OpenSearch setup | `administration-guide/scale/opensearch-setup.rst` |
 | Prometheus/Grafana monitoring | `administration-guide/scale/deploy-prometheus-grafana-for-performance-monitoring.rst` |
 | Performance metrics reference | `administration-guide/scale/performance-monitoring-metrics.rst` |
-| Redis configuration | `administration-guide/scale/redis.rst` |
 | Scaling guides (200 to 200K users) | `administration-guide/scale/scale-to-*-users.rst` |
 | Push notification health | `administration-guide/scale/push-notification-health-targets.rst` |
 | **Upgrade guide** | `administration-guide/upgrade/upgrading-mattermost-server.rst` |
@@ -43,13 +40,11 @@ This is the primary reference for all admin, deployment, and configuration docum
 | Health check probes | `administration-guide/manage/configure-health-check-probes.rst` |
 | Data retention policy | `administration-guide/comply/data-retention-policy.rst` |
 | Compliance export | `administration-guide/comply/compliance-export.rst` |
-| Legal hold | `administration-guide/comply/legal-hold.rst` |
 | Audit log schema | `administration-guide/comply/embedded-json-audit-log-schema.rst` |
 | **Deployment troubleshooting** | `deployment-guide/deployment-troubleshooting.rst` |
 | Server troubleshooting | `deployment-guide/server/troubleshooting.rst` |
 | Docker troubleshooting | `deployment-guide/server/docker-troubleshooting.rst` |
 | PostgreSQL troubleshooting | `deployment-guide/server/trouble-postgres.rst` |
-| MySQL troubleshooting | `deployment-guide/server/trouble_mysql.rst` |
 | Desktop troubleshooting | `deployment-guide/desktop/desktop-troubleshooting.rst` |
 | Mobile troubleshooting | `deployment-guide/mobile/mobile-troubleshooting.rst` |
 | PostgreSQL migration | `deployment-guide/postgres-migration.rst` |

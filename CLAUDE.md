@@ -136,25 +136,12 @@ This avoids state changes and works without `/git-switch`.
 |---|---|---|
 | `MM_CONFIG` | `./config/config.json` | Config source (file path or DB DSN) |
 | `MM_SQLSETTINGS_DATASOURCE` | (none) | Database connection string |
-| `MM_SQLSETTINGS_DRIVERNAME` | `postgres` | Database driver: `postgres` or `mysql` |
-| `MM_SERVICESETTINGS_SITEURL` | (none) | Public URL; critical for OAuth, SAML, webhooks, email links |
+| `MM_SQLSETTINGS_DRIVERNAME` | `postgres` | `postgres` or `mysql` |
+| `MM_SERVICESETTINGS_SITEURL` | (none) | Public URL - breaks OAuth, SAML, webhooks, email links if wrong |
 | `MM_SERVICESETTINGS_LISTENADDRESS` | `:8065` | HTTP listen address |
-| `MM_SERVICESETTINGS_CONNECTIONSECURITY` | (none) | `""`, `TLS`, or `STARTTLS` |
-| `MM_SERVICESETTINGS_TLSCERTFILE` | (none) | TLS certificate file path |
-| `MM_SERVICESETTINGS_TLSKEYFILE` | (none) | TLS key file path |
-| `MM_LOGSETTINGS_ENABLEFILE` | `false` | Enable file logging |
-| `MM_LOGSETTINGS_FILELOCATION` | (empty) | Log file directory |
 | `MM_LOGSETTINGS_FILELEVEL` | `DEBUG` | File log level |
-| `MM_FILESSETTINGS_DIRECTORY` | `./data/` | Local file storage directory |
-| `MM_FILESSETTINGS_DRIVERNAME` | `local` | `local` or `amazons3` |
-| `MM_PLUGINSETTINGS_ENABLE` | `true` | Enable plugin system |
-| `MM_PLUGINSETTINGS_DIRECTORY` | `./plugins` | Plugin binary directory |
-| `MM_PLUGINSETTINGS_CLIENTDIRECTORY` | `./client/plugins` | Plugin webapp bundles |
-| `MM_PLUGINSETTINGS_ENABLEUPLOADS` | `false` | Allow manual plugin uploads |
-| `MM_CLUSTERSETTINGS_ENABLE` | `false` | High availability mode |
-| `MM_METRICSSETTINGS_ENABLE` | `false` | Prometheus metrics |
-| `MM_METRICSSETTINGS_LISTENADDRESS` | `:8067` | Metrics endpoint |
-| `MM_EMAILSETTINGS_PUSHNOTIFICATIONSERVER` | (HPNS URL) | Push notification proxy URL |
+
+Any other config field is overridable via `MM_<UPPERCASED_NESTED_PATH>`. To list all overrides set in a deployment, dump the env or grep `MM_` in the unit file. To learn a field's default, search `server/public/model/config.go` for the struct field name.
 
 ---
 
@@ -217,11 +204,10 @@ Full RTC/TURN/RTCD details: see `claude-md/mattermost-plugin-calls.md`.
 
 - Server path: `/api/v4/websocket`
 - Used for real-time updates: new messages, typing indicators, status changes, plugin events
-- Mobile client reconnection: max 7 failures before giving up, retry interval grows from 3s to 5min, ping every 30s
-- Common issues:
-  - Reverse proxy not forwarding WebSocket Upgrade headers (need `Upgrade` and `Connection` headers passed through)
-  - Load balancer timeout too aggressive (set idle timeout > 60s)
-  - Corporate proxy dropping long-lived connections
+- Mobile client reconnect: max 7 failures (3s -> 5min backoff), ping every 30s.
+- Reverse proxy must forward `Upgrade` / `Connection` headers.
+- Load balancer timeout too aggressive (set idle timeout > 60s).
+- Corporate proxy dropping long-lived connections.
 
 ### Calls Network Requirements
 
@@ -285,12 +271,10 @@ Key fields in `LdapSettings`:
 - `IdAttribute`, `LoginIdAttribute`, `EmailAttribute`, `UsernameAttribute`, `FirstNameAttribute`, `LastNameAttribute`
 - `GroupFilter`, `GroupIdAttribute`, `GroupDisplayNameAttribute`: for group sync (Enterprise)
 
-Common issues:
-- `BaseDn` too narrow or too broad
-- `BindUsername` format: some directories need full DN (`cn=admin,dc=example,dc=com`), others accept UPN (`admin@example.com`)
-- `ConnectionSecurity` mismatch: using `TLS` on port 389 or `STARTTLS` on port 636
-- `UserFilter` syntax errors (LDAP filter, not SQL)
-- Sync interval: `SyncIntervalMinutes` (default 60); set to 0 to disable automatic sync
+Common gotchas:
+- `ConnectionSecurity` vs port mismatch (`TLS` on 389 or `STARTTLS` on 636 silently fails handshake).
+- `BindUsername` format ambiguity (full DN vs UPN); the directory dictates which.
+- `UserFilter` is LDAP filter syntax, not SQL.
 
 ### SAML Configuration Checklist
 
@@ -306,12 +290,10 @@ Key fields in `SamlSettings`:
 - `Encrypt`: encrypt assertions (requires `PublicCertificateFile` and `PrivateKeyFile`)
 - Attribute mappings: `EmailAttribute`, `UsernameAttribute`, `FirstNameAttribute`, `LastNameAttribute`, `IdAttribute`
 
-Common issues:
-- Certificate mismatch between IdP and SP
-- Clock skew between IdP and Mattermost server (causes assertion validation failures)
-- `AssertionConsumerServiceURL` must exactly match SiteURL (including protocol and trailing slash)
-- `SignRequest` / `Verify` / `Encrypt` toggle mismatches between IdP and Mattermost config
-- `EnableSyncWithLdap`: when true, syncs SAML-authenticated users with LDAP directory for attribute updates
+Common gotchas:
+- Clock skew between IdP and Mattermost (assertions fail validation).
+- `AssertionConsumerServiceURL` must equal `SiteURL` exactly (protocol, trailing slash).
+- `SignRequest` / `Verify` / `Encrypt` toggles must match the IdP - asymmetric settings produce vague crypto errors.
 
 ---
 
@@ -428,22 +410,18 @@ What's defined as packet contents: `upstream/mattermost/server/channels/app/plat
 
 ### High Availability
 
-- Enable: `ClusterSettings.Enable=true`
-- Gossip protocol for inter-node communication (default port 8074)
-- Requirements:
-  - Shared file storage (S3 or NFS) for all nodes
-  - All nodes must have identical config (except `ListenAddress`)
-  - Same Mattermost version on all nodes
-  - Sticky sessions at load balancer (recommended for WebSocket stability)
-- Plugin considerations: plugins run on every node; cluster events coordinate state via `server/public/plugin/api.go` `PublishPluginClusterEvent`
+- Enable: `ClusterSettings.Enable=true`. Gossip on port 8074, streaming on 8075.
+- All nodes share file storage (S3/NFS), run the same server version, and use identical config except `ListenAddress`. Sticky sessions at the LB stabilize WebSockets.
+- Plugins run on every node; cross-node coordination uses `PublishPluginClusterEvent` (`server/public/plugin/api.go`).
 
 ### Performance Tuning
 
-- **Database connections**: tune `SqlSettings.MaxOpenConns` based on node count and DB capacity. Each node opens its own pool; total connections = MaxOpenConns x number of nodes.
-- **Elasticsearch**: offload search from database at scale. Configure via `ElasticsearchSettings`. Required for large deployments (50k+ users).
-- **Read replicas**: `SqlSettings.DataSourceReplicas` distributes read queries. `DataSourceSearchReplicas` for search-specific reads.
-- **Caching**: `CacheSettings` controls in-memory cache sizes. Monitor cache hit rates via Prometheus metrics.
-- **File storage**: S3-compatible storage recommended for production; local filesystem does not support HA.
+Knobs (defaults in `server/public/model/config.go`):
+- `SqlSettings.MaxOpenConns` (per-node pool; total connections = N nodes x this).
+- `SqlSettings.DataSourceReplicas`, `DataSourceSearchReplicas` (read scaling).
+- `ElasticsearchSettings` (required at ~50k+ users).
+- `CacheSettings` (cache sizes; monitor hit rate via Prometheus).
+- `FilesSettings.DriverName=amazons3` for HA (`local` is single-node only).
 
 ### Deployment pitfalls (any K8s / Helm / Operator deployment)
 
