@@ -17,9 +17,14 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ## Slash commands
 
+**Repo management**
 - `/bootstrap` - clone any missing upstream repos.
 - `/git-pull [<repo>]` - `git pull --ff-only` on the current branch of one repo or all.
 - `/git-switch <repo> [<ref>]` - check out a tag or branch (default: the repo's default branch).
+
+**Output**
+- `/draft-email [description]` - draft a customer reply email from the current troubleshooting context. Optional arg: problem/solution hint.
+- `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
 
 ## Working a ticket
 
