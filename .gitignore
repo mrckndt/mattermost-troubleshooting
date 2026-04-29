@@ -1,0 +1,22 @@
+# Ignore everything by default
+*
+
+# Track this file
+!.gitignore
+
+# Track top-level docs
+!CLAUDE.md
+!README.md
+
+# Track upstream folder
+!upstream/
+
+# Track curated per-repo notes
+!claude-md/
+!claude-md/**
+
+# Track only specific .claude paths
+!.claude/
+!.claude/commands/
+!.claude/commands/**
+!.claude/settings.local.json

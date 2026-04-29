@@ -1,0 +1,37 @@
+---
+description: Clone any missing Mattermost repos into upstream/. Idempotent - skips repos already present.
+---
+
+Ensure every repo listed below is cloned under `upstream/<name>/` in the current working directory. For each URL:
+
+1. Derive `<name>` from the last path segment of the URL (e.g. `https://github.com/mattermost/mattermost` -> `mattermost`).
+2. If `upstream/<name>/` already exists, skip and report `already present`.
+3. Otherwise run `git clone <url> upstream/<name>` and report `cloned` or the error message git printed.
+
+Continue on errors; collect failures and surface them at the end.
+
+Repos to bootstrap:
+
+- `https://github.com/mattermost/mattermost`
+- `https://github.com/mattermost/mattermost-mobile`
+- `https://github.com/mattermost/desktop`
+- `https://github.com/mattermost/mattermost-plugin-playbooks`
+- `https://github.com/mattermost/mattermost-plugin-calls`
+- `https://github.com/mattermost/mattermost-operator`
+- `https://github.com/mattermost/mattermost-plugin-agents`
+- `https://github.com/mattermost/mattermost-developer-documentation`
+- `https://github.com/mattermost/mattermost-plugin-boards`
+- `https://github.com/mattermost/mattermost-plugin-jira`
+- `https://github.com/mattermost/mattermost-plugin-zoom`
+- `https://github.com/mattermost/mattermost-plugin-github`
+- `https://github.com/mattermost/mattermost-plugin-gitlab`
+- `https://github.com/mattermost/mattermost-helm`
+- `https://github.com/mattermost/docs`
+
+Report a Markdown table with one row per repo and the columns: `Repo | Result`.
+- `Result`: `already present`, `cloned`, or the error message git printed.
+
+Notes:
+- Run each `git clone` as its own Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Parallelize across repos in a single message.
+- This command does NOT pull or switch. After bootstrap, run `/sync` to bring all repos to their latest tracked state, or `/switch <repo> <ref>` to pin one to a specific tag/branch.
+- This file is the canonical list of expected repos. `CLAUDE.md` and `README.md` reference it rather than duplicating the URLs.

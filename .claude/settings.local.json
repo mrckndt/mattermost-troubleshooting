@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Bash(pwd:*)",
+      "Bash(ls:./**)",
+      "Bash(ls:upstream/**)",
+      "Bash(ls:claude-md/**)",
+      "Bash(sort:./**)",
+      "Bash(sort:upstream/**)",
+      "Bash(sort:claude-md/**)",
+      "Bash(wc:./**)",
+      "Bash(wc:upstream/**)",
+      "Bash(wc:claude-md/**)",
+      "Bash(diff:./**)",
+      "Bash(diff:upstream/**)",
+      "Bash(diff:claude-md/**)",
+      "Bash(git -C upstream/*:*)",
+      "Bash(git -C upstream/* status:*)",
+      "Bash(git -C upstream/* fetch:*)",
+      "Bash(git -C upstream/* pull:*)",
+      "Bash(git -C upstream/* switch:*)",
+      "Bash(git -C upstream/* describe:*)",
+      "Bash(git -C upstream/* rev-parse:*)",
+      "Bash(git -C upstream/* symbolic-ref:*)",
+      "Bash(git -C upstream/* show-ref:*)",
+      "Bash(git -C upstream/* log:*)",
+      "Bash(git -C upstream/* diff:*)",
+      "Bash(git clone:*)"
+    ]
+  }
+}

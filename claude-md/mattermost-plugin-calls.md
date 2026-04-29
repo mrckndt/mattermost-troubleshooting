@@ -1,0 +1,70 @@
+### mattermost-plugin-calls
+
+**What**: Voice calling and screen sharing plugin
+**Stack**: Go backend, React frontend
+**Plugin ID**: `com.mattermost.calls`
+**Min server**: 10.0.0
+**Database**: PostgreSQL and MySQL (custom tables)
+
+**Network requirements**:
+
+| Service | Default Port | Setting | Protocol |
+|---|---|---|---|
+| RTC media (primary) | 8443 | `UDPServerPort` | UDP |
+| RTC media (fallback) | 8443 | `TCPServerPort` | TCP |
+| STUN server | 3478 | `ICEServersConfigs` | UDP |
+
+- Default STUN: `stun:stun.global.calls.mattermost.com:3478`
+- Valid port range: [80, 49151]
+- TURN: requires `TURNStaticAuthSecret`, credentials expire in 240 minutes (configurable)
+- `ICEHostOverride`: use when server is behind NAT (set to public IP)
+- `ICEHostPortOverride`: when public-facing port differs from listen port
+
+**RTCD (external RTC service)**:
+- Optional, configured via `RTCDServiceURL`
+- Minimum version: v0.17.0
+- Offloads all call handling to external service
+- Required for large-scale or HA deployments
+
+**Participant limits**:
+
+| Tier | Default Max |
+|---|---|
+| Self-hosted (no limit set) | 0 (unlimited) |
+| Cloud Starter | 8 |
+| Cloud Paid | 200 |
+
+**Recording and transcription**:
+- Recordings: disabled by default, duration range 15-180 min, quality: low/medium/high
+- Transcription (Beta): whisper.cpp (default) or Azure, model sizes: tiny/base/small
+- Live captions: requires both recordings AND transcriptions enabled
+- Job service: `JobServiceURL` for recording/transcription jobs
+
+**Experimental features** (off by default): IPv6, simulcast, AV1 codec, data channel signaling, video in DMs
+
+**Database tables**: `calls_channels`, `calls`, `calls_sessions`, `calls_jobs`
+Migrations: 5 total (MySQL and PostgreSQL) at `server/db/migrations/`
+
+**Key paths for troubleshooting**:
+
+| Area | Path |
+|---|---|
+| Config struct and validation | `server/configuration.go` |
+| RTCD connection logic | `server/rtcd.go` |
+| Call limits | `server/limits.go` |
+| Session management | `server/session.go` |
+| Database layer | `server/db/` |
+| API endpoints | `server/api.go` |
+
+### Calls Plugin Errors
+
+| Error Message | Cause | Resolution |
+|---|---|---|
+| `no host available` | RTCD unreachable or not configured | Verify `RTCDServiceURL`, check network/firewall, ensure RTCD is running |
+| `minimum version check failed` | RTCD version < v0.17.0 | Upgrade RTCD to v0.17.0+ |
+| `UDPServerPort is not valid: N is not in allowed range [80, 49151]` | Port out of valid range | Use a port between 80 and 49151 |
+| `TCPServerPort is not valid: N is not in allowed range [80, 49151]` | Port out of valid range | Use a port between 80 and 49151 |
+| `TURNStaticAuthSecret should be set` | TURN configured without auth secret | Set `TURNStaticAuthSecret` in plugin config |
+| `group calls not allowed` | License or config restriction | Check license tier; verify `MaxCallParticipants` setting |
+| `failed to resolve URL` | RTCD DNS resolution failure | Verify DNS for RTCD service URL |
+| `MaxCallParticipants is not valid` | Negative value configured | Set to 0 (unlimited) or a positive integer |
