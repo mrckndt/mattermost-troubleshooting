@@ -47,6 +47,12 @@ Most support symptoms span multiple repos. Use this map to decide where to look 
 
 ---
 
+## Ticket data
+
+Ticket files (logs, config dumps, support packets, screenshots) live under `./tickets/<name>/`, where `<name>` can be a Zendesk ID, a customer name, or any other identifier the engineer chose. When a ticket is being discussed, check that directory for relevant files before asking the engineer to paste content. If the folder is empty or missing, ask what files are available.
+
+---
+
 ## Troubleshooting Methodology
 
 When approaching any ticket, always identify:
