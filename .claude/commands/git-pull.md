@@ -22,4 +22,4 @@ After processing the target set, mark each repo touched as fetched-this-session 
 
 Notes:
 - Run each git invocation as a separate Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Parallelize across repos in a single message.
-- This command does NOT refresh tags or other branches. If you need new tags (e.g., before `/switch <repo> <tag>`), do a one-off `git -C upstream/<repo> fetch --tags` first.
+- This command does NOT refresh tags or other branches. If you need new tags (e.g., before `/git-switch <repo> <tag>`), do a one-off `git -C upstream/<repo> fetch --tags` first.

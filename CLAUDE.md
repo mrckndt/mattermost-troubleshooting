@@ -65,7 +65,7 @@ Always request: server logs (`mattermost.log` with DEBUG level), sanitized `conf
 
 ## Working with the cloned repos
 
-The repos under `upstream/<name>/` are working trees the assistant uses to read code. Keep them aligned with the version a ticket is about before quoting code or behavior. The slash commands `/bootstrap`, `/sync`, and `/switch` are surfaced in every system message - prefer them over running git directly when their behavior fits.
+The repos under `upstream/<name>/` are working trees the assistant uses to read code. Keep them aligned with the version a ticket is about before quoting code or behavior. The slash commands `/bootstrap`, `/git-pull`, and `/git-switch` are surfaced in every system message - prefer them over running git directly when their behavior fits.
 
 ### Lazy auto-refresh
 
@@ -73,14 +73,14 @@ The first time a repo is read in a session, do `git -C upstream/<repo> fetch --t
 
 Skip the pull (still do the fetch) when:
 - Dirty working tree (`git -C upstream/<repo> status -s` non-empty).
-- Detached HEAD (e.g. the user pinned a tag via `/switch` - leave it pinned).
+- Detached HEAD (e.g. the user pinned a tag via `/git-switch` - leave it pinned).
 - Local branch with no upstream (`git -C upstream/<repo> rev-parse --abbrev-ref --symbolic-full-name @{u}` exits non-zero).
 
 Note in the response why a pull was skipped. If fetch or pull errors (offline, auth, etc.), continue with the current local state and flag the staleness.
 
-### Cross-turn behavior after `/switch`
+### Cross-turn behavior after `/git-switch`
 
-After the user runs `/switch`, leave the repo on the chosen ref - do not auto-revert at end of turn. Always state in the answer which ref the code was read from.
+After the user runs `/git-switch`, leave the repo on the chosen ref - do not auto-revert at end of turn. Always state in the answer which ref the code was read from.
 
 ### Version-to-ref mapping
 
@@ -97,7 +97,7 @@ Prefer log/diff against refs over checking out:
 - `git -C upstream/<repo> log <refA>..<refB> -- <path>`
 - `git -C upstream/<repo> diff <refA> <refB> -- <path>`
 
-This avoids state changes and works without `/switch`.
+This avoids state changes and works without `/git-switch`.
 
 ---
 

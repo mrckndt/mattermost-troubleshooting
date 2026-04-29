@@ -33,5 +33,5 @@ Report a Markdown table with one row per repo and the columns: `Repo | Result`.
 
 Notes:
 - Run each `git clone` as its own Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Parallelize across repos in a single message.
-- This command does NOT pull or switch. After bootstrap, run `/sync` to bring all repos to their latest tracked state, or `/switch <repo> <ref>` to pin one to a specific tag/branch.
+- This command does NOT pull or switch. After bootstrap, run `/git-pull` to bring all repos to their latest tracked state, or `/git-switch <repo> <ref>` to pin one to a specific tag/branch.
 - This file is the canonical list of expected repos. `CLAUDE.md` and `README.md` reference it rather than duplicating the URLs.
