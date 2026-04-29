@@ -20,11 +20,28 @@
 - `AdminAPIToken` + `AdminEmail` required for autolink and event notifications
 - API tokens encrypted at rest with plugin-managed key (`EncryptionKey` setting)
 
-**Key paths**: `server/webhook*.go` (webhook handling), `server/instance*.go` (instance management), `server/subscribe.go` (channel subscriptions), `server/setup_flow.go` (OAuth setup), `server/kv.go` (KV store layer)
+**Key paths for troubleshooting**:
+
+| Area | Path |
+|---|---|
+| Webhook handling | `server/webhook*.go` |
+| Instance management | `server/instance*.go` |
+| Channel subscriptions | `server/subscribe.go` |
+| OAuth / setup flow | `server/setup_flow.go` |
+| KV store layer | `server/kv.go` |
+| Slash command handlers | `server/command.go` |
+
+### Common Investigation Patterns
+
+**Webhooks not firing (Jira -> Mattermost)**: Verify `ServiceSettings.SiteURL` is reachable from Jira (especially Jira Cloud). Inbound URL is `{SiteURL}/plugins/jira/api/v2/webhook`. If Mattermost is behind a reverse proxy, ensure POSTs to that path aren't being blocked. Webhook secret mismatch produces `Webhook secret validation failed`.
+
+**OAuth token / connection stale**: After password resets or long inactivity. User runs `/jira disconnect` then `/jira connect`. For Jira Server (Application Link), the consumer key/secret pair on Jira's side must match what the plugin generated.
+
+**Instance not installed**: `/jira instance install` was never run, or the install pointed at the wrong URL. Verify with `/jira instance list`. For Jira Cloud OAuth, `cloud-oauth` is the preferred install variant; legacy `cloud` Atlassian Connect is being phased out.
 
 ### Jira Plugin Errors
 
-| Error | Cause | Resolution |
+| Error Message | Cause | Resolution |
 |---|---|---|
 | Webhooks not firing | Jira cannot reach Mattermost SiteURL | Verify SiteURL is reachable from Jira server/cloud |
 | XSRF token expired | Session timeout during setup | Reconnect Jira account via `/jira connect` |

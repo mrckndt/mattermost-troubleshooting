@@ -35,3 +35,13 @@ Size is write-only: it sets replicas/resources then clears itself. Manual overri
 | CRD documentation | `docs/mattermost_v1beta1_crd.md` |
 | Migration guide (v1alpha1 to v1beta1) | `docs/migration.md` |
 | Sample CRs | `config/samples/` |
+
+### Common Investigation Patterns
+
+**Mattermost CR status stuck (`reconciling` forever)**: `kubectl describe mattermost <name>` shows the failing condition. Common: image pull (private registry secret missing), DB unreachable (verify the Secret referenced by `.spec.database.external.secret` has `DB_CONNECTION_STRING`), file-store secret missing.
+
+**Ingress class wrong / no ingress created**: The CR's `.spec.ingress.ingressClass` must match a real `IngressClass` in the cluster. If the operator is older than the cluster's ingress API version, the IngressClass field may be silently ignored.
+
+**File-store secret format**: The operator expects specific keys in the file-store secret (e.g., `accesskey`, `secretkey`, `endpoint`, `bucket` for S3). A malformed secret won't surface a clear error - the Mattermost pod just won't start with file-store env vars set. Verify by reading the rendered Deployment env vars.
+
+**Auto-set env vars override attempts**: Anything in `mattermostEnv` that conflicts with the auto-set list (`MM_CLUSTERSETTINGS_ENABLE`, `MM_METRICSSETTINGS_*`, `MM_PLUGINSETTINGS_ENABLEUPLOADS`, `MM_INSTALL_TYPE`) is silently overridden by the operator. Use a non-conflicting setting or fork the operator.

@@ -52,6 +52,14 @@
 | KV store operations | `server/store.go` |
 | Token encryption | `server/cipher.go` |
 
+### Common Investigation Patterns
+
+**Account-level vs user-level OAuth**: `AccountLevelApp=true` means a single admin authenticates for everyone (matched by email). `AccountLevelApp=false` requires each user to `/zoom connect`. Mismatch between Zoom app type ("User-managed" vs "Account-level") and this setting is a common gotcha.
+
+**Deauthorization webhook**: When users revoke the Zoom app, Zoom sends a deauthorization webhook to `{SiteURL}/plugins/zoom/webhook`. Verify Mattermost is reachable from Zoom; if missed, the user's `zoomtoken_<userID>` KV entry remains stale until they manually disconnect.
+
+**OAuth token decrypt failure**: After `EncryptionKey` rotation, existing tokens fail. User must `/zoom disconnect` and reconnect.
+
 ### Zoom Plugin Errors
 
 | Error Message | Cause | Resolution |

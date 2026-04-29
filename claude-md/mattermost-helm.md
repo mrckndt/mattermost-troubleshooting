@@ -29,16 +29,13 @@
 **mattermost-enterprise-edition chart** (legacy):
 - Key values: `global.siteUrl` (required), `global.mattermostLicense` (required)
 - Subcharts: `mysqlha`, `minio`, `prometheus` (all conditional)
-- Default MySQL credentials: user `mmuser`, password `passwd`, root password `rootpasswd` - MUST be changed for production
-- Default MinIO credentials: `mattermostadmin`/`mattermostadmin` - MUST be changed for production
+- Default MySQL credentials: user `mmuser`, password `passwd`, root password `rootpasswd` - MUST be changed for production. Defined in `charts/mattermost-enterprise-edition/values.yaml`.
+- Default MinIO credentials: `mattermostadmin`/`mattermostadmin` - MUST be changed for production. Defined in `charts/mattermost-enterprise-edition/values.yaml`.
 
-**Common pitfalls**:
-- Not setting required fields: `global.siteUrl`, license, database connection string
-- Using default MySQL/MinIO passwords in production
-- Using local file storage driver instead of S3/MinIO in production (breaks HA)
-- Ingress enabled without TLS secret configured
-- Missing cluster communication ports (gossip 8074, cluster 8075) in network policies
-- PVC default size (10Gi) may be insufficient for production workloads
+**Helm-chart-specific pitfalls** (generic K8s deployment pitfalls live in CLAUDE.md "Deployment pitfalls"):
+- Ingress enabled without a TLS secret configured.
+- Cluster communication ports (gossip 8074, streaming 8075) blocked by NetworkPolicy.
+- PVC default size (10Gi) may be insufficient for production workloads.
 
 **Key paths for troubleshooting**:
 
@@ -52,3 +49,11 @@
 | Legacy enterprise chart templates | `charts/mattermost-enterprise-edition/templates/` |
 | RTCD chart | `charts/mattermost-rtcd/` |
 | Push proxy chart | `charts/mattermost-push-proxy/` |
+
+### Common Investigation Patterns
+
+**Ingress drops WebSocket**: NGINX ingress and many cloud LBs need explicit annotations to forward `Upgrade` / `Connection` headers and an idle timeout >60s. Without that, `/api/v4/websocket` connections die after the proxy's default idle timeout. Verify `nginx.ingress.kubernetes.io/proxy-read-timeout` >= 3600.
+
+**StatefulSet PVC stuck pending**: Pod can't start. Usually a `StorageClass` mismatch or no provisioner. `kubectl describe pvc <name>` should show the binding error. For local-path tests, set `global.features.fileStore.driver=local` (NOT for production - breaks HA).
+
+**Cluster gossip blocked**: Pods can't form a cluster. Network policies must allow gossip 8074 and streaming 8075 between Mattermost pods. The chart adds `clusterPort`/`gossipPort` Service entries; confirm they aren't filtered upstream of the Service.

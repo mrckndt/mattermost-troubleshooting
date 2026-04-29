@@ -56,6 +56,16 @@ Migrations: 5 total (MySQL and PostgreSQL) at `server/db/migrations/`
 | Database layer | `server/db/` |
 | API endpoints | `server/api.go` |
 
+### Common Investigation Patterns
+
+**RTCD unreachable (`no host available`)**: Verify `RTCDServiceURL` is set and resolvable from the app node; check that outbound traffic to RTCD's API port is open. RTCD itself listens on UDP/TCP 8443 for media plus an HTTP signaling port. If running RTCD in K8s, confirm the Service `targetPort` matches the RTCD pod and `RTCDServiceURL` uses cluster DNS.
+
+**ICE host override needed (peers can't connect from outside)**: NAT'd RTC server. Set `ICEHostOverride` to the public IP and `ICEHostPortOverride` if the public-facing port differs from the listen port. Test with the WebRTC samples (`trickle-ice`) from outside the network.
+
+**Recording / transcription job stuck**: Check `JobServiceURL` is reachable. Inspect the `calls_jobs` table for state. If using offloader, confirm the offloader pod can pull the recorder/transcriber images and that S3-compatible storage credentials are valid.
+
+**Audio-only fallback (no video)**: Usually a UDP-blocked client falling back to TCP at 8443. Verify both UDP and TCP are open. If only TCP works, the experience is degraded but functional.
+
 ### Calls Plugin Errors
 
 | Error Message | Cause | Resolution |

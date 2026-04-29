@@ -43,6 +43,14 @@
 - `PING_INTERVAL`: 30 seconds
 - Network: one Client per server via NetworkManager, exponential retry (3 retries)
 
+### Common Investigation Patterns
+
+**Push proxy reports `NOT_AVAILABLE`**: Notifications are silently dropped client-side. Verify `EmailSettings.PushNotificationServer` points to a reachable HPNS or self-hosted MPNS, and that `EmailSettings.SendPushNotifications=true`. Self-compiled mobile apps MUST run their own MPNS - HPNS only accepts traffic from the official app builds.
+
+**Deep links not opening the app**: Custom-domain deployments need `ServiceSettings.SiteURL` to match the URL users tap. The mobile app validates the link's host against the SiteURL during the deep-link handler.
+
+**WebSocket reconnect storm after server restart**: Clients try up to 7 times with backoff (3s -> 5min). On the server side this surfaces as a burst of "user access token" warnings (see `mattermost.md` deep-dive on session resolution); harmless if it tapers off. If it doesn't taper, inspect the network manager and load-balancer idle timeout (must be >60s).
+
 ### Mobile Client Errors
 
 | Error / Code | Cause | Resolution |

@@ -27,6 +27,16 @@ Migrations: 164 (PostgreSQL only) at `server/sqlstore/migrations/postgres/`
 | Error definitions | `server/app/errors.go` |
 | Playbook run service | `server/app/playbook_run_service.go` |
 
+### Common Investigation Patterns
+
+**MySQL not supported**: Plugin activation fails with `unsupported database type X for migration`. Playbooks is PostgreSQL-only; the customer must migrate. Point to `deployment-guide/postgres-migration.rst` in the docs repo.
+
+**Run not starting**: License gate (`OnActivate` license-check failure) - confirm Professional or higher. Otherwise, look in `server/app/playbook_run_service.go` for run-creation errors; common causes are missing playbook ID or insufficient channel permissions for the requested channel mode.
+
+**Status update missing**: Status updates are scheduled posts. If they don't appear, check the run isn't already finished (`ErrPlaybookRunNotActive`); inspect `IR_StatusPosts` for the expected entry. WebSocket update events use `EnableIncrementalUpdates` (default false).
+
+**Retrospective permissions denied**: Retros are channel-scoped. Confirm the user is a run participant or playbook member; check `IR_PlaybookMember` for the role.
+
 ### Playbooks Plugin Errors
 
 | Error Message | Cause | Resolution |

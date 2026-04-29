@@ -54,6 +54,14 @@
 | Review SLA tracking | `server/plugin/review_sla.go`, `server/plugin/sla_digest.go` |
 | Token auto-refresh | `server/plugin/mm_34646_token_refresh.go` |
 
+### Common Investigation Patterns
+
+**OAuth redirect mismatch**: GitHub rejects the callback. The OAuth app's "Authorization callback URL" must be exactly `{SiteURL}/plugins/github/oauth/complete`. If using GitHub Enterprise, `EnterpriseBaseURL` must be set AND `UsePreregisteredApplication` must be off (Chimera is Cloud-only).
+
+**Webhook secret mismatch (`Invalid webhook signature`)**: Reconfigure the webhook in GitHub with the secret printed by the plugin's settings. Webhook signature uses HMAC SHA1.
+
+**Refresh token rotation issues**: Tokens auto-refresh on 401. If users see persistent `401 Bad credentials`, the refresh token has been revoked (often by GitHub re-authentication). They must `/github disconnect` then `/github connect`.
+
 ### GitHub Plugin Errors
 
 | Error Message | Cause | Resolution |

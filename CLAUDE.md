@@ -28,6 +28,25 @@ Per-repo architecture, key paths, and plugin/client error tables live in `claude
 
 ---
 
+## Cross-Repo Investigation Map
+
+Most support symptoms span multiple repos. Use this map to decide where to look first; defer per-repo specifics to the relevant `claude-md/<repo>.md`.
+
+| Symptom | Primary repos to inspect |
+|---|---|
+| Push notification not arriving | `mattermost` + `mattermost-mobile` (push proxy `EmailSettings.PushNotificationServer`) |
+| SSO / SAML / LDAP failure | `mattermost` (config + i18n) + `enterprise` (impl in `ldap/` or `saml/`) |
+| Plugin not loading | The plugin's repo + `mattermost` (`server/channels/app/plugin*.go`) |
+| Mobile / desktop UI quirk vs API mismatch | client repo (`mattermost-mobile` or `desktop`) + `mattermost` (API4 endpoint) |
+| WebRTC call drops / RTCD unreachable | `mattermost-plugin-calls` + `mattermost-helm` or `mattermost-operator` (network policies, ports) |
+| Compliance / message export / data retention | `mattermost` (job system, config) + `enterprise` (`compliance/`, `data_retention/`, `message_export/`) |
+| Cluster gossip / leader election | `mattermost` + `enterprise` (`cluster/`) |
+| Cloud / CWS connectivity | `mattermost` (`api4/cloud.go`, `CloudSettings`) + `enterprise` (`cloud/`) |
+| Plugin API gap (e.g. notifications, threads) | The plugin's repo + `mattermost` (`server/public/plugin/api.go`, `hooks.go`) |
+| Error message lookup | `mattermost/server/i18n/en.json` (translation), then grep ID in OSS or enterprise repo |
+
+---
+
 ## Troubleshooting Methodology
 
 When approaching any ticket, always identify:
@@ -141,29 +160,7 @@ This avoids state changes and works without `/switch`.
 
 ## Database Quick Reference
 
-### Database Support Matrix
-
-| Component | PostgreSQL | MySQL | Notes |
-|---|---|---|---|
-| Mattermost Server | Yes (primary) | Yes | PostgreSQL recommended |
-| Plugin: Calls | Yes | Yes | Custom tables: `calls_*` |
-| Plugin: Playbooks | Yes | **No** | Hard requirement; errors on MySQL |
-| Plugin: Boards | Yes | Yes | Deprecated since Sept 2023 |
-| Plugin: Agents | Yes (pgvector for search) | Partial | pgvector extension required for semantic search |
-| Plugin: Jira | N/A | N/A | Uses KV store, no direct SQL |
-| Plugin: Zoom | N/A | N/A | Uses KV store, no direct SQL |
-| Plugin: GitHub | N/A | N/A | Uses KV store, no direct SQL |
-| Plugin: GitLab | N/A | N/A | Uses KV store, no direct SQL |
-
-### Key Tables by Component
-
-**Server core** (partial list): `Users`, `Channels`, `Posts`, `Teams`, `Sessions`, `Tokens`, `OAuthApps`, `OAuthAccessData`, `Preferences`, `Status`, `FileInfo`, `Reactions`, `ChannelMembers`, `TeamMembers`, `Commands`, `IncomingWebhooks`, `OutgoingWebhooks`, `PluginKeyValueStore`
-
-**Calls**: `calls_channels` (channel call settings), `calls` (active/past calls), `calls_sessions` (user sessions in calls), `calls_jobs` (recording/transcription jobs)
-
-**Playbooks** (all `IR_` prefixed): `IR_Incident` (playbook runs), `IR_Playbook` (templates), `IR_PlaybookMember`, `IR_StatusPosts`, `IR_TimelineEvent`, `IR_UserInfo`, `IR_ViewedChannel`
-
-Connection pool defaults (`MaxIdleConns=50`, `MaxOpenConns=100`, `QueryTimeout=30s`, `AnalyticsQueryTimeout=300s`) and read replica config (`DataSourceReplicas`, `DataSourceSearchReplicas`): see the `mattermost` claude-md file for full details.
+DB support matrix, per-component key tables, connection-pool defaults, and read-replica config: see `claude-md/mattermost.md` (authoritative). Per-plugin database notes: see each plugin's `claude-md/<plugin>.md`.
 
 ---
 
@@ -189,18 +186,32 @@ Plugins use hashicorp/go-plugin with RPC (gRPC) communication between the server
 
 Plugin IDs and minimum server versions are listed in each plugin's per-repo file under `claude-md/`.
 
+### Plugin API limitations
+
+Plugins interact with the server only via the RPC interface in `upstream/mattermost/server/public/plugin/api.go`. They cannot call app-layer functions directly. Notable gaps:
+
+- No access to `SendNotifications()` (the app's internal notification dispatch). Plugins use `CreatePost` to trigger the full pipeline indirectly.
+- No thread follower / subscriber queries. Plugins can `GetPostThread` (gets posts) but cannot list who follows a thread.
+- No way to follow / unfollow a thread on behalf of a user. The follow API requires `SessionHasPermissionToUser` and rejects bots acting on others.
+- `SendPushNotification` is plugin-API-callable for a specific user (server v9.0+); use it instead of trying to reach `SendNotifications`.
+
 ---
 
 ## Network and Connectivity
 
-### Core Server Ports
+### Core Ports
 
 | Service | Default Port | Config Setting |
 |---|---|---|
 | HTTP/HTTPS (API + webapp) | 8065 | `ServiceSettings.ListenAddress` |
 | Prometheus metrics | 8067 | `MetricsSettings.ListenAddress` |
+| Cluster gossip | 8074 | `ClusterSettings.GossipPort` |
+| Cluster streaming | 8075 | `ClusterSettings.StreamingPort` |
 | Calls RTC (UDP) | 8443 | Calls plugin `UDPServerPort` |
 | Calls RTC (TCP fallback) | 8443 | Calls plugin `TCPServerPort` |
+| STUN | 3478 | Calls plugin `ICEServersConfigs` |
+
+Full RTC/TURN/RTCD details: see `claude-md/mattermost-plugin-calls.md`.
 
 ### WebSocket
 
@@ -332,6 +343,18 @@ Common issues:
 - Supports: error, warn, info, verbose, debug, silly
 - Log files: stored in user data directory (platform-specific, see the `desktop` claude-md file).
 
+### Error Investigation Shortcut
+
+When a customer reports a server-side error message:
+
+1. Search `upstream/mattermost/server/i18n/en.json` for the message text or known ID. The match gives you the canonical translation ID.
+2. Grep the ID across `upstream/mattermost/server/channels/` and (if cloned) `upstream/enterprise/` to find the call site that raises it.
+3. Read the surrounding code for the triggering condition. The `AppError.Where` field on the raised error tells you the originating function.
+
+Convention: error IDs prefixed with `ent.` are raised by the enterprise repo. Errors without that prefix are OSS.
+
+For webapp-side messages, search `upstream/mattermost/webapp/channels/src/i18n/en.json` (flat key-value JSON).
+
 ### What to Request from Customers
 
 - [ ] Server logs (`mattermost.log`) with `LogSettings.FileLevel` set to `DEBUG`
@@ -346,13 +369,54 @@ Common issues:
 
 ---
 
+## Operational Quick Reference
+
+### Determining server version
+
+Three options, in order of preference:
+- `mmctl version` (locally on a node, or remote with auth).
+- Grep `"Current version"` (or `"Server is initializing"`) in `mattermost.log` - logged on every start.
+- HTTP `GET /api/v4/system/version` (any reachable server returns version info).
+
+### mmctl Quick Reference (top 10 for support)
+
+| Command | Use case |
+|---|---|
+| `mmctl --local <verb>` | Connect via Unix socket on the app node, no auth. Default for SSH'd-in support. |
+| `mmctl auth login <url>` | Connect remotely with admin credentials/token. |
+| `mmctl version` | Verify running server version. |
+| `mmctl system status` | Health summary (DB, file store, cluster). |
+| `mmctl logs --watch` | Tail server logs in real time. |
+| `mmctl user search <q>` | Find a user by email / username / ID. |
+| `mmctl user reset_password <id>` | Force a password reset (no email sent). |
+| `mmctl user activate <id>` / `deactivate <id>` | Enable / disable an account. |
+| `mmctl config get <path>` / `set <path> <value>` | Read or update a config field by JSON path. |
+| `mmctl plugin list` | List installed plugins and their states. |
+
+mmctl source: `upstream/mattermost/server/cmd/mmctl/`. Run `mmctl <verb> --help` for full flags.
+
+### Support packet analysis
+
+Customers generate a support packet from System Console -> Reporting -> Support Packet (or `mmctl support_packet`). The output is a `.zip` containing (typical contents):
+
+| File | Contains |
+|---|---|
+| `support_packet.yaml` | Server version, license, plugin states, deployment summary |
+| `sanitized_config.json` | Config with secrets redacted |
+| `mattermost.log` (and rotated) | Server log at whatever level was running |
+| `notifications.log` | Notification dispatch log |
+| `cpu.prof`, `heap.prof`, `goroutines.txt` | Go profiles (memory / goroutine snapshots) |
+| `system_info.json` (or platform-specific) | Host info: OS, CPU, memory, disk |
+
+For HA deployments, ask for support packets from EVERY node - per-node logs are separate.
+
+If logs aren't at DEBUG, ask the customer to set `LogSettings.FileLevel=DEBUG`, reproduce, regenerate.
+
+What's defined as packet contents: `upstream/mattermost/server/channels/app/platform/support_packet.go`.
+
+---
+
 ## Cross-Cutting Troubleshooting Patterns
-
-### SiteURL
-
-The most common misconfiguration across all Mattermost deployments. Must be set to the exact URL users use to access Mattermost (including protocol, hostname, and port if non-standard). No trailing slash.
-
-Affects: OAuth callbacks, SAML ACS URL, email links, webhook URLs, Jira integration, Zoom integration, GitHub integration, GitLab integration, Agents MCP, mobile deep links, plugin marketplace, image proxy.
 
 ### Certificate Issues
 
@@ -381,6 +445,14 @@ Affects: OAuth callbacks, SAML ACS URL, email links, webhook URLs, Jira integrat
 - **Caching**: `CacheSettings` controls in-memory cache sizes. Monitor cache hit rates via Prometheus metrics.
 - **File storage**: S3-compatible storage recommended for production; local filesystem does not support HA.
 
+### Deployment pitfalls (any K8s / Helm / Operator deployment)
+
+These apply to all production deployments, not just one chart or operator:
+
+- **Required fields not set**: `ServiceSettings.SiteURL` (or its Helm/CR equivalent), `Features.Mattermost` license, database connection string. Symptoms range from broken email links to plugins failing to activate.
+- **Default credentials in production**: stock chart values (e.g. `mmuser`/`passwd`, `mattermostadmin`/`mattermostadmin`) MUST be overridden. Surfaces as security audit findings or, worse, post-incident.
+- **Local file storage in HA**: a `local` file driver works for a single replica only; multi-replica deployments need S3-compatible storage or NFS. File uploads will appear missing on nodes that didn't write them.
+
 ---
 
 ## Per-repo context
@@ -388,6 +460,7 @@ Affects: OAuth callbacks, SAML ACS URL, email links, webhook URLs, Jira integrat
 Each repo's architecture, key paths, and plugin/client error tables are kept in their own file under `claude-md/`. These files are imported here so they load automatically and stay outside the actual repo folders (no local changes when switching branches/tags inside a repo).
 
 @claude-md/mattermost.md
+@claude-md/enterprise.md
 @claude-md/mattermost-mobile.md
 @claude-md/desktop.md
 @claude-md/mattermost-plugin-calls.md

@@ -48,6 +48,16 @@
 | Webhook type handlers (issue, MR, pipeline, etc.) | `server/webhook/` |
 | Slash command handlers | `server/command.go` |
 
+### Common Investigation Patterns
+
+**OAuth redirect mismatch**: GitLab redirect URI must match exactly: `{SiteURL}/plugins/com.github.manland.mattermost-plugin-gitlab/oauth/complete`. For self-hosted GitLab, the `GitlabURL` setting must point at the correct instance.
+
+**Webhook secret mismatch**: The plugin's `WebhookSecret` (auto-generated, surfaced via `/gitlab webhook list`) must match what's configured on GitLab's side. Errors often look like generic 401s from the webhook endpoint.
+
+**Encryption key rotation**: After rotating `EncryptionKey`, existing tokens fail to decrypt (`Unable to decrypt token for KV migration`). Set the previous key in `PreviousEncryptionKey` to allow fallback decryption while users reconnect.
+
+**SiteURL not set on activation**: Plugin fails to start with `siteURL is not set. Please set it and restart the plugin`. Set `ServiceSettings.SiteURL` then disable/enable the plugin.
+
 ### GitLab Plugin Errors
 
 | Error Message | Cause | Resolution |
