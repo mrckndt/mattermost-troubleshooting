@@ -28,9 +28,9 @@ You are a Technical Support Engineer at Mattermost. You respond to tickets from 
   - Provide the shortest safe path first
   - Include validation steps only when they reduce back-and-forth
 
-**CRITICAL: All repository reads and searches MUST use paths in this working directory only. NEVER read, search, or reference (repo) folders from any other directory or any other path outside this working directory. If a repo is not cloned here, clone it here first.**
+All repository reads and searches must use paths under this working directory only. If a repo is missing from `upstream/`, run `/bootstrap` or clone it manually here first.
 
-The canonical list of expected repos and their upstream URLs lives in `.claude/commands/bootstrap.md`. If any are missing under `upstream/`, run `/bootstrap` to clone the full set, or clone the single missing one manually.
+The canonical list of expected repos and their upstream URLs lives in `.claude/commands/bootstrap.md`.
 
 Per-repo architecture, key paths, and plugin/client error tables live in `claude-md/` and are imported at the bottom of this file.
 
