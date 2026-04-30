@@ -47,11 +47,19 @@ Most support symptoms span multiple repos. Use this map to decide where to look 
 | Plugin not loading | The plugin's repo + `mattermost` (`server/channels/app/plugin*.go`) |
 | Mobile / desktop UI quirk vs API mismatch | client repo (`mattermost-mobile` or `desktop`) + `mattermost` (API4 endpoint) |
 | WebRTC call drops / RTCD unreachable | `mattermost-plugin-calls` + `mattermost-helm` or `mattermost-operator` (network policies, ports) |
+| Calls recording / transcription not finishing | `mattermost-plugin-calls` + `calls-offloader` + `calls-recorder` + `calls-transcriber` (job runner, container images) |
 | Compliance / message export / data retention | `mattermost` (job system, config) + `enterprise` (`compliance/`, `data_retention/`, `message_export/`) |
 | Cluster gossip / leader election | `mattermost` + `enterprise` (`cluster/`) |
 | Cloud / CWS connectivity | `mattermost` (`api4/cloud.go`, `CloudSettings`) + `enterprise` (`cloud/`) |
 | Plugin API gap (e.g. notifications, threads) | The plugin's repo + `mattermost` (`server/public/plugin/api.go`, `hooks.go`) |
 | Error message lookup | `mattermost/server/i18n/en.json` (translation), then grep ID in OSS or enterprise repo |
+| Database migration (MySQL -> PostgreSQL) | `migration-assist` + `mattermost` (DB schema, migrations) |
+| Docker Compose / nginx / TLS deployment issues | `docker` (compose files, nginx config, env template) |
+| Microsoft Teams channel sync / user bridge | `mattermost-plugin-msteams` (NOT `mattermost-plugin-msteams-meetings`) |
+| Microsoft Teams meeting create / join | `mattermost-plugin-msteams-meetings` (NOT `mattermost-plugin-msteams`) |
+| Outlook / Office 365 calendar reminders / status sync | `mattermost-plugin-mscalendar` |
+| Google Calendar reminders / status sync | `mattermost-plugin-google-calendar` |
+| Channel automation rules not firing | `mattermost-plugin-channel-automation` (+ `mattermost-plugin-agents` for `ai_prompt` actions) |
 
 ---
 
@@ -455,15 +463,24 @@ Each repo's architecture, key paths, and plugin/client error tables are kept in 
 @claude-md/enterprise.md
 @claude-md/mattermost-mobile.md
 @claude-md/desktop.md
+@claude-md/docker.md
+@claude-md/docs.md
+@claude-md/mattermost-developer-documentation.md
+@claude-md/mattermost-helm.md
+@claude-md/mattermost-operator.md
+@claude-md/migration-assist.md
+@claude-md/calls-offloader.md
+@claude-md/calls-recorder.md
+@claude-md/calls-transcriber.md
 @claude-md/mattermost-plugin-calls.md
 @claude-md/mattermost-plugin-playbooks.md
 @claude-md/mattermost-plugin-agents.md
 @claude-md/mattermost-plugin-boards.md
-@claude-md/mattermost-plugin-jira.md
-@claude-md/mattermost-plugin-zoom.md
+@claude-md/mattermost-plugin-channel-automation.md
 @claude-md/mattermost-plugin-github.md
-@claude-md/mattermost-plugin-gitlab.md
-@claude-md/mattermost-operator.md
-@claude-md/mattermost-developer-documentation.md
-@claude-md/docs.md
-@claude-md/mattermost-helm.md
+@claude-md/mattermost-plugin-google-calendar.md
+@claude-md/mattermost-plugin-jira.md
+@claude-md/mattermost-plugin-mscalendar.md
+@claude-md/mattermost-plugin-msteams.md
+@claude-md/mattermost-plugin-msteams-meetings.md
+@claude-md/mattermost-plugin-zoom.md

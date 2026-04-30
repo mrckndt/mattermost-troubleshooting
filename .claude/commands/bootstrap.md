@@ -10,23 +10,32 @@ Ensure every repo listed below is cloned under `upstream/<name>/` in the current
 
 Continue on errors; collect failures and surface them at the end.
 
-Repos to bootstrap:
+Repos to bootstrap (alphabetical):
 
-- `https://github.com/mattermost/mattermost`
-- `https://github.com/mattermost/mattermost-mobile`
+- `https://github.com/mattermost/calls-offloader`
+- `https://github.com/mattermost/calls-recorder`
+- `https://github.com/mattermost/calls-transcriber`
 - `https://github.com/mattermost/desktop`
-- `https://github.com/mattermost/mattermost-plugin-playbooks`
-- `https://github.com/mattermost/mattermost-plugin-calls`
+- `https://github.com/mattermost/docker`
+- `https://github.com/mattermost/docs`
+- `https://github.com/mattermost/mattermost`
+- `https://github.com/mattermost/mattermost-developer-documentation`
+- `https://github.com/mattermost/mattermost-helm`
+- `https://github.com/mattermost/mattermost-mobile`
 - `https://github.com/mattermost/mattermost-operator`
 - `https://github.com/mattermost/mattermost-plugin-agents`
-- `https://github.com/mattermost/mattermost-developer-documentation`
 - `https://github.com/mattermost/mattermost-plugin-boards`
-- `https://github.com/mattermost/mattermost-plugin-jira`
-- `https://github.com/mattermost/mattermost-plugin-zoom`
+- `https://github.com/mattermost/mattermost-plugin-calls`
+- `https://github.com/mattermost/mattermost-plugin-channel-automation`
 - `https://github.com/mattermost/mattermost-plugin-github`
-- `https://github.com/mattermost/mattermost-plugin-gitlab`
-- `https://github.com/mattermost/mattermost-helm`
-- `https://github.com/mattermost/docs`
+- `https://github.com/mattermost/mattermost-plugin-google-calendar`
+- `https://github.com/mattermost/mattermost-plugin-jira`
+- `https://github.com/mattermost/mattermost-plugin-mscalendar`
+- `https://github.com/mattermost/mattermost-plugin-msteams`
+- `https://github.com/mattermost/mattermost-plugin-msteams-meetings`
+- `https://github.com/mattermost/mattermost-plugin-playbooks`
+- `https://github.com/mattermost/mattermost-plugin-zoom`
+- `https://github.com/mattermost/migration-assist`
 
 Report a Markdown table with one row per repo and the columns: `Repo | Result`.
 - `Result`: `already present`, `cloned`, or the error message git printed.
