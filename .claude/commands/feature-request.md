@@ -40,7 +40,7 @@ Generate a structured feature-request post for the current troubleshooting conte
 - Render every URL as a clickable Markdown link with a short, meaningful label, e.g. `[#48217](https://mattermost.zendesk.com/agent/tickets/48217)`. Do not append the bare URL afterward. Label conventions:
   - Zendesk ticket: `#<numeric ID>` (e.g. `#48217`).
   - Jira ticket: the issue key (e.g. `MM-12345`).
-  - Salesforce account / opportunity: use the company name (same value as the **Customer:** field). Salesforce URLs end in opaque IDs like `https://mattermost.lightning.force.com/lightning/r/Account/001S600000jHNeEIAW/view`, so never use the last URL path segment as the label.
+  - Salesforce account / opportunity: use the company name (same value as the **Customer:** field).
   - GitHub / GitLab issue or PR: `owner/repo#<number>` (e.g. `mattermost/mattermost#1234`).
   - Mattermost post / thread: a short descriptor like `community thread` or `support channel post`.
   - Anything else: a 1-3 word descriptor of what the link points to.
