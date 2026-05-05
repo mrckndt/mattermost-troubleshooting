@@ -56,7 +56,6 @@ Generate a structured feature-request post for the current troubleshooting conte
 **Writing style (audience: Mattermost product managers)**
 - Write to a PM who owns the affected product area. Assume product literacy but no ticket context.
 - Lead with the customer's actual ask, not background. A PM should grasp the ask in the first two sentences.
-- Use plain present tense ("The customer needs...", not "The customer would like to be able to...").
 - Be specific about scope: what the feature does, what it explicitly does not do, and where it fits in the existing product surface (config setting, UI flow, API, plugin).
 - Frame the problem in product terms (user impact, frequency, affected persona) rather than support terms (ticket noise, escalation count). PMs prioritize on user value and reach.
 - Surface signals a PM cares about: how many users / customers are affected, whether it's a blocker vs friction, whether revenue or a renewal is tied to it, and whether competitors solve it.
