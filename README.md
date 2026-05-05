@@ -27,17 +27,37 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 - `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
 - `/feature-request [title]` - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 
+## First-time setup
+
+```
+git clone git@github.com:mrckndt/mattermost-troubleshooting.git
+cd mattermost-troubleshooting
+claude
+```
+
+Then inside Claude:
+- `/bootstrap` - clone all upstream repos under `upstream/`.
+
 ## Working a ticket
 
-1. Create a folder under `tickets/` - named after the ticket ID or any other identifier: `tickets/12345/`, `tickets/customer-name/`, etc.
-2. Drop relevant files there (logs, config dumps, support packets, screenshots, etc.).
+1. Create a folder under `tickets/` named after the ticket ID or any other identifier:
+   ```
+   mkdir -p tickets/12345
+   ```
+2. Drop relevant files there (logs, config dumps, support packets, screenshots, etc.):
+   ```
+   cp ~/Downloads/mattermost.log tickets/12345/
+   cp ~/Downloads/support_packet.zip tickets/12345/ && unzip -d tickets/12345/ tickets/12345/support_packet.zip
+   ```
 3. Open Claude Code from the **repo root**:
    ```
    cd /path/to/mattermost-troubleshooting
    claude
    ```
-4. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
-
-## First-time setup
-
-Run `/bootstrap` to clone the upstream repos, then `/git-pull` to bring them current.
+4. If the customer's server is on a specific version, pin the relevant repo first:
+   - `/git-switch mattermost v10.5.1`
+5. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
+6. When you have a conclusion, generate the customer-facing output:
+   - `/draft-email` - reply to the customer.
+   - `/kb-article` - publish a KB article.
+   - `/feature-request` - file a PM-facing request.
