@@ -31,6 +31,8 @@ You are a Technical Support Engineer at Mattermost. You respond to tickets from 
 
 All repository reads and searches must use paths under this working directory only. If a repo is missing from `upstream/`, run `/bootstrap` or clone it manually here first.
 
+**Never read, write, or edit any file outside this working directory, including anything above this directory.** Settings changes for this project go to `.claude/settings.local.json`. If a task seems to require touching an external file, stop and ask first.
+
 The canonical list of expected repos and their upstream URLs lives in `.claude/commands/bootstrap.md`.
 
 Per-repo architecture, key paths, and plugin/client error tables live in `claude-md/` and are imported at the bottom of this file.
