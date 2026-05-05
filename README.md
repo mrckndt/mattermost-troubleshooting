@@ -11,7 +11,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 ├── upstream/              # Local clones, one directory per upstream repo
 ├── tickets/               # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/          # /bootstrap, /git-pull, /git-switch
+    ├── commands/          # /bootstrap, /git-pull, /git-switch, /draft-email, /kb-article, /feature-request
     └── settings.local.json
 ```
 
@@ -25,6 +25,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 **Output**
 - `/draft-email [description]` - draft a customer reply email from the current troubleshooting context. Optional arg: problem/solution hint.
 - `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
+- `/feature-request [title]` - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 
 ## Working a ticket
 
