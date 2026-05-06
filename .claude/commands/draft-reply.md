@@ -1,21 +1,21 @@
 ---
-description: Draft a customer reply email based on the current troubleshooting context. Optional arg: problem/solution description to factor in.
+description: Draft a customer reply (email, Zendesk, hub thread) based on the current troubleshooting context. Optional arg: problem/solution description to factor in.
 argument-hint: [problem or solution description]
 ---
 
 Args: $ARGUMENTS
 
-Draft a customer-facing reply email for the current troubleshooting context.
+Draft a customer-facing reply for the current troubleshooting context. The reply may be sent over email, Zendesk, or a Mattermost hub thread - the format below applies to all of them.
 
 ## How to reason
 
 1. Review everything known about the ticket: files under `./tickets/<name>/`, the conversation so far, any logs or config already analysed.
-2. If $ARGUMENTS is provided, treat it as additional context or direction (e.g. "root cause is X, fix is Y") and incorporate it into the email.
-3. Determine what the email needs to cover:
+2. If $ARGUMENTS is provided, treat it as additional context or direction (e.g. "root cause is X, fix is Y") and incorporate it into the reply.
+3. Determine what the reply needs to cover:
    - A diagnosis, a request for more information, a fix/workaround, or a status update.
 4. Draft accordingly. Do not pad. If something is uncertain, say so briefly rather than omitting it.
 
-## Email format rules (apply these exactly)
+## Reply format rules (apply these exactly)
 
 **Greeting**
 - If the customer's first name is known, use it: `Hello <FirstName>,`
@@ -45,4 +45,4 @@ Mattermost serves US government customers, so outbound statements must not overs
 
 ## Output
 
-Print only the email text as Markdown, ready to copy-paste. No commentary before or after it.
+Print only the reply text as Markdown, ready to copy-paste. No commentary before or after it.

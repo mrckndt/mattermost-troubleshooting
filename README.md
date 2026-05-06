@@ -11,7 +11,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 ├── upstream/              # Local clones, one directory per upstream repo
 ├── tickets/               # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/          # /bootstrap, /git-pull, /git-switch, /draft-email, /kb-article, /feature-request
+    ├── commands/          # /bootstrap, /git-pull, /git-switch, /draft-reply, /kb-article, /feature-request
     └── settings.local.json
 ```
 
@@ -23,7 +23,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 - `/git-switch <repo> [<ref>]` - check out a tag or branch (default: the repo's default branch).
 
 **Output**
-- `/draft-email [description]` - draft a customer reply email from the current troubleshooting context. Optional arg: problem/solution hint.
+- `/draft-reply [description]` - draft a customer reply from the current troubleshooting context. Optional arg: problem/solution hint.
 - `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
 - `/feature-request [title]` - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 
@@ -58,6 +58,6 @@ Then inside Claude:
    - `/git-switch mattermost v10.5.1`
 5. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
 6. When you have a conclusion, generate the customer-facing output:
-   - `/draft-email` - reply to the customer.
+   - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
    - `/feature-request` - file a PM-facing request.
