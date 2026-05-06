@@ -10,6 +10,8 @@ Ensure every repo listed below is cloned under `upstream/<name>/` in the current
 
 Continue on errors; collect failures and surface them at the end.
 
+Also ensure a `tickets/` directory exists at the working-directory root. If it's missing, create it (`mkdir tickets`). If it already exists, leave it alone - the engineer may have organised it differently and any internal structure is theirs to keep.
+
 Repos to bootstrap (alphabetical):
 
 - `https://github.com/mattermost/calls-offloader`
