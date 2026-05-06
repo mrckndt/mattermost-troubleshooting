@@ -64,6 +64,9 @@ Generate a structured feature-request post for the current troubleshooting conte
 - Keep it short. The whole post should fit on one screen and a PM should triage it in under 60 seconds.
 - No explanatory/preamble text before or after the post.
 
+**Phase 3 - Review before posting**
+- If the user asks for the feature request to be posted to a specific channel, chat, or thread, do not post it directly. Render the draft first and explicitly ask whether it needs changes or can be sent as-is. Only post after the user confirms.
+
 <post_template>
 # Feature Request: [Customer] - [Short, Descriptive Title]
 
