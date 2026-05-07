@@ -1,5 +1,9 @@
 {
   "permissions": {
+    "deny": [
+      "Bash(git -C upstream/* push:*)",
+      "Bash(git -C upstream/* push)"
+    ],
     "allow": [
       "Read(./**)",
       "Glob(./**)",
