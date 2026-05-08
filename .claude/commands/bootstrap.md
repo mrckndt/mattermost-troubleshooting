@@ -2,6 +2,8 @@
 description: Clone any missing Mattermost repos into upstream/. Idempotent - skips repos already present.
 ---
 
+First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `upstream/<name>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing.
+
 Ensure every repo listed below is cloned under `upstream/<name>/` in the current working directory. For each URL:
 
 1. Derive `<name>` from the last path segment of the URL (e.g. `https://github.com/mattermost/mattermost` -> `mattermost`).

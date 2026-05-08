@@ -2,6 +2,8 @@
 description: Run git pull --ff-only on the current branch of one repo (arg) or every repo under upstream/ (no arg)
 ---
 
+First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `upstream/<repo>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing.
+
 Args: optionally a single `<repo>` name (matching a directory under `upstream/`).
 
 Determine the target set:

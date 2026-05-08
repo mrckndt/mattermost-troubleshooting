@@ -22,6 +22,8 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 - `/git-pull [<repo>]` - `git pull --ff-only` on the current branch of one repo or all.
 - `/git-switch <repo> [<ref>]` - check out a tag or branch (default: the repo's default branch).
 
+> Note: these three commands begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`).
+
 **Output**
 - `/draft-reply [description]` - draft a customer reply from the current troubleshooting context. Optional arg: problem/solution hint.
 - `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.

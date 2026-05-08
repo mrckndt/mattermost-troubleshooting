@@ -88,6 +88,8 @@ Always request: server logs (`mattermost.log` with DEBUG level), sanitized `conf
 
 The repos under `upstream/<name>/` are working trees the assistant uses to read code. Keep them aligned with the version a ticket is about before quoting code or behavior. The slash commands `/bootstrap`, `/git-pull`, and `/git-switch` are surfaced in every system message - prefer them over running git directly when their behavior fits.
 
+Note: each of those three commands starts by verifying the shell is at the project root and `cd`-ing back if not. A prior skill or tool can leave the shell inside `upstream/<repo>/`, which would silently misroute the relative paths in those commands.
+
 ### Lazy auto-refresh
 
 The first time a repo is read in a session, do `git -C upstream/<repo> fetch --tags --prune`, then `git -C upstream/<repo> pull --ff-only` if safe. Track which repos have been refreshed and don't refetch them again in the same session.

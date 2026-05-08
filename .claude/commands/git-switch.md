@@ -3,6 +3,8 @@ description: Switch a cloned repo under upstream/ to a tag or branch (no ref = d
 argument-hint: <repo> [<ref>]
 ---
 
+First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `upstream/<repo>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing.
+
 Args: $ARGUMENTS
 
 Parse the args as `<repo> [<ref>]`. Switch the working tree of `upstream/<repo>` to `<ref>` (or restore the default branch if `<ref>` is omitted).
