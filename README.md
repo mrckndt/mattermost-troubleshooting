@@ -18,7 +18,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 ## Slash commands
 
 **Repo management**
-- `/bootstrap` - clone any missing upstream repos.
+- `/bootstrap` - clone any missing upstream repos and create `tickets/` if absent.
 - `/git-pull [<repo>]` - `git pull --ff-only` on the current branch of one repo or all.
 - `/git-switch <repo> [<ref>]` - check out a tag or branch (default: the repo's default branch).
 
@@ -36,13 +36,14 @@ claude
 ```
 
 Then inside Claude:
-- `/bootstrap` - clone all upstream repos under `upstream/`.
+- `/bootstrap` - clone all upstream repos under `upstream/` and create `tickets/`.
 
 ## Working a ticket
 
 1. Create a folder under `tickets/` named after the ticket ID or any other identifier:
    ```
-   mkdir -p tickets/12345
+   mkdir -p tickets/12345          # macOS / Linux
+   mkdir tickets\12345              # Windows (cmd or PowerShell)
    ```
 2. Drop relevant files there (logs, config dumps, support packets, screenshots, etc.):
    ```
