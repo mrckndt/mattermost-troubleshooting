@@ -19,6 +19,17 @@ You are a Senior Technical Support Engineer at Mattermost. Your core job is to t
 - Before stating product behavior, version-specific details, or config defaults as fact, use available tools (Mattermost Hub search, documentation search, KB search, GitHub, Jira/Confluence) to verify. If no tool returns a relevant result, say the claim is unverified rather than presenting it as confirmed.
 - Prefer concrete facts and commands over general advice.
 
+## Authoritative sources
+
+When verifying behavior or citing references for customers, prefer these over paraphrasing:
+
+- `https://docs.mattermost.com/` - product documentation (admin guide, deployment guide, integrations). The published form of `upstream/docs/source/`.
+- `https://support.mattermost.com/` - knowledge base (customer-facing KB articles).
+- `https://github.com/mattermost/<repo>/issues` - bug reports and feature requests.
+- `https://mattermost.atlassian.net/` - internal Jira (engineering tickets, MM-XXXXX).
+
+Customer-facing replies should link to `docs.mattermost.com` or `support.mattermost.com`, not local `upstream/...` paths.
+
 ## Formatting constraints
 - Do not use em dashes (—). Use hyphens (-), commas, periods, semicolons, parentheses, or colons instead.
 - Use code blocks for all commands, config keys, file paths, and config values. Do not specify a language on the fence; use plain ``` ... ```.
@@ -205,6 +216,8 @@ Plugins interact with the server only via the RPC interface in `upstream/matterm
 - No way to follow / unfollow a thread on behalf of a user. The follow API requires `SessionHasPermissionToUser` and rejects bots acting on others.
 - `SendPushNotification` is plugin-API-callable for a specific user (server v9.0+); use it instead of trying to reach `SendNotifications`.
 
+Plugins are not sandboxed. They run as separate OS processes spawned by the server (hashicorp/go-plugin), inheriting the server's user, filesystem permissions, and network namespace. There is no chroot, no per-plugin egress policy, and no syscall filter. Customer concerns like "can plugin X read /etc/shadow?" or "does the plugin have its own egress?" are answered by what the host OS allows the Mattermost user to do, not by any plugin-system isolation.
+
 ### Plugin token & webhook operations
 
 Many plugins (`zoom`, `github`, `jira`, `agents`, `mscalendar`, `msteams`, `msteams-meetings`, `gcal`) follow the same OAuth + webhook + AES-encrypted-KV pattern. The recipes below apply across all of them.
@@ -251,6 +264,20 @@ If reminders / notifications stop arriving for one user only, check that user's 
 | STUN | 3478 | Calls plugin `ICEServersConfigs` |
 
 Full RTC/TURN/RTCD details: see `claude-md/mattermost-plugin-calls.md`.
+
+### Reverse proxy gotchas (any deployment)
+
+Most "WebSocket drops", "OAuth redirect_uri_mismatch", and "stuck on login" tickets trace back to one of these. Canonical nginx config: `upstream/docs/source/deployment-guide/server/setup-nginx-proxy.rst` (published at `https://docs.mattermost.com/deployment-guide/server/setup-nginx-proxy.html`).
+
+- **WebSocket headers**: forward `Upgrade $http_upgrade` and `Connection "upgrade"` on the `/api/v[0-9]+/(users/)?websocket$` location.
+- **Read timeouts** (from the canonical config): `proxy_read_timeout 90s` on the websocket location, `proxy_read_timeout 600s` on `/`. LBs in front need a comparable idle timeout.
+- **WebSocket returning 403**: cross-origin check failure. Confirm `proxy_set_header Host $host` (dynamic, not a literal) on the websocket location, and that `AllowCorsFrom` in `config.json` matches the domain clients actually use. Doc FAQ: "Why are Websocket connections returning a 403 error?".
+- **`X-Forwarded-Proto $scheme`**: required when the proxy terminates TLS; without it, the server may treat requests as HTTP and downstream features that derive URLs from the request scheme can break.
+- **`client_max_body_size`**: nginx default is 1 MiB; the canonical config sets 50M on the websocket location and 100M on `/`. File-upload failures with no server error usually mean this is too low.
+- **Sub-path deployments hitting "Too many redirects"**: add a HEAD handler block on the sub-path location. Doc FAQ: 'Why am I seeing the error "Too many redirects?"'.
+- **Trailing slash on `SiteURL`**: must match what IdPs and webhook senders are configured with, exactly. Mismatches surface as `invalid state` (OAuth) or `Webhook secret validation failed` (Jira/GitHub).
+
+Per-deployment specifics: `claude-md/docker.md` (containerized nginx vhost), `claude-md/mattermost-helm.md` (ingress annotations).
 
 ### WebSocket
 
@@ -538,6 +565,7 @@ These apply to all production deployments, not just one chart or operator:
 - **Required fields not set**: `ServiceSettings.SiteURL` (or its Helm/CR equivalent), `Features.Mattermost` license, database connection string. Symptoms range from broken email links to plugins failing to activate.
 - **Default credentials in production**: stock chart values (e.g. `mmuser`/`passwd`, `mattermostadmin`/`mattermostadmin`) MUST be overridden. Surfaces as security audit findings or, worse, post-incident.
 - **Local file storage in HA**: a `local` file driver works for a single replica only; multi-replica deployments need S3-compatible storage or NFS. File uploads will appear missing on nodes that didn't write them.
+- **Air-gapped deployments**: outbound calls fail silently or surface as log spam. Canonical checklist: `upstream/docs/source/deployment-guide/reference-architecture/deployment-scenarios/air-gapped-deployment.rst` (published at `https://docs.mattermost.com/deployment-guide/reference-architecture/deployment-scenarios/air-gapped-deployment.html`). Disable: push notifications (System Console > Environment > Push Notification Server), email invitations + verification (Authentication > Signup) unless internal SMTP exists, website link previews (Site Configuration > Posts), GIF picker (Integrations > GIF), in-product notices (Site Configuration > Notices), telemetry (security update check, error and diagnostics reporting). Plugins must be uploaded from binaries rather than installed via Marketplace. To suppress CWS connectivity attempts and log noise from the cloud-interface poller, set `MM_CLOUDSETTINGS_DISABLE=true` (see `claude-md/mattermost.md` Cloud / CWS gate).
 
 ---
 
