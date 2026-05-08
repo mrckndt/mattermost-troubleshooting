@@ -16,8 +16,8 @@
 - Default STUN: `stun:stun.global.calls.mattermost.com:3478`
 - Valid port range: [80, 49151]
 - TURN: requires `TURNStaticAuthSecret`, credentials expire in 240 minutes (configurable)
-- `ICEHostOverride`: use when server is behind NAT (set to public IP)
-- `ICEHostPortOverride`: when public-facing port differs from listen port
+- `ICEHostOverride`: use when server is behind NAT (set to public IP). Accepted formats per `plugins-configuration-settings.rst`: a single IP (`10.0.0.1`), a single hostname/FQDN (`calls.example.tld`), or (starting plugin v0.17.0) a comma-separated list of `externalAddr/internalAddr` pairs (`10.0.0.1/172.0.0.1,10.0.0.2/172.0.0.2`). Note: a hostname is resolved on the Mattermost host - if that resolution differs from what clients see, connectivity fails. When in doubt, use an IP.
+- `ICEHostPortOverride`: when public-facing port differs from listen port (applies to both UDP and TCP host candidates)
 
 **RTCD (external RTC service)**:
 - Optional, configured via `RTCDServiceURL`
@@ -34,10 +34,10 @@
 | Cloud Paid | 200 |
 
 **Recording and transcription**:
-- Recordings: disabled by default, duration range 15-180 min, quality: low/medium/high
-- Transcription (Beta): whisper.cpp (default) or Azure, model sizes: tiny/base/small
-- Live captions: requires both recordings AND transcriptions enabled
-- Job service: `JobServiceURL` for recording/transcription jobs
+- Recordings: disabled by default. `MaxRecordingDuration` valid range [15, 180] min, default `60` (constants in `server/configuration.go`; doc default also `60` in `plugins-configuration-settings.rst`). Quality: `Low` / `Medium` / `High`, default **Medium**.
+- Transcription (Beta): whisper.cpp (default) or Azure. Plugin's `transcribermodelsize` setting exposes Tiny / Base / Small (default Base) - the underlying transcriber binary supports `medium` / `large` too but they are not exposed via System Console.
+- Live captions (Experimental): requires recordings AND transcriptions enabled. Defaults: `livecaptionsmodelsize=Tiny`, `livecaptionsnumtranscribers=1`, `livecaptionsnumthreadspertranscriber=2`. Constraint: `LiveCaptionsNumTranscribers * LiveCaptionsNumThreadsPerTranscriber` must be in `[1, numCPUs]`. Default language `en`.
+- Job service: `JobServiceURL` (env `MM_CALLS_JOB_SERVICE_URL`) for recording/transcription jobs. Self-registers on first connect using the Mattermost diagnostic ID, or accepts explicit credentials via `http://clientID:authKey@host` syntax / `MM_CALLS_JOB_SERVICE_CLIENT_ID` + `MM_CALLS_JOB_SERVICE_AUTH_KEY` env vars.
 
 ### Calls pipeline reference
 
@@ -57,10 +57,11 @@
 
 These are **minimums** - newer versions are fine. Common upgrade failure: plugin upgraded without bumping offloader/RTCD; symptom is `minimum version check failed` in plugin logs.
 
-**RTCD vs in-plugin RTC**: by default, RTC media flows through the plugin process on the app node. Set `RTCDServiceURL` to offload to a dedicated RTCD service. Use RTCD when:
-- Running HA / multi-node Mattermost (in-plugin RTC pins media to whichever node the user lands on).
-- More than ~50-100 active call participants total - app node CPU is the bottleneck.
-- Running in K8s (recommended even at moderate load).
+**RTCD vs in-plugin RTC** (per `calls-deployment-guide.md` 1.2 "Media Service: RTCD or Integrated"):
+- **Integrated** (in-plugin): the Calls plugin runs the media service inside the Mattermost server. Up to ~50 *Total Users* per the deployment guide.
+- **RTCD** (recommended for production): a dedicated service, set via `RTCDServiceURL`. Required when **deploying on Kubernetes** (only supported model per `calls-kubernetes.md`), or when *Total Users* > 50, or for HA / multi-node Mattermost where in-plugin RTC would pin media to one app node. Requires Enterprise license.
+
+License tiers (per the deployment guide "Deployment Infrastructure Requirements"): Mattermost Entry / Team Edition cover 1:1 calls + screen sharing (40-min cap). Professional covers group calls (no time limit). Enterprise / Enterprise Advanced add RTCD (50+ users, prod reliability) and Recording / Transcription / Live Captions.
 
 **Database tables**: `calls_channels`, `calls`, `calls_sessions`, `calls_jobs`. Migrations: 5 total at `server/db/migrations/{postgres,mysql}/`.
 
@@ -77,9 +78,17 @@ These are **minimums** - newer versions are fine. Common upgrade failure: plugin
 | Database layer | `server/db/` |
 | API endpoints | `server/api.go` |
 
+**Authoritative customer-facing docs**: deployment + decision-tree in `https://docs.mattermost.com/administration-guide/configure/calls-deployment-guide.html`; per-setting reference in `https://docs.mattermost.com/administration-guide/configure/plugins-configuration-settings.html` (Calls section). RTCD / offloader / K8s specifics: `claude-md/rtcd.md`, `claude-md/calls-offloader.md`, `claude-md/calls-recorder.md`, `claude-md/calls-transcriber.md`. Cite the published URLs in customer replies, not local paths.
+
+**Metrics endpoint**: `http://<MATTERMOST_HOST>:8067/plugins/com.mattermost.calls/metrics` (verified at `server/api_router.go:26`). The deployment guide's monitoring section also lists the RTCD scrape target (`<RTCD_HOST>:8045/metrics`) and Grafana dashboard ID `23225` for the canonical Calls dashboard.
+
+**Job Service URL caveat** (`plugins-configuration-settings.rst` line 712): from Calls v0.25, `MM_CALLS_RECORDER_SITE_URL` and `MM_CALLS_TRANSCRIBER_SITE_URL` (set on the Mattermost server, not the offloader) override the SiteURL that recorder / transcriber jobs use to call back. Use these in private-network deployments to keep job traffic off the public network. May require expanding `ServiceSettings.AllowCorsFrom` to match.
+
 ### Common Investigation Patterns
 
-**RTCD unreachable (`no host available`)**: Verify `RTCDServiceURL` is set and resolvable from the app node; check that outbound traffic to RTCD's API port is open. RTCD itself listens on UDP/TCP 8443 for media plus an HTTP signaling port. If running RTCD in K8s, confirm the Service `targetPort` matches the RTCD pod and `RTCDServiceURL` uses cluster DNS.
+**nginx in front of Mattermost (don't proxy 8443)**: Per `calls-deployment-guide.md`: "Port 8443 must be opened directly on the server running the media service (RTCD or Integrated) - not on NGINX. Port 443 is the only port NGINX needs to handle for Calls." Putting `8443` (UDP/TCP) behind nginx silently breaks media even when signaling on 443 still works.
+
+**RTCD unreachable (`no host available`)**: Verify `RTCDServiceURL` is set and resolvable from the app node; check that outbound traffic to RTCD's API port (8045) is open. RTCD itself listens on UDP/TCP 8443 for media. If running RTCD in K8s, confirm the Service `targetPort` matches the RTCD pod and `RTCDServiceURL` uses cluster DNS. The plugin self-registers on first connect and stores the auth key in the database; subsequent restarts reuse it.
 
 **ICE host override needed (peers can't connect from outside)**: NAT'd RTC server. Set `ICEHostOverride` to the public IP and `ICEHostPortOverride` if the public-facing port differs from the listen port. Test with the WebRTC samples (`trickle-ice`) from outside the network.
 

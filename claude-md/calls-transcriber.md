@@ -11,7 +11,7 @@
 | Field | Values | Default | Purpose |
 |---|---|---|---|
 | `TRANSCRIBE_API` | `whisper.cpp` / `azure` / `openai/whisper` | `whisper.cpp` | Provider |
-| `MODEL_SIZE` | `tiny` / `base` / `small` / `medium` / `large` | `base` | Whisper model for post-call |
+| `MODEL_SIZE` | `tiny` / `base` / `small` / `medium` / `large` | `base` | Whisper model for post-call. Note: the **Calls plugin's** System Console setting **Transcriber model size** (`transcribermodelsize`) only exposes Tiny / Base / Small per `plugins-configuration-settings.rst`; `medium` and `large` are valid in the binary but not selectable from the plugin UI. |
 | `LIVE_CAPTIONS_ON` | `true` / `false` | `false` | Enable live captions |
 | `LIVE_CAPTIONS_MODEL_SIZE` | as above | `tiny` | Smaller model = lower latency for live |
 | `LIVE_CAPTIONS_LANGUAGE` | ISO 639-1 | `en` | Caption language |

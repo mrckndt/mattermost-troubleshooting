@@ -56,7 +56,7 @@ Most support symptoms span multiple repos. Use this map to decide where to look 
 | SSO / SAML / LDAP failure | `mattermost` (config + i18n) + `enterprise` (impl in `ldap/` or `saml/`) |
 | Plugin not loading | The plugin's repo + `mattermost` (`server/channels/app/plugin*.go`) |
 | Mobile / desktop UI quirk vs API mismatch | client repo (`mattermost-mobile` or `desktop`) + `mattermost` (API4 endpoint) |
-| WebRTC call drops / RTCD unreachable | `mattermost-plugin-calls` + `mattermost-helm` or `mattermost-operator` (network policies, ports) |
+| WebRTC call drops / RTCD unreachable | `mattermost-plugin-calls` + `rtcd` (signaling 8045 / media 8443) + `mattermost-helm` or `mattermost-operator` (network policies, ports) |
 | Calls recording / transcription not finishing | `mattermost-plugin-calls` + `calls-offloader` + `calls-recorder` + `calls-transcriber` (job runner, container images) |
 | Compliance / message export / data retention | `mattermost` (job system, config) + `enterprise` (`compliance/`, `data_retention/`, `message_export/`) |
 | Cluster gossip / leader election | `mattermost` + `enterprise` (`cluster/`) |
@@ -70,6 +70,7 @@ Most support symptoms span multiple repos. Use this map to decide where to look 
 | Outlook / Office 365 calendar reminders / status sync | `mattermost-plugin-mscalendar` |
 | Google Calendar reminders / status sync | `mattermost-plugin-google-calendar` |
 | Channel automation rules not firing | `mattermost-plugin-channel-automation` (+ `mattermost-plugin-agents` for `ai_prompt` actions) |
+| GitLab notifications / subscriptions / pipelines | `mattermost-plugin-gitlab` |
 
 ---
 
@@ -310,6 +311,10 @@ Checklist for Calls connectivity:
 - [ ] If using RTCD: verify `RTCDServiceURL` is reachable, RTCD version >= v0.17.0
 - [ ] Ports must be in valid range [80, 49151]
 - [ ] For HA deployments: RTCD is recommended to offload call handling from app nodes
+- [ ] **Do NOT route media `8443` through nginx or any L7 proxy.** Per `calls-deployment-guide.md`: "Port 8443 must be opened directly on the server running the media service (RTCD or Integrated) - not on NGINX. Port 443 is the only port NGINX needs to handle for Calls."
+- [ ] If running on Kubernetes: RTCD is the only supported deployment model (per `calls-kubernetes.md`); each rtcd process needs a dedicated K8s node and one external IP per instance.
+
+Authoritative customer-facing references: `https://docs.mattermost.com/administration-guide/configure/calls-deployment-guide.html`, `https://docs.mattermost.com/administration-guide/configure/calls-rtcd-setup.html`, `https://docs.mattermost.com/administration-guide/configure/calls-offloader-setup.html`, `https://docs.mattermost.com/administration-guide/configure/calls-kubernetes.html`. Per-component fragments: `claude-md/mattermost-plugin-calls.md`, `claude-md/rtcd.md`, `claude-md/calls-offloader.md`, `claude-md/calls-recorder.md`, `claude-md/calls-transcriber.md`.
 
 ### Push Notifications
 
@@ -583,6 +588,7 @@ Each repo's architecture, key paths, and plugin/client error tables are kept in 
 @claude-md/mattermost-helm.md
 @claude-md/mattermost-operator.md
 @claude-md/migration-assist.md
+@claude-md/rtcd.md
 @claude-md/calls-offloader.md
 @claude-md/calls-recorder.md
 @claude-md/calls-transcriber.md
@@ -592,6 +598,7 @@ Each repo's architecture, key paths, and plugin/client error tables are kept in 
 @claude-md/mattermost-plugin-boards.md
 @claude-md/mattermost-plugin-channel-automation.md
 @claude-md/mattermost-plugin-github.md
+@claude-md/mattermost-plugin-gitlab.md
 @claude-md/mattermost-plugin-google-calendar.md
 @claude-md/mattermost-plugin-jira.md
 @claude-md/mattermost-plugin-mscalendar.md

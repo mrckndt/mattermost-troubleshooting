@@ -32,6 +32,7 @@ Repos to bootstrap (alphabetical):
 - `https://github.com/mattermost/mattermost-plugin-calls`
 - `https://github.com/mattermost/mattermost-plugin-channel-automation`
 - `https://github.com/mattermost/mattermost-plugin-github`
+- `https://github.com/mattermost/mattermost-plugin-gitlab`
 - `https://github.com/mattermost/mattermost-plugin-google-calendar`
 - `https://github.com/mattermost/mattermost-plugin-jira`
 - `https://github.com/mattermost/mattermost-plugin-mscalendar`
@@ -40,6 +41,7 @@ Repos to bootstrap (alphabetical):
 - `https://github.com/mattermost/mattermost-plugin-playbooks`
 - `https://github.com/mattermost/mattermost-plugin-zoom`
 - `https://github.com/mattermost/migration-assist`
+- `https://github.com/mattermost/rtcd`
 
 Report a Markdown table with one row per repo and the columns: `Repo | Result`.
 - `Result`: `already present`, `cloned`, or the error message git printed.
