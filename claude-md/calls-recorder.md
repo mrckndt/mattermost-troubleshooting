@@ -5,6 +5,8 @@
 **Min server**: 7.6 with Mattermost Calls plugin installed
 **Primary use**: Invoked by `calls-offloader` to record call audio and video
 
+**Pipeline reference**: end-to-end recording flow + cross-component version matrix in `claude-md/mattermost-plugin-calls.md > Calls pipeline reference`.
+
 **Configuration (env vars)**:
 
 | Variable | Required | Default | Range / Notes |

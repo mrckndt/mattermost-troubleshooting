@@ -203,6 +203,35 @@ Plugins interact with the server only via the RPC interface in `upstream/matterm
 - No way to follow / unfollow a thread on behalf of a user. The follow API requires `SessionHasPermissionToUser` and rejects bots acting on others.
 - `SendPushNotification` is plugin-API-callable for a specific user (server v9.0+); use it instead of trying to reach `SendNotifications`.
 
+### Plugin token & webhook operations
+
+Many plugins (`zoom`, `github`, `jira`, `agents`, `mscalendar`, `msteams`, `msteams-meetings`, `gcal`) follow the same OAuth + webhook + AES-encrypted-KV pattern. The recipes below apply across all of them.
+
+**OAuth disconnect / reconnect** (when a user gets `401 Bad credentials`, stale-token errors, or a new "encryption key" error):
+1. User runs `/<plugin> disconnect`.
+2. User runs `/<plugin> connect` and completes the OAuth flow.
+3. If the failure persists, verify the plugin's `EncryptionKey` has not been rotated since the token was issued (see below).
+
+**Webhook secret rotation** (`github`, `jira`, `zoom`, `msteams`):
+1. Generate the new secret in the plugin settings (or surface it via `/<plugin> webhook` where supported).
+2. Update the secret on the external side (GitHub repo / Jira webhook config / Zoom app / MS Teams subscription).
+3. Do **not** kill the old secret immediately - allow ~24h grace for in-flight retries.
+
+**Encryption-key rotation effects**: rotating `EncryptionKey` invalidates every stored OAuth token because the AES envelope can no longer be decrypted.
+- `github` runs a re-encryption worker (cluster-mutex'd; opt-in cluster task per MM-34646) - tokens migrate automatically over time.
+- `zoom`, `mscalendar`, `msteams-meetings` auto-wipe their KV store on key change so users see a clean reconnect prompt.
+- `jira`, `msteams` (sync) leave orphaned encrypted state; users must `/<plugin> disconnect` then `/<plugin> connect` manually.
+
+Coordinate key rotations during a maintenance window when feasible.
+
+### Plugin subscription lifecycle
+
+Calendar / chat-sync plugins maintain server-side webhook subscriptions that expire and need renewal:
+- **MS Graph** (`mscalendar`, `msteams`): subscriptions live ~3 days. Renewed by `RenewMyEventSubscription` / equivalent. Failure log signature: `error renewing subscription` / `subscription not found`.
+- **Google Calendar** (`gcal`): watch channels live 7 days (`subscribeTTL = 7 * 24 * time.Hour`). Failure signature: `gcal CreateMySubscription, error creating subscription`.
+
+If reminders / notifications stop arriving for one user only, check that user's KV state for a stale `EventSubscriptionID` / watch-channel ID. If they stop for everyone at once, the renewal cron has stalled - check plugin logs for the renewal job.
+
 ---
 
 ## Network and Connectivity
@@ -229,6 +258,17 @@ Full RTC/TURN/RTCD details: see `claude-md/mattermost-plugin-calls.md`.
 - Reverse proxy must forward `Upgrade` / `Connection` headers.
 - Load balancer timeout too aggressive (set idle timeout > 60s).
 - Corporate proxy dropping long-lived connections.
+
+**Reconnect-storm signature** (after server restart or LB blip):
+
+- Mobile client side (`upstream/mattermost-mobile/app/client/websocket/index.ts`): up to `MAX_WEBSOCKET_FAILS=7` attempts, backoff `3s -> 5min`, ping every 30s, connect-timeout 30s. Sentry breadcrumb logs on each failure.
+- Server side: burst of `Error while getting session token` warnings from `server/channels/app/platform/websocket_router.go:52`. Companion line in `session.go` may mention "user access token" - **misleading**: the same path catches every token type, see the deep-dive in `claude-md/mattermost.md`.
+- Harmless if it tapers off within seconds (clients re-auth and reconnect cleanly). Investigate if it persists for minutes - usually points at LB idle timeout < 60s, a reverse proxy stripping `Upgrade`/`Connection` headers, or a corporate proxy killing long-lived connections.
+
+**Distinguishing "kicked by server" vs "network drop"**:
+
+- Server-initiated close: server log `WebSocket connection terminated` plus `code 4001` (auth) or `code 4002` (server shutdown) on the client. The client treats this as a hard-fail and prompts re-login.
+- Network drop: client never sees a clean close frame; it just times out. Backoff begins. No correlated server log line beyond the eventual session-token warning when the client retries.
 
 ### Calls Network Requirements
 
@@ -316,6 +356,37 @@ Common gotchas:
 - `AssertionConsumerServiceURL` must equal `SiteURL` exactly (protocol, trailing slash).
 - `SignRequest` / `Verify` / `Encrypt` toggles must match the IdP - asymmetric settings produce vague crypto errors.
 
+### Azure AD app registration (for Microsoft-stack plugins)
+
+Three plugins share an Azure AD / Microsoft Graph stack: `mscalendar`, `msteams` (channel sync), `msteams-meetings`. They share most setup pain. Authoritative admin-side instructions live in `upstream/docs/source/integrations-guide/microsoft-{calendar,teams-sync,teams-meetings}.rst` - cite those when answering customers.
+
+**Required Azure AD app fields** (same shape across all three):
+- Tenant ID -> plugin `OAuth2Authority` / `tenantId`.
+- Application (client) ID -> plugin `OAuth2ClientId` / `clientId`.
+- Client secret -> plugin `OAuth2ClientSecret` / `clientSecret`.
+
+**Per-plugin redirect URI** (must match exactly in the Azure app):
+
+| Plugin | Redirect URI |
+|---|---|
+| `mscalendar` | `https://<SiteURL>/plugins/com.mattermost.mscalendar/oauth2/complete` |
+| `msteams` (sync) | `https://<SiteURL>/plugins/com.mattermost.msteams-sync/oauth-redirect` |
+| `msteams-meetings` | `https://<SiteURL>/plugins/com.mattermost.msteamsmeetings/oauth2/complete` |
+
+**Microsoft Graph permissions** (all three require admin consent after the permissions are added):
+
+| Plugin | Delegated | Application |
+|---|---|---|
+| `mscalendar` | `Calendars.ReadWrite`, `Calendars.ReadWrite.Shared`, `MailboxSettings.Read` | `Calendars.Read`, `MailboxSettings.Read`, `User.Read.All` |
+| `msteams` (sync) | `Chat.Read`, `ChatMessage.Read`, `Files.Read.All`, `offline_access`, `User.Read` | `Chat.Read.All`, `Presence.Read.All` |
+| `msteams-meetings` | `OnlineMeetings.ReadWrite` | (none) |
+
+**Common gotchas**:
+- **Admin consent missing**: tenants that require consent for all apps fail user-level OAuth silently. An admin must select **Grant admin consent for <tenant>** in the API permissions page after permissions are added.
+- **Wrong redirect URI**: produces `invalid state` or `redirect_uri_mismatch` errors. Trailing slash and protocol must match exactly.
+- **One Azure app per Mattermost instance** is the safe default. Sharing one app across multiple Mattermost servers works only if all redirect URIs are added.
+- Scopes are NOT interchangeable between the three plugins. Each plugin's app needs its own permission set above.
+
 ---
 
 ## Logging and Diagnostics
@@ -338,6 +409,20 @@ Common gotchas:
 - Sentry breadcrumbs captured automatically
 - No persistent log file on device by default
 - Error handling singleton: `JavascriptAndNativeErrorHandlerSingleton` (in `app/utils/error_handling.ts`)
+
+**Push proxy verification states** (`app/utils/push_proxy.ts` `canReceiveNotifications`):
+
+| State | Trigger | What the user sees |
+|---|---|---|
+| `VERIFIED` | Push proxy responded with anything other than the two failure responses below. Default success path. | No alert; notifications work. |
+| `NOT_AVAILABLE` | Server returned `PUSH_PROXY_RESPONSE_NOT_AVAILABLE`. Common causes: `EmailSettings.SendPushNotifications` is disabled, or the customer is using a self-compiled mobile app pointed at HPNS (HPNS only accepts traffic from the official prebuilt apps). | Alert: "Notifications cannot be received from this server" - dismissible, then acknowledged in app DB so it doesn't re-show. |
+| `UNKNOWN` | Server returned `PUSH_PROXY_RESPONSE_UNKNOWN` (transient / network failure during the push-proxy probe). | Alert: "...unable to receive push notifications for an unknown reason. This will be attempted again next time you connect." Re-checked on next connect. |
+
+If a customer reports "no push notifications", first establish which state the device is in (the alert text is diagnostic):
+- `NOT_AVAILABLE`: server-side config. Check **System Console > Environment > Push Notification Server** (`EmailSettings.SendPushNotifications`, `EmailSettings.PushNotificationServer`). Self-compiled apps MUST run their own push proxy (Mattermost Push Notification Service - see `https://github.com/mattermost/mattermost-push-proxy`). HPNS needs outbound 443 from the server; TPNS needs outbound 80.
+- `UNKNOWN`: network / transient. Verify the server can reach the push proxy URL, push-proxy logs for the verification request.
+
+For ongoing health (deliveries succeeding but unreliable), point the customer at the Mattermost Notification Health Grafana dashboard: target is 100% Push Proxy Delivery Rate (investigate < 99%), ~80% Total Acked (the remainder is normal: removed servers, iOS notifications off, APNs/FCM drops, Android extreme battery saver). Reference: `upstream/docs/source/administration-guide/scale/push-notification-health-targets.rst`.
 
 ### Desktop Logging
 

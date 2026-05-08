@@ -35,3 +35,7 @@ Custom data directory via CLI flag: `--data-dir`
 **Auto-launch / start-with-OS misbehaving**: Settings -> "Start app on login" toggles the platform-specific autolaunch entry (`launchctl` plist on macOS, registry Run key on Windows, `~/.config/autostart/` on Linux). MDM/GPO policies can override or hide this toggle.
 
 **Multi-server config not syncing**: Each server has a separate config entry under the user data directory. If servers disappear after upgrade, check the config-version migration ran (`src/types/config.ts` V0->V4). Manual edits to `config.json` need a relaunch.
+
+**IPC channel registry** (for cross-window or renderer-main communication issues): all registered channels exposed to renderers are in `src/app/preload/externalAPI.ts` (40+ channels including `NOTIFY_MENTION`, `SESSION_EXPIRED`, `CALLS_*`). Main process window management: `src/app/windows.ts`. Renderer code must use this preload API - direct Node.js access is blocked.
+
+**MDM / GPO enforced fields**: Windows GPO (`resources/windows/gpo/mattermost.admx`) and macOS MDM (`resources/mac/mdm/example-managed-preferences.plist`) both enforce the same three policies: `EnableAutoUpdater` (block updates), `EnableServerManagement` (lock server list), `DefaultServerList` (pre-configure servers). Only these three are managed; all other config is user-controlled. Affected settings appear locked in the desktop UI.

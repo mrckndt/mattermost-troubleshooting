@@ -1,7 +1,6 @@
 ### mattermost-plugin-mscalendar
 
 **What**: Microsoft Outlook / Office 365 calendar integration - event reminders, status sync from calendar busy slots, meeting responses
-**Stack**: Go backend, React frontend
 **Plugin ID**: `com.mattermost.mscalendar`
 **Min server**: 10.7.0
 **Database**: KV store via plugin API (no custom SQL tables); user data encrypted at rest
@@ -40,3 +39,17 @@
 **Status not updating from calendar**: Status sync runs every 5 minutes (`availability.go`). Confirm the user is connected and that calendar events mark them as "busy" - sync queries busy slots in a 10-minute window. Timezone mismatch produces wrong-time syncs; verify mailbox timezone via `GetMailboxSettings` (in `oauth2.go`).
 
 **OAuth token expiry / reconnection required**: Tokens are auto-refreshed via `oauth2.Exchange`. After a password change or long inactivity, the refresh token can be invalidated; the user must `/mscalendar disconnect` then `/mscalendar connect`. The Azure app registration must have `offline_access` scope to issue refresh tokens.
+
+Azure AD app setup (admin consent, redirect URI, scopes per plugin) - see the shared `CLAUDE.md > Azure AD app registration (for Microsoft-stack plugins)` section. Authoritative admin doc: `upstream/docs/source/integrations-guide/microsoft-calendar.rst`.
+
+**Plugin pre-packaged with Mattermost v9.11.2+** (ESR) and Cloud v10+: the plugin ships in-server. Manual upload on those versions causes version skew. Check `mmctl plugin list` for duplicates.
+
+**Subscription renewal cron** (every connected user's event subscription, every 24 h):
+
+- Job: `id: "renew"`, `interval: 24 * time.Hour` (`calendar/jobs/renew_job.go:12-17`).
+- Iterates connected users with a 50ms dither (`ditherRenew`).
+- Calls `RenewMyEventSubscription()` per user (`calendar/engine/subscription.go:76`).
+- Failure log: `Error renewing subscription. err=<...>` (Error level, `renew_job.go:37`).
+- Expired-sub recovery (creates new instead of renewing): `Subscription <id> for Mattermost user <id> has expired. Creating a new subscription now.` (Info level, `subscription.go:100`).
+
+If reminders stop arriving cluster-wide for everyone at once, the renewal job is failing - grep `Error renewing subscription`. If only one user is affected, that user's stored `EventSubscriptionID` is stale - `/mscalendar disconnect` then `/mscalendar connect` re-creates it.

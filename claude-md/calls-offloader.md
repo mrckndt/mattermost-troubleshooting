@@ -4,6 +4,8 @@
 **Stack**: Go backend, container orchestration via Docker or Kubernetes, SQLite store (or external DB)
 **Min server**: Mattermost 7.6+ (Enterprise) with `mattermost-plugin-calls`
 
+**Pipeline reference**: end-to-end recording flow + cross-component version matrix in `claude-md/mattermost-plugin-calls.md > Calls pipeline reference`.
+
 **Configuration (key fields)**:
 
 | Field | Type | Default | Purpose |

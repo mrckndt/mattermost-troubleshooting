@@ -1,7 +1,6 @@
 ### mattermost-plugin-zoom
 
 **What**: Zoom audio and video conferencing integration for Mattermost
-**Stack**: Go backend, React frontend
 **Plugin ID**: `zoom`
 **Min server**: 10.7.0
 **Database**: KV store only (no custom tables)
@@ -34,7 +33,7 @@
 - `meeting_channel_<meetingID>`: meeting-to-channel subscription (24h TTL)
 - `zoomuserstate_<userID>`: OAuth state during connect flow (5min TTL)
 
-**Slash commands**: `/zoom start [topic]`, `/zoom connect`, `/zoom disconnect`, `/zoom settings`, `/zoom subscription add|remove|list <meetingID>`, `/zoom channel-settings [list]`, `/zoom help`
+**Slash commands**: `/zoom start [topic]`, `/zoom settings`, `/zoom subscription add|remove|list <meetingID>`, `/zoom channel-settings [list]`, `/zoom help`. **User-Managed-only**: `/zoom connect`, `/zoom disconnect` (Account-Level installs are admin-authenticated; individual users do not connect).
 
 **Network requirements**:
 - Outbound HTTPS to Zoom API (`api.zoom.us` or custom `ZoomAPIURL`)
@@ -59,6 +58,28 @@
 **Deauthorization webhook**: When users revoke the Zoom app, Zoom sends a deauthorization webhook to `{SiteURL}/plugins/zoom/webhook`. Verify Mattermost is reachable from Zoom; if missed, the user's `zoomtoken_<userID>` KV entry remains stale until they manually disconnect.
 
 **OAuth token decrypt failure**: After `EncryptionKey` rotation, existing tokens fail. User must `/zoom disconnect` and reconnect.
+
+**Account-Level vs User-Managed OAuth - decision tree**:
+
+| Mattermost setting | Zoom-side label | Use when | Constraint |
+|---|---|---|---|
+| `AccountLevelApp=true` (UI: "OAuth by Account Level App") | **Admin-managed app** (a.k.a. Account-Level) | A single Zoom admin authenticates on behalf of the whole tenant | Only Zoom users **in the same Zoom account that created the app** can use the integration. Mattermost user's email **must match** their Zoom email exactly - identity is resolved by email + Personal Meeting ID lookup |
+| `AccountLevelApp=false` (default) | **User-managed app** (a.k.a. User-Managed) | Each user OAuths individually; mixed/BYOL licensing | Each user runs `/zoom connect` independently |
+
+Source-side enforcement: only system admins can run `/zoom connect` when `AccountLevelApp=true` (`server/command.go:137`). Mismatch between Mattermost setting and Zoom-side app type produces confusing OAuth scope or audience errors at connect time.
+
+**Required Zoom scopes** (per admin doc, same for both modes):
+- `meeting:read:meeting`, `meeting:write:meeting`, `user:read:user`, `cloud_recording:read:recording`, `archiving:read:list_archived_files`. Missing scopes -> 4xx on meeting create / recording fetch.
+
+**Deauthorization webhook verification** (Zoom -> Mattermost when a user revokes the app):
+
+- URL: `{SiteURL}/plugins/zoom/deauthorization` (`server/http.go:33,97`).
+- Handler clears the user's `zoomtoken_<userID>` and `zoomtokenbyzoomid_<zoomID>` KV entries and DMs them: "We have received a deauthorization message from Zoom for your account..."
+- Failure log signatures: `failed to dm user about deauthorization`, `failed to complete compliance after user deauthorization` (both `server/http.go:910,915`).
+
+If the deauth DM never arrives: Mattermost is unreachable from Zoom. Verify SiteURL is publicly accessible and `/plugins/zoom/deauthorization` is not blocked by a reverse proxy. Stale `zoomtoken_<userID>` entries linger until the user manually `/zoom disconnect`s.
+
+**Webhook test step from Zoom side** (admin doc line 65): use Zoom's "Test Event" button after configuring the webhook; expect HTTP 200. The **Secret Token** shown by Zoom must match the `WEBHOOKSECRET` in the URL query string (Zoom passes the secret as `?secret=...` rather than a header).
 
 ### Zoom Plugin Errors
 

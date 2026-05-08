@@ -52,6 +52,12 @@ If a feature appears disabled despite a valid license, these are usually the nex
 - Inter-node messaging: gossip protocol via memberlist (`cluster/gossip_client.go` + per-feature handlers).
 - Redis fallback: `cluster/redis.go` for broadcast.
 - Leader election, config/log/plugin-status sync, support-packet collection across all nodes.
+- Log signatures (`cluster/cluster.go`):
+  - `Cluster listener for gossip has started` (Info, with port) - normal startup.
+  - `New leader node in the cluster` (Info, with `is_leader=true|false`) - leader-election event; expect one at startup, then on every leader change.
+  - `Failed to initialize memberlist.` (Error) - cluster init failure; check `ClusterSettings.GossipPort` and node-to-node 8074/8075 reachability.
+  - `Cluster listener for gossip is stopping` (Info) - shutdown.
+  - Repeated leader-change events without admin action -> investigate network partitions or aggressive memberlist settings.
 
 **Auto-translation providers**: `provider/libretranslate/`, `provider/agents/` (uses the Mattermost Agents AI plugin). 10-minute TTL cache, sensitive-data masking, recovery job for failures.
 

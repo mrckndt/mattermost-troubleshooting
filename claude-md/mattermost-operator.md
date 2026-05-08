@@ -45,3 +45,17 @@ Size is write-only: it sets replicas/resources then clears itself. Manual overri
 **File-store secret format**: The operator expects specific keys in the file-store secret (e.g., `accesskey`, `secretkey`, `endpoint`, `bucket` for S3). A malformed secret won't surface a clear error - the Mattermost pod just won't start with file-store env vars set. Verify by reading the rendered Deployment env vars.
 
 **Auto-set env vars override attempts**: Anything in `mattermostEnv` that conflicts with the auto-set list (`MM_CLUSTERSETTINGS_ENABLE`, `MM_METRICSSETTINGS_*`, `MM_PLUGINSETTINGS_ENABLEUPLOADS`, `MM_INSTALL_TYPE`) is silently overridden by the operator. Use a non-conflicting setting or fork the operator.
+
+**CR lifecycle states** (`.status.state` field, `apis/mattermost/v1beta1/mattermost_types.go`):
+- `Reconciling` - operator is actively making changes (normal during deploy/update).
+- `Ready` - resources deployed but not yet confirmed stable.
+- `Stable` - all pods healthy, ingress (if configured) ready.
+
+Triage for a CR stuck in `Reconciling`:
+```
+kubectl describe mattermost <name> -n <namespace>   # .status.error
+kubectl describe deployment mattermost-<name> -n <namespace>   # Events
+kubectl logs -l app=mattermost -n <namespace> --tail=50
+```
+
+**v1alpha1 (ClusterInstallation) -> v1beta1 (Mattermost) migration**: legacy CRD at `apis/mattermost/v1alpha1/`. Migration guide: `docs/migration.md` in this repo. Operator runs CRD conversion automatically; manual CR edits move the spec to v1beta1 shape (database and file-store are now `.spec.database.*` / `.spec.fileStore.*` sub-structs).

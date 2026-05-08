@@ -4,6 +4,8 @@
 **Stack**: Go, whisper.cpp, Azure Speech, Silero VAD, Opus codec, WebRTC (pion)
 **Min server / min plugin**: Mattermost >= v7.8, mattermost-plugin-calls >= v0.19.0
 
+**Pipeline reference**: end-to-end transcription flow + cross-component version matrix in `claude-md/mattermost-plugin-calls.md > Calls pipeline reference`.
+
 **Configuration (env vars)**:
 
 | Field | Values | Default | Purpose |

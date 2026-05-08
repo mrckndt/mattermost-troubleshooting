@@ -1,7 +1,6 @@
 ### mattermost-plugin-msteams-meetings
 
 **What**: Microsoft Teams Meetings audio/video conferencing integration (meetings-only). Distinct from `mattermost-plugin-msteams`, which handles channel/user sync.
-**Stack**: Go backend, React frontend
 **Plugin ID**: `com.mattermost.msteamsmeetings`
 **Min server**: 10.7.0
 **Database**: KV store only (no custom tables)
@@ -10,6 +9,8 @@
 - Each user connects via `/mstmeetings connect`.
 - OAuth tokens encrypted at rest with `EncryptionKey` (AES-256, see `server/user.go`).
 - Required scopes: `offline_access`, `OnlineMeetings.ReadWrite`.
+
+Azure AD app setup (admin consent, redirect URI, scopes per plugin) - see the shared `CLAUDE.md > Azure AD app registration (for Microsoft-stack plugins)` section. Authoritative admin doc: `upstream/docs/source/integrations-guide/microsoft-teams-meetings.rst`.
 
 **Configuration**:
 

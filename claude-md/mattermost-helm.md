@@ -57,3 +57,12 @@
 **StatefulSet PVC stuck pending**: Pod can't start. Usually a `StorageClass` mismatch or no provisioner. `kubectl describe pvc <name>` should show the binding error. For local-path tests, set `global.features.fileStore.driver=local` (NOT for production - breaks HA).
 
 **Cluster gossip blocked**: Pods can't form a cluster. Network policies must allow gossip 8074 and streaming 8075 between Mattermost pods. The chart adds `clusterPort`/`gossipPort` Service entries; confirm they aren't filtered upstream of the Service.
+
+**Pod crash-loop triage**:
+```
+kubectl describe deployment mattermost-<release> -n <namespace>  # Events: image pull, quota, missing secrets
+kubectl logs -l app=mattermost -n <namespace> --previous --tail=100  # DB errors, migration failures
+kubectl get events -n <namespace> --sort-by='.lastTimestamp' | tail -20
+```
+
+**`mattermostApp.extraEnv` vs `mattermostApp.service.annotations`**: `extraEnv` injects custom environment variables into the Mattermost pod (these become `MM_*` overrides). `service.annotations` controls the Kubernetes Service object (NLB annotations, Prometheus scraping). Common mistake: putting `nginx.ingress.kubernetes.io/*` annotations in `extraEnv` - they have no effect there; they belong in `ingress.annotations`.

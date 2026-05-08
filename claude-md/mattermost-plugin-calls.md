@@ -1,7 +1,6 @@
 ### mattermost-plugin-calls
 
 **What**: Voice calling and screen sharing plugin
-**Stack**: Go backend, React frontend
 **Plugin ID**: `com.mattermost.calls`
 **Min server**: 10.0.0
 **Database**: PostgreSQL and MySQL (custom tables)
@@ -40,10 +39,32 @@
 - Live captions: requires both recordings AND transcriptions enabled
 - Job service: `JobServiceURL` for recording/transcription jobs
 
-**Experimental features** (off by default): IPv6, simulcast, AV1 codec, data channel signaling, video in DMs
+### Calls pipeline reference
 
-**Database tables**: `calls_channels`, `calls`, `calls_sessions`, `calls_jobs`
-Migrations: 5 total (MySQL and PostgreSQL) at `server/db/migrations/`
+**End-to-end recording flow**: User clicks **Record** -> plugin creates a row in `calls_jobs` (`server/job_service.go:88`) -> offloader picks up the job and spawns a recorder container (passing `MM_CALLS_RECORDER_SITE_URL` if configured for private networks) -> recorder joins the call as a hidden client, records video+audio with FFmpeg, uploads to Mattermost as a file post -> plugin attaches the file to the original post in the channel. See `server/job_service.go:261-354` for the handoff. Per-component fragments: `claude-md/calls-offloader.md`, `claude-md/calls-recorder.md`, `claude-md/calls-transcriber.md`.
+
+**Version compatibility matrix** (cross-checked against `plugin.json` and `upstream/calls-offloader/public/job/job.go`):
+
+| Plugin requires | Min version |
+|---|---|
+| Offloader (`min_offloader_version`) | v0.9.0 |
+| RTCD (`min_rtcd_version`) | v0.17.0 |
+
+| Offloader requires | Min version |
+|---|---|
+| Recorder image (`MinSupportedRecorderVersion`) | v0.6.0 |
+| Transcriber image (`MinSupportedTranscriberVersion`) | v0.1.0 |
+
+These are **minimums** - newer versions are fine. Common upgrade failure: plugin upgraded without bumping offloader/RTCD; symptom is `minimum version check failed` in plugin logs.
+
+**RTCD vs in-plugin RTC**: by default, RTC media flows through the plugin process on the app node. Set `RTCDServiceURL` to offload to a dedicated RTCD service. Use RTCD when:
+- Running HA / multi-node Mattermost (in-plugin RTC pins media to whichever node the user lands on).
+- More than ~50-100 active call participants total - app node CPU is the bottleneck.
+- Running in K8s (recommended even at moderate load).
+
+**Database tables**: `calls_channels`, `calls`, `calls_sessions`, `calls_jobs`. Migrations: 5 total at `server/db/migrations/{postgres,mysql}/`.
+
+**Experimental features** (off by default): IPv6, simulcast, AV1 codec, data channel signaling, video in DMs
 
 **Key paths for troubleshooting**:
 

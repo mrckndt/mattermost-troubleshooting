@@ -43,6 +43,18 @@
 
 **Bare webhook notifications**: Google may deliver "bare" notifications without full event data. The plugin then calls `GetNotificationData()` to fetch event details from the Calendar API (`gcal/notifications.go`). Network or auth failures here block notification delivery.
 
+**Shared engine with `mattermost-plugin-mscalendar`**: this plugin imports `github.com/mattermost/mattermost-plugin-mscalendar/calendar/{engine,jobs,plugin,remote}` (`server/main.go:9-11`). The same daily renewal cron and notification framework apply. The `gcal/` package is just the Google-specific client.
+
+**Subscription TTL and renewal**:
+- Google watch channel: 7-day TTL (`subscribeTTL = 7 * 24 * time.Hour`, `gcal/subscription.go:19`).
+- Renewal cron: 24 h interval (inherited from mscalendar engine - same `id: "renew"` job).
+- Renewal mechanism: `RenewSubscription` deletes the old channel and creates a new one; see `gcal/subscription.go:94-106`.
+- Failure logs: `gcal CreateMySubscription, error creating subscription` (`subscription.go:47`); `gcal RenewSubscription, error deleting subscription` (`subscription.go:98,103`).
+
+**Bare-notification handling** (`gcal/webhook.go:30-58`): Google delivers only headers (`X-Goog-Resource-State`, `X-Goog-Channel-Id`, etc.) - no event body. The handler builds a bare notification and the engine then calls `GetNotificationData()` to fetch the actual event from the Calendar API. If this second call fails (token expired, scope missing, network), the user gets no reminder. Initial subscription handshake: Google sends `X-Goog-Resource-State: sync` once on channel creation - returns 202 with no notifications, normal behaviour.
+
+If reminders stop arriving for one user only, check logs for `error fetching event data` from `GetNotificationData`. Token refresh + scope re-grant usually resolves it.
+
 ### Google Calendar Plugin Errors
 
 | Message | Cause | Resolution |

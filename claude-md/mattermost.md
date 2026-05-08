@@ -101,6 +101,43 @@ cd upstream/mattermost/server && GOOS=linux GOARCH=amd64 go build -trimpath -o b
 
 mmctl entry: `server/cmd/mmctl/`. Commands under `commands/` (~46 files). Local mode (`--local`) connects via Unix socket and bypasses auth; remote mode uses token-based API.
 
+### Job system reference
+
+Jobs run via the OSS job system (`server/channels/jobs/`); enterprise jobs live under `upstream/enterprise/` (LDAP sync, data retention, message export, compliance export, access control sync, auto-translation recovery). Schedulers decide leader-only vs any-node; workers do the work.
+
+To enumerate registered job types in a given release:
+```
+grep -nE 'RegisterJobType|jobs\.JobTypeXxx' upstream/mattermost/server/channels/app/server.go
+```
+
+TSE-relevant categories (not exhaustive):
+
+| Category | Examples | Notes |
+|---|---|---|
+| Recurring operational | `data_retention`, `message_export`, `compliance`, `ldap_sync`, `recap`, `delete_expired_posts`, `expirynotify`, `post_persistent_notifications`, `extract_content`, `active_users`, `mobile_session_metadata` | When tickets say "X stopped happening", check this category first. |
+| One-shot migrations | `migrations`, `s3_path_migration`, `delete_orphan_drafts_migration`, `delete_empty_drafts_migration`, `delete_dms_preferences_migration` | Run once per upgrade. Stuck migrations block start-up; check `Jobs` table. |
+| Admin-triggered | `export_process`, `export_delete`, `import_process`, `import_delete`, `export_users_to_csv` | Customer-initiated; not scheduled. |
+| Cluster / cloud bookkeeping | `last_accessible_post`, `last_accessible_file`, `hosted_purchase_screening`, `cleanup_desktop_tokens`, `product_notices`, `resend_invitation_email`, `plugins` | Mostly Cloud-side; rarely the root cause but visible in `mmctl job list`. |
+
+Inspection: `mmctl job list` (most recent), `mmctl job show <id>` (status + last-error). Job rows live in the `Jobs` table.
+
+### LDAP / AD diagnostic endpoints
+
+`api4/ldap.go` exposes three test endpoints (all `POST`, system-admin auth):
+
+| Path | Body | Purpose |
+|---|---|---|
+| `/api/v4/ldap/test` | (none) | Quick connectivity test using saved `LdapSettings`. |
+| `/api/v4/ldap/test_connection` | `LdapSettings` JSON | Test arbitrary settings without saving. Useful for validating new config. |
+| `/api/v4/ldap/test_diagnostics` | `{type, settings}` | Extended diagnostics (e.g. group sync sample). |
+| `/api/v4/ldap/sync` | (none) | Trigger a manual sync (still respects scheduling locks). |
+
+Curl example:
+```
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  https://<SiteURL>/api/v4/ldap/test
+```
+
 ### Common Support Investigation Patterns
 
 **"Where is config setting X validated?"**

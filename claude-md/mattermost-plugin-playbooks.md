@@ -1,7 +1,6 @@
 ### mattermost-plugin-playbooks
 
 **What**: Incident response and workflow automation plugin
-**Stack**: Go backend, React frontend
 **Plugin ID**: `playbooks`
 **Min server**: 11.1.0
 **Database**: **PostgreSQL ONLY** (explicitly rejects MySQL)
@@ -15,7 +14,7 @@
 - `EnableExperimentalFeatures`: beta features (default: false)
 
 **Database tables** (all prefixed `IR_`): `IR_Incident` (playbook runs), `IR_Playbook` (templates), `IR_PlaybookMember`, `IR_StatusPosts`, `IR_TimelineEvent`, `IR_UserInfo`, `IR_ViewedChannel`
-Migrations: 164 (PostgreSQL only) at `server/sqlstore/migrations/postgres/`
+Migrations: 164 total files (highest version: 000082) at `server/sqlstore/migrations/postgres/`. PostgreSQL only.
 
 **Key paths for troubleshooting**:
 

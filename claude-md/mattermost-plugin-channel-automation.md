@@ -1,7 +1,6 @@
 ### mattermost-plugin-channel-automation
 
 **What**: Rules-based automation engine that triggers actions on channel events (message posts, membership changes, schedules, channel creation, user joins)
-**Stack**: Go backend, React frontend
 **Plugin ID**: `com.mattermost.channel-automation`
 **Min server**: 6.2.1
 **License**: Enterprise
@@ -44,6 +43,18 @@
 **Permission errors**: `send_message` requires the flow creator to have `PermissionCreatePost` on the target channel. `ai_prompt` requires the Agents plugin to be active. `channel_created` flows require team-admin on the team; other flows require channel-admin on all literal channel references. System admins bypass these checks.
 
 **Performance with many rules**: `MaxConcurrentFlowsLimit` caps execution goroutines per instance - increase if flows queue. Work items persist in KV store with a 30s poll interval. Cluster-wide coordination uses a flow-index mutex to prevent race conditions. Watch execution history for slow / hung flows.
+
+**REST API inspection for stuck or silently-failing flows**:
+```
+# List executions for a specific flow (paginated)
+GET /plugins/com.mattermost.channel-automation/api/v1/flows/{flow_id}/executions?page=0&per_page=100
+
+# Get a specific execution (status, per-step output, error)
+GET /plugins/com.mattermost.channel-automation/api/v1/executions/{execution_id}
+```
+All endpoints require authentication (Bearer token or session cookie). Response includes `status`, `error`, timestamps, and per-step output.
+
+**`ai_prompt` action dependency**: channel-automation calls the agents plugin API directly (not via MCP). If `agents plugin is not installed or active` errors appear, see `claude-md/mattermost-plugin-agents.md` for configuration prerequisites (license, LLM provider, pgvector if using embeddings).
 
 ### Channel Automation Errors
 

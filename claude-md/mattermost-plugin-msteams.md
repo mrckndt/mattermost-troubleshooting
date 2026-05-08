@@ -1,10 +1,9 @@
 ### mattermost-plugin-msteams
 
 **What**: Microsoft Teams channel-to-channel sync and user account bridge via Microsoft Graph webhooks and OAuth (separate plugin from `mattermost-plugin-msteams-meetings`, which is meetings-only)
-**Stack**: Go backend, React frontend
 **Plugin ID**: `com.mattermost.msteams-sync`
 **Min server**: 10.7.0
-**Database**: PostgreSQL / MySQL via SQLStore (`msteamssync_*` tables) + KV fallback for transient OAuth state
+**Database**: **PostgreSQL ONLY** (admin doc explicitly excludes MySQL: `upstream/docs/source/integrations-guide/microsoft-teams-sync.rst:92`). Tables: `msteamssync_*`. KV fallback for transient OAuth state. Migrations under `server/store/sqlstore/migrations/` (single dir, no MySQL variant).
 
 **Authentication**:
 - OAuth 2.0 with Microsoft Graph (Azure AD app registration: tenant ID, client ID, client secret).
@@ -56,6 +55,25 @@
 **Tenant configuration / missing scopes**: Azure app needs delegated `Chat.Read` / `ChatMessage.Read` plus application-role permissions for global subscriptions. `Insufficient permissions` errors in logs indicate missing scopes. Webhook validation fails if `webhookSecret` is cleared or out-of-sync between cluster nodes.
 
 **Channel sync / message bridging broken**: Webhook payloads validate `ClientState` against `WebhookSecret` (constant-time compare). Mismatch -> `Invalid webhook secret`. Activity queue overflows at 5000 items if handler workers stall. Check that DB migrations 001-009 ran and `msteamssync_*` tables exist. Post linking via `msteamssync_posts`; channel links via `msteamssync_links`.
+
+**Email-match requirement** (currently a hard constraint per admin doc, no override): a Mattermost user can only connect to a Microsoft Teams account whose email **exactly matches** their Mattermost email. Mismatch -> connect flow appears to succeed in OAuth but messages never sync for that user. Tracked upstream at `https://github.com/mattermost/mattermost-plugin-msteams/issues/519`. Reference: `upstream/docs/source/integrations-guide/microsoft-teams-sync.rst:137-142`.
+
+**Plugin pre-packaged with Mattermost v9.11.2+** (ESR) and Cloud v10+: `v2.0` ships in-server. Customers manually uploading the plugin binary on those versions get version skew. If `mmctl plugin list` shows two `com.mattermost.msteams-sync` entries, remove the manually-uploaded one.
+
+**Webhook secret regeneration is one-shot**: same gotcha as github/zoom - the plugin only displays the webhook secret and encryption key on creation. Lost secret -> regenerate and update both sides per `CLAUDE.md > Plugin token & webhook operations`. Reference: `upstream/docs/source/integrations-guide/microsoft-teams-sync.rst:105`.
+
+**`evaluationAPI` consequences (the most common cause of "messages stop syncing intermittently")**:
+
+The plugin uses Microsoft Graph Change Notifications to receive chat events from Teams. Microsoft offers two tiers:
+
+| `evaluationAPI` | Tier used | Rate limit | Billing |
+|---|---|---|---|
+| `false` (production) | **Metered / paid** Microsoft Graph API | Production-grade | Customer's Azure subscription must be linked to the OAuth app per `https://learn.microsoft.com/en-us/graph/metered-api-setup` |
+| `true` (default for trials) | **Evaluation model** | "Low rate of changes per month" | Free, no Azure billing |
+
+Source: `server/subscriptions.go:120` calls `client.SubscribeToChats(..., !m.useEvaluationAPI, ...)` - the `pay` boolean directly maps to `!evaluationAPI`. Admin doc explicitly warns against using the Evaluation model in production (`upstream/docs/source/integrations-guide/microsoft-teams-sync.rst:79-83`).
+
+If a customer reports "messages sync briefly then stop" or "we miss messages": check `evaluationAPI`. The fix is twofold: (1) link the OAuth app to a paid Azure subscription per Microsoft's metered-API setup; (2) flip `evaluationAPI` to `false` in plugin config and restart. Look in plugin logs for `Failed to create global chats subscription` (`server/subscriptions.go:122`) - if accompanied by a 429 / quota error, the rate limit has been hit.
 
 ### MS Teams Plugin Errors
 

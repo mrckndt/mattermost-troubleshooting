@@ -47,7 +47,9 @@
 
 **Push proxy reports `NOT_AVAILABLE`**: Notifications are silently dropped client-side. Verify `EmailSettings.PushNotificationServer` points to a reachable HPNS or self-hosted MPNS, and that `EmailSettings.SendPushNotifications=true`. Self-compiled mobile apps MUST run their own MPNS - HPNS only accepts traffic from the official app builds.
 
-**Deep links not opening the app**: Custom-domain deployments need `ServiceSettings.SiteURL` to match the URL users tap. The mobile app validates the link's host against the SiteURL during the deep-link handler.
+**Deep links not opening the app**: Custom-domain deployments need `ServiceSettings.SiteURL` to match the URL users tap. The mobile app validates the incoming URL's host via `sanitizeUrl()` / `isParsableUrl()` in `app/utils/url/index.ts`. If SiteURL has a trailing slash mismatch or the scheme differs, the link falls through to the browser. Deep-link scheme/path constants: `app/constants/deep_linking.ts`.
+
+**Sentry breadcrumb fields** (when customer shares a crash report): captured automatically from every `logError()` / `logWarning()` call (`app/utils/log.ts`, `app/utils/error_handling.ts`). Fields: `level`, `message`, `type`, `data` (key-value context). No persistent log file exists on device by default - Sentry is the primary crash-data source for official builds.
 
 **WebSocket reconnect storm after server restart**: Clients try up to 7 times with backoff (3s -> 5min). On the server side this surfaces as a burst of "user access token" warnings (see `mattermost.md` deep-dive on session resolution); harmless if it tapers off. If it doesn't taper, inspect the network manager and load-balancer idle timeout (must be >60s).
 

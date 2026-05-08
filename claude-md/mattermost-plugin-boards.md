@@ -1,7 +1,6 @@
 ### mattermost-plugin-boards
 
 **What**: Project management plugin (Trello/Notion-style boards)
-**Stack**: Go backend, React frontend
 **Plugin ID**: `focalboard`
 **Min server**: 10.7.0
 **Database**: PostgreSQL and MySQL (81 migrations)

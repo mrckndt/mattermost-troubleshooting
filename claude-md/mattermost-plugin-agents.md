@@ -34,6 +34,36 @@
 
 **pgvector extension missing**: Semantic search / embeddings disabled or fail with `extension "vector" does not exist`. The DB admin must `CREATE EXTENSION vector;` on the Mattermost database. Without pgvector, configure `EmbeddingSearchConfig` to disable embeddings or fall back to a non-semantic retriever.
 
-**MCP server unreachable from agent**: SiteURL must be set correctly - the embedded MCP server is reached via `{SiteURL}/plugins/mattermost-ai/mcp`. If the LLM client (Claude Code / Claude Desktop) can't reach it, verify SiteURL is publicly accessible from where the LLM runs, not just from inside the cluster.
+**MCP server unreachable**: see "Operational checks" below for endpoint paths and probe. Two separate toggles (embedded vs external HTTP); SiteURL must be reachable from where the LLM client runs.
 
 **Model config mismatch**: LLM provider returns 4xx/5xx. Check `EnableLLMTrace=true` to log the request/response. Common causes: wrong endpoint URL for OpenAI-compatible servers (Ollama uses `/v1`), missing `AllowedUpstreamHostnames` entry blocking outbound calls, or token-limit mismatch (provider rejects context-length overrun).
+
+### Operational checks
+
+**pgvector audit** (semantic search requires the `vector` extension on the Mattermost database):
+
+```
+SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';
+```
+
+If empty: have the DB admin run `CREATE EXTENSION vector;` on the Mattermost database (requires superuser unless pre-allowlisted on the cloud DB provider). Without it, configure `EmbeddingSearchConfig` to disable embeddings or use **Post indexing** (System Console > Plugins > Agents > Embedding Search) only after the extension is in place.
+
+**MCP server reachability** (external client like Claude Code/Desktop cannot connect):
+
+The plugin exposes two MCP endpoints with separate enable toggles in **System Console > Plugins > Agents > MCP Servers**:
+
+| Mode | Toggle | Endpoint | Used by |
+|---|---|---|---|
+| Embedded | `Enable Embedded Server` | internal only | the plugin's own AI agents |
+| External | `Enable Mattermost MCP Server (HTTP)` | `https://<SiteURL>/plugins/mattermost-ai/mcp-server/mcp` | Claude Code, Claude Desktop, other MCP clients |
+
+External-client probe (PAT in `User Settings > Security > Personal Access Tokens`, or use OAuth):
+
+```
+curl -i -H "Authorization: Bearer <PAT>" \
+  https://<SiteURL>/plugins/mattermost-ai/mcp-server/mcp
+```
+
+Transport is **streamable HTTP only** - the server does not implement SSE; clients configured for SSE will fail to connect. SiteURL must be reachable from wherever the LLM client runs, not just from inside the cluster. OAuth metadata: `/plugins/mattermost-ai/mcp-server/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`.
+
+**License**: MCP support requires Entry, Enterprise, or Enterprise Advanced.
