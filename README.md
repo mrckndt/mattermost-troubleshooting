@@ -24,30 +24,50 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ## Slash commands
 
-**Repo management**
-- `/bootstrap` - clone any missing upstream repos and create `tickets/` if absent. With `--build <calls|all|<repo>>` it also runs the initial graphify build (otherwise it prompts).
-- `/git-pull [<repo>]` - `git pull --ff-only` on the current branch of one repo or all. Cascades a graphify `--update` for any repo whose HEAD moved, then re-merges affected bundles and `_all`.
-- `/git-switch <repo> [<ref>]` - check out a tag or branch (default: the repo's default branch). Rebuilds or `--update`s the repo's graph based on the change ratio, then re-merges affected bundles and `_all`.
+### Repo management
 
-**Knowledge graph**
-- `/graphify-scope` - show available scopes (per-repo, bundle, `_all`) and the current pin.
-- `/graphify-scope <scope>` - pin a scope so all subsequent graphify queries hit it. `<scope>` is a repo name, a bundle name, or `_all`.
-- `/graphify-scope clear` - remove the pin; auto-select resumes (see `CLAUDE.md` for the heuristic).
-- `/graphify-update` - incrementally refresh all built graphs (per-repo `--update`, then re-merge bundles and `_all`).
-- `/graphify-update <repo>` - update one repo and cascade to its bundles and `_all`.
-- `/graphify-update <bundle-name>` - re-merge + re-cluster one bundle from existing per-repo graphs (e.g. `/graphify-update calls`).
-- `/graphify-update _all` - re-merge + re-cluster `_all` from all existing per-repo graphs.
-- `/graphify-bundle` - list defined bundles (name, repos, keywords, built status).
-- `/graphify-bundle <name>` - show one bundle's details.
-- `/graphify-bundle add <name> [<repos>] [<keywords>]` - create a bundle. `<repos>` and `<keywords>` are optional comma-separated lists.
-- `/graphify-bundle remove <name>` - delete a bundle from config and remove its built graph (if any).
+- **`/bootstrap`** - clone any missing upstream repos and create `tickets/` if absent. Idempotent.
+  - `/bootstrap` - clone only, then prompt before any graphify build.
+  - `/bootstrap --build <bundle-name>` - after cloning, also build the repos listed under that bundle in `graphs/config.json`.
+  - `/bootstrap --build all` - build every repo in `graphs/config.json#/repos`.
+  - `/bootstrap --build <repo>` - build a single repo.
+
+- **`/git-pull [<repo>]`** - `git pull --ff-only` on the current branch.
+  - `/git-pull` - pull every repo under `upstream/`.
+  - `/git-pull <repo>` - pull just one.
+  - Cascade: for every repo whose HEAD moved, runs `graphify update` (AST-only, no LLM calls), then re-merges affected bundles and `_all`.
+
+- **`/git-switch <repo> [<ref>]`** - switch a cloned repo to a tag, branch, or commit.
+  - `/git-switch <repo>` - return to the repo's default branch.
+  - `/git-switch <repo> <ref>` - switch to a tag (e.g. `v10.5.1`), branch, or commit. Fetches `--tags --prune` only as a fallback if the ref is unknown locally.
+  - Cascade: after the switch, runs `graphify update` for the repo, then re-merges affected bundles and `_all`.
+
+### Knowledge graph
+
+- **`/graphify-scope`** - manage which graph subsequent queries target.
+  - `/graphify-scope` - list available scopes (per-repo, bundle, `_all`) and the current pin.
+  - `/graphify-scope <scope>` - pin a scope. `<scope>` is a repo name, a bundle name, or `_all`.
+  - `/graphify-scope clear` - remove the pin; auto-select resumes (see `CLAUDE.md` for the heuristic).
+
+- **`/graphify-update`** - incrementally refresh graphs without a git operation.
+  - `/graphify-update` - update every built per-repo graph, then cascade bundles and `_all`.
+  - `/graphify-update <repo>` - update one repo and cascade to its bundles and `_all`.
+  - `/graphify-update <bundle-name>` - re-merge + re-cluster one bundle from existing per-repo graphs.
+  - `/graphify-update _all` - re-merge + re-cluster `_all` from all existing per-repo graphs.
+
+- **`/graphify-bundle`** - manage bundle definitions in `graphs/config.json`. Asks for confirmation before mutating.
+  - `/graphify-bundle` - list defined bundles (name, repos, keywords, built status).
+  - `/graphify-bundle <name>` - show one bundle's details.
+  - `/graphify-bundle add <name> [<repos>] [<keywords>]` - create a bundle. `<repos>` and `<keywords>` are optional comma-separated lists.
+  - `/graphify-bundle remove <name>` - delete a bundle from config and remove its built graph (if any).
+
+### Output (customer-facing artifacts)
+
+- **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context. Optional arg: problem/solution hint.
+- **`/kb-article [description]`** - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
+- **`/feature-request [title]`** - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 
 > Note: `/bootstrap`, `/git-pull`, `/git-switch`, `/graphify-scope`, `/graphify-update`, and `/graphify-bundle` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
-
-**Output**
-- `/draft-reply [description]` - draft a customer reply from the current troubleshooting context. Optional arg: problem/solution hint.
-- `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
-- `/feature-request [title]` - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 
 ## First-time setup
 
