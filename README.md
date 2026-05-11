@@ -115,7 +115,8 @@ The default Gemini model is `gemini-3-flash-preview` (fast, cheap). Override wit
 |---|---|---|
 | Initial build or full rebuild | Sonnet 4.6 at low effort, or Haiku 4.5 at default | Semantic subagents are simple extraction tasks; Opus is overkill and 5-10x more expensive |
 | Incremental update (code only) | Any model | No LLM calls - AST only |
-| TSE troubleshooting sessions | Sonnet 4.6 (default) | Good balance of reasoning and cost |
+| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed. Worth trying lower-effort or Haiku if the cascade is doing real work (semantic re-extraction); stay on Sonnet if you want the model to make judgment calls about what to rebuild |
+| TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight |
 
 **Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain over Sonnet or Haiku - the task is structured data extraction, not complex reasoning.
 
