@@ -3,6 +3,8 @@
 Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent. Local clones of upstream Mattermost repos, curated per-repo CLAUDE.md fragments, and on-disk knowledge graphs.
 
 > Looking for the previous setup (full `claude-md/<repo>.md` content, no `graphs/`, no `/graphify-*` commands)? Check out commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) - the last state before the graphify integration. The `claude-md/` files there contain the prior TSE notes that are now being re-curated alongside the knowledge graphs.
+>
+> The pre-graphify content is not lost - it will be added back into `claude-md/<repo>.md` incrementally, trimmed to what graphs and docs cannot reproduce (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas). Until then, the on-branch `claude-md/` files are header-only stubs.
 
 ## Layout
 
