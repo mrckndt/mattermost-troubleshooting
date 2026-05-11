@@ -73,33 +73,22 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ### Install graphify
 
-Graphify is a separate Python CLI used to build the knowledge graphs under `graphs/`. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build calls`.)
+Graphify is a separate Python CLI used to build the knowledge graphs under `graphs/`. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
 
-**macOS (pipx)** - recommended:
+Requires Python 3.10 or newer.
+
+**macOS** - use `pipx` (recent macOS Pythons are externally managed and reject plain `pip install`):
 
 ```
 brew install pipx
 pipx ensurepath
-pipx install graphifyy
+pipx install graphifyy && graphify install
 ```
 
-**macOS (Homebrew + venv)** - if you prefer Homebrew's Python directly:
+**Linux / Windows** - the one-liner from the graphify docs:
 
 ```
-brew install python
-python3 -m venv ~/.venvs/graphify
-~/.venvs/graphify/bin/pip install graphifyy
-# add ~/.venvs/graphify/bin to PATH, or symlink:
-ln -s ~/.venvs/graphify/bin/graphify /usr/local/bin/graphify
-```
-
-**Windows**:
-
-```
-# Install Python 3.10+ from python.org first, then:
-python -m pip install --user pipx
-python -m pipx ensurepath
-pipx install graphifyy
+pip install graphifyy && graphify install
 ```
 
 Verify: `graphify --help` should print usage.
