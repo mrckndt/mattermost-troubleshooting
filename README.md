@@ -1,6 +1,8 @@
 # mattermost-troubleshooting
 
-Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent. Local clones of upstream Mattermost repos, curated per-repo CLAUDE.md fragments, and on-disk knowledge graphs.
+Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent. Local clones of upstream Mattermost repos, curated per-repo CLAUDE.md fragments, and on-disk knowledge graphs built with [graphify](https://graphify.net/).
+
+> New to graphify? Start with [Graphify: turn any folder into a knowledge graph](https://openclawapi.org/en/blog/2026-04-12-graphify-knowledge-graph) for the conceptual intro, then [graphify CLI commands](https://graphify.net/graphify-cli-commands.html) for the operational reference.
 
 > Looking for the previous setup (full `claude-md/<repo>.md` content, no `graphs/`, no `/graphify-*` commands)? Check out commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) - the last state before the graphify integration. The `claude-md/` files there contain the prior TSE notes that are now being re-curated alongside the knowledge graphs.
 >
@@ -75,7 +77,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ### Install graphify
 
-Graphify is a separate Python CLI used to build the knowledge graphs under `graphs/`. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
+Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a separate Python CLI used to build the knowledge graphs under `graphs/`. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
 
 Requires Python 3.10 or newer.
 
