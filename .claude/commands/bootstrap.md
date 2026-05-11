@@ -65,17 +65,30 @@ If a build was requested, do the following in order:
    - `command -v graphify`. If missing, print `graphify CLI not installed - see README.md for install instructions. Skipping graph build.` and stop the build phase (the clone summary above is still the final report).
    - `[ -f graphs/config.json ]`. If missing, print `graphs/config.json not found. Skipping graph build.` and stop.
 
-2. **Resolve build set**: read `graphs/config.json`. For a `<bundle-name>` selector, take `bundles.<bundle-name>.repos`. For `all`, take all keys under `repos`. For a single `<repo>`, take just that one. Validate that each repo exists under `upstream/<repo>/`; if not, skip it with a warning row in the report.
+2. **Resolve build set**: read `graphs/config.json`. For a `<bundle-name>` selector, take `bundles.<bundle-name>.repos` - the list of member repos to process individually. For `all`, take all keys under `repos`. For a single `<repo>`, take just that one. Validate that each repo exists under `upstream/<repo>/`; if not, skip it with a warning row in the report.
 
 3. **For each repo in the build set** (run in parallel via separate Bash tool calls where independent; do not chain with `&&` or pipes):
-   - If `graphs/<repo>/graphify-out/graph.json` already exists, skip with status `already built` (idempotent).
+   - Check `test -f graphs/<repo>/graphify-out/graph.json`. If present, skip with status `already built` (idempotent). The bundle merge file (`graphs/_bundles/<name>/graphify-out/graph.json`) does not satisfy this check - bundle state is independent of member state and is handled in step 4.
    - Resolve `include_types` for this repo: per-repo `repos.<repo>.include_types` if present, else `defaults.include_types`, else all categories. Phase 1 default is `["code", "document"]`.
-   - For `scope: full`: follow the graphify skill pipeline at `~/.claude/skills/graphify/SKILL.md` with one modification - apply the `include_types` filter to the detect output before extraction:
-     - Call `graphify.detect.detect(upstream/<repo>)` from Python.
-     - Zero out every `result['files'][k]` where `k` is not in the resolved `include_types`. Recompute `total_files` and `total_words`.
-     - Write `.graphify_detect.json` under `graphs/<repo>/graphify-out/`.
-     - Continue with the SKILL.md pipeline (AST extraction, semantic subagents if any non-code categories survived, build, cluster, report). Working directory: `graphs/<repo>/`.
-   - For `scope: subdirs`: per-subdir graphs live persistently under `graphs/<repo>/<subdir-name>/graphify-out/`. The subdir-name is the relative path with slashes replaced by underscores (e.g. `server/channels/app` → `server_channels_app`). For each path in `repos.<repo>.paths`, run the SKILL.md flow (same filter as above) against `upstream/<repo>/<path>` with the working directory set to `graphs/<repo>/<subdir-name>/`, so the per-subdir `graphify-out/` lands there. Write `.graphify_root` in each per-subdir `graphify-out/` pointing to `upstream/<repo>/<path>` (used by `/graphify-update`). After all subdirs are built, merge them into the top-level graph: `graphify merge-graphs graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json`, then re-cluster: `graphify cluster-only graphs/<repo>/ --no-viz`. Do not delete the per-subdir directories - they are required for incremental updates.
+
+   **There is no `graphify <path>` bare CLI** - the graphify CLI is subcommand-based (`extract`, `update`, `cluster-only`, `merge-graphs`, etc.). Build a repo by driving the pipeline manually from Python, because the `include_types` filter is applied between `detect` and the extraction stages and no single CLI subcommand does that. Resolve the Python interpreter once from graphify's shebang and reuse it for every Python call:
+
+   ```
+   GRAPHIFY_BIN=$(which graphify)
+   PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//')
+   ```
+
+   The pipeline for one repo (or one subdir, for subdir-scoped repos):
+
+   1. **Detect.** Set `BUILD_DIR` to `graphs/<repo>/graphify-out/` (full scope) or `graphs/<repo>/<subdir-name>/graphify-out/` (subdir scope, with `<subdir-name>` being the relative path with `/` replaced by `_` - e.g. `server/channels/app` → `server_channels_app`). Set `SRC` to the absolute path of `upstream/<repo>` (full) or `upstream/<repo>/<path>` (subdir). Create `BUILD_DIR`, then from a Python script: `from graphify.detect import detect; result = detect(Path(SRC))`. Zero out every `result['files'][k]` where `k` is not in the resolved `include_types`. Recompute `total_files`. Write the result to `BUILD_DIR/.graphify_detect.json`. Also write `BUILD_DIR/.graphify_root` containing the absolute `SRC` (used by `/graphify-update`).
+   2. **AST extract** (code files). From Python: `from graphify.extract import collect_files, extract`. Build the code-file list from `result['files']['code']`. Call `extract(code_files, cache_root=Path(BUILD_DIR).parent)` and write the returned dict to `BUILD_DIR/.graphify_ast.json`.
+   3. **Semantic extract** (only if non-code categories survived the `include_types` filter and have files - typically `document` for our config). Dispatch parallel general-purpose subagents per ~20-file chunk to read the files and return a `{nodes, edges, hyperedges}` JSON fragment following the SKILL.md schema. Write each chunk under `BUILD_DIR/.graphify_semantic_<N>.json`. Skip this step entirely if only `code` is in the allowlist or there are zero non-code files.
+   4. **Merge.** From Python: read `.graphify_ast.json` and every `.graphify_semantic_*.json`, concatenate their `nodes` / `edges` / `hyperedges` lists, write to `BUILD_DIR/graph.json`.
+   5. **Cluster.** `graphify cluster-only <BUILD_DIR's parent dir> --no-viz` (e.g. `graphify cluster-only graphs/<repo>/ --no-viz` for full scope, or `graphify cluster-only graphs/<repo>/<subdir-name>/ --no-viz` for one subdir). This generates `GRAPH_REPORT.md` and the cluster annotations; the `--no-viz` skips the HTML render.
+
+   - For `scope: full`: run the pipeline once with `BUILD_DIR = graphs/<repo>/graphify-out/` and `SRC = absolute path of upstream/<repo>`.
+   - For `scope: subdirs`: per-subdir graphs live persistently under `graphs/<repo>/<subdir-name>/graphify-out/`. For each path in `repos.<repo>.paths`, run steps 1-5 with `BUILD_DIR = graphs/<repo>/<subdir-name>/graphify-out/` and `SRC = absolute path of upstream/<repo>/<path>`. After every subdir is built, combine into the top-level graph: `graphify merge-graphs graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json`, then `graphify cluster-only graphs/<repo>/ --no-viz`. Do not delete the per-subdir directories - they are required for incremental updates by `/graphify-update`.
+
    - Write `graphs/<repo>/.meta.json` with:
      ```
      { "ref": "<git -C upstream/<repo> rev-parse HEAD>", "built_at": "<ISO timestamp>", "scope": "full|subdirs" }
@@ -85,10 +98,11 @@ If a build was requested, do the following in order:
 
 5. **`_all` graph**: merge every existing per-repo `graph.json` into `graphs/_all/graphify-out/graph.json`, then `graphify cluster-only graphs/_all/ --no-viz`. (The user can pin `_all` via `/graphify-scope _all` for cross-cutting questions.)
 
-6. **Report**: extend the clone summary with a second Markdown table titled `Graph build`. Columns: `Repo | Status | Nodes | Edges | Time`. Status values: `built`, `already built`, `skipped (<reason>)`, or the error message. Below that table, list the bundles and `_all` graph with their final node/edge counts.
+6. **Report**: extend the clone summary with a second Markdown table titled `Graph build`, one row per repo in the build set. Columns: `Repo | Status | Nodes | Edges | Time`. Status values: `built`, `already built`, `skipped (<reason>)`, or the error message. Below that table, list the bundles and `_all` graph with their final node/edge counts. Do not append destructive-shell rebuild suggestions (e.g. `rm -rf graphs/<repo>`) - if the user wants a rebuild, that's their next call.
 
 Notes for the build phase:
-- Driving graphify always uses the Python entry from `~/.claude/skills/graphify/SKILL.md` so the `include_types` filter can be applied. The bare `graphify <path>` CLI is only correct when no filter is needed. Either way, the working directory is `graphs/<repo>/` (or `graphs/<repo>/<subdir-name>/` for subdir builds) so output lands next to it in `graphify-out/`.
+- The graphify CLI has no bare `graphify <path>` form - every call is a subcommand (`extract`, `update`, `cluster-only`, `merge-graphs`, ...). The pipeline above drives it from Python (`graphify.detect.detect`, `graphify.extract.extract`) so the `include_types` filter can be applied between detect and extract; only the `cluster-only` and `merge-graphs` steps shell out to the CLI.
+- `graphify extract <path> --out <dir>` exists as a one-shot CLI and is fine for ad-hoc builds with no filter, but the `--include-types` flag does not exist - it is enforced by the Python-driven detect step above.
 - `upstream/<repo>/` is read-only. Never write inside it.
 - If a single repo build fails, continue with the rest. Collect failures and report at the end. The user can re-run `/bootstrap --build <repo>` to retry one.
 
