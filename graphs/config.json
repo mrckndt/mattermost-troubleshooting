@@ -1,0 +1,84 @@
+{
+  "defaults": {
+    "include_types": ["code", "document"],
+    "_include_types_ref": "all graphify categories: code (source files), document (md/rst/txt/yaml/json), paper (pdf), image (png/jpg/gif/svg), video (mp4/mp3/wav). omit a category to skip it during extraction."
+  },
+
+  "repos": {
+    "rtcd":                                  { "scope": "full" },
+    "calls-offloader":                       { "scope": "full" },
+    "calls-recorder":                        { "scope": "full" },
+    "calls-transcriber":                     { "scope": "full" },
+    "mattermost-plugin-calls":               { "scope": "full", "include_types": ["code", "document"] },
+    "mattermost-plugin-github":              { "scope": "full" },
+    "mattermost-plugin-gitlab":              { "scope": "full" },
+    "mattermost-plugin-jira":                { "scope": "full" },
+    "mattermost-plugin-zoom":                { "scope": "full" },
+    "mattermost-plugin-mscalendar":          { "scope": "full" },
+    "mattermost-plugin-msteams":             { "scope": "full" },
+    "mattermost-plugin-msteams-meetings":    { "scope": "full" },
+    "mattermost-plugin-google-calendar":     { "scope": "full" },
+    "mattermost-plugin-agents":              { "scope": "full" },
+    "mattermost-plugin-boards":              { "scope": "full" },
+    "mattermost-plugin-playbooks":           { "scope": "full" },
+    "mattermost-plugin-channel-automation":  { "scope": "full" },
+    "enterprise":                            { "scope": "full" },
+    "migration-assist":                      { "scope": "full" },
+    "docker":                                { "scope": "full" },
+    "mattermost-helm":                       { "scope": "full" },
+    "mattermost-operator":                   { "scope": "full" },
+    "desktop":                               { "scope": "full" },
+
+    "mattermost": {
+      "scope": "subdirs",
+      "paths": [
+        "api",
+        "server/public/model",
+        "server/public/plugin",
+        "server/einterfaces",
+        "server/config",
+        "server/cmd/mmctl",
+        "server/i18n/en.json",
+        "server/channels/api4",
+        "server/channels/app",
+        "server/channels/store/sqlstore",
+        "server/channels/jobs",
+        "server/channels/wsapi",
+        "webapp/platform",
+        "webapp/channels/src/actions",
+        "webapp/channels/src/client",
+        "webapp/channels/src/plugins",
+        "webapp/channels/src/hooks",
+        "webapp/channels/src/selectors",
+        "webapp/channels/src/reducers",
+        "webapp/channels/src/store"
+      ]
+    }
+  },
+
+  "bundles": {
+    "calls": {
+      "repos": [
+        "mattermost",
+        "mattermost-plugin-calls",
+        "rtcd",
+        "calls-offloader",
+        "calls-recorder",
+        "calls-transcriber"
+      ],
+      "keywords": [
+        "calls",
+        "rtcd",
+        "recording",
+        "transcription",
+        "live caption",
+        "RTC",
+        "ICE",
+        "TURN",
+        "STUN",
+        "offloader",
+        "transcriber"
+      ]
+    }
+  }
+}
