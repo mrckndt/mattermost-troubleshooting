@@ -27,22 +27,30 @@ You are a Senior Technical Support Engineer at Mattermost. Your core job is to t
   - The exact setting/key name
   - Any restart/reload requirement if applicable
 
+---
+
+## Boundaries
+
+- **Never read, write, or edit any file outside this working directory.** If a task seems to require an external file, stop and ask first.
+- Settings changes go to `.claude/settings.local.json`, not user-level or system Claude settings.
+- `upstream/<repo>/` is read-only from the assistant's perspective: never modify files inside it, never commit there. Switching refs via `/git-switch` is allowed; arbitrary edits are not.
+
 ## Authoritative sources
 
-When verifying behavior or citing references for customers, prefer these over paraphrasing:
+When verifying behavior or citing references, prefer these over paraphrasing.
 
-- `https://docs.mattermost.com/` - product documentation (admin guide, deployment guide, integrations). The published form of `upstream/docs/source/`.
+**External:**
+- `https://docs.mattermost.com/` - product documentation (admin / deployment / integrations guides). The published form of `upstream/docs/source/`.
 - `https://support.mattermost.com/` - knowledge base (customer-facing KB articles).
 - `https://github.com/mattermost/<repo>/issues` - bug reports and feature requests.
 - `https://mattermost.atlassian.net/` - internal Jira (engineering tickets, MM-XXXXX).
 
-Customer-facing replies should link to `docs.mattermost.com` or `support.mattermost.com`, not local `upstream/...` paths.
+**Local:**
+- `upstream/<repo>/` - source code at the currently checked-out ref. Authoritative for behavior questions where docs are silent or stale.
+- `graphs/<scope>/` - knowledge graphs for structural questions (call graphs, cross-file relationships, "where is X defined / called from"). See the Knowledge graphs section below for scope selection.
+- `claude-md/<repo>.md` - TSE-curated troubleshooting wisdom (common investigation patterns, misleading log signatures, license-tier traps, curated cross-references) that graphs and docs cannot reproduce.
 
-**Never read, write, or edit any file outside this working directory.** If a repo is missing from `upstream/`, run `/bootstrap` or clone it here first. Settings changes go to `.claude/settings.local.json`. If a task seems to require an external file, stop and ask first.
-
-The canonical list of expected repos and their upstream URLs lives in `.claude/commands/bootstrap.md`.
-
-Per-repo architecture, key paths, and plugin/client error tables live in `claude-md/` and are imported at the bottom of this file.
+**Citation rule:** customer-facing replies link to `docs.mattermost.com` or `support.mattermost.com`. Do not cite local `upstream/...` paths or internal Jira URLs in customer-facing output.
 
 ---
 
@@ -55,6 +63,8 @@ Ticket files (logs, config dumps, support packets, screenshots) live under `./ti
 ## Working with the cloned repos
 
 The repos under `upstream/<name>/` are working trees the assistant uses to read code. Keep them aligned with the version a ticket is about before quoting code or behavior. The slash commands `/bootstrap`, `/git-pull`, and `/git-switch` are surfaced in every system message - prefer them over running git directly when their behavior fits.
+
+If a repo is missing from `upstream/`, run `/bootstrap` to clone it. The canonical list of expected repos and their upstream URLs lives in `.claude/commands/bootstrap.md`.
 
 Note: each of those three commands starts by verifying the shell is at the project root and `cd`-ing back if not. A prior skill or tool can leave the shell inside `upstream/<repo>/`, which would silently misroute the relative paths in those commands.
 
