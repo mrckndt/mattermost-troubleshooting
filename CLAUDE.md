@@ -52,13 +52,9 @@ When verifying behavior or citing references, prefer these over paraphrasing.
 
 **Citation rule:** customer-facing replies link to `docs.mattermost.com` or `support.mattermost.com`. Do not cite local `upstream/...` paths or internal Jira URLs in customer-facing output.
 
----
-
 ## Ticket data
 
 Ticket files (logs, config dumps, support packets, screenshots) live under `./tickets/<name>/`, where `<name>` can be a Zendesk ID, a customer name, or any other identifier the engineer chose. When a ticket is being discussed, check that directory for relevant files before asking the engineer to paste content. If the folder is empty or missing, ask what files are available.
-
----
 
 ## Working with the cloned repos
 
@@ -100,8 +96,6 @@ Prefer log/diff against refs over checking out:
 
 This avoids state changes and works without `/git-switch`.
 
----
-
 ## Knowledge graphs
 
 Per-repo and cross-repo knowledge graphs live under `graphs/` and are built / refreshed by `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update`. Layout, repo scopes, and bundle definitions are in `graphs/config.json`. The currently pinned scope (if any) is in `graphs/.active_scope`.
@@ -124,8 +118,6 @@ Scope selection (run on every graphify query you make):
 5. If `graphs/<repo>/` is missing or stale (compare `.meta.json` ref to `upstream/<repo>` HEAD), fall back to reading `upstream/<repo>/` directly and flag the staleness in the answer.
 
 `graphs/` is `.gitignore`d except for `config.json`. If a teammate hasn't built any graphs yet, the auto-select falls through gracefully because no scopes are available; the answer comes from `upstream/` + `claude-md/` only.
-
----
 
 ## Per-repo context
 
