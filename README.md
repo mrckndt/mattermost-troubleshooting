@@ -1,6 +1,8 @@
 # mattermost-troubleshooting
 
-Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent. Local clones of upstream Mattermost repos plus curated per-repo CLAUDE.md fragments.
+Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent. Local clones of upstream Mattermost repos, curated per-repo CLAUDE.md fragments, and on-disk knowledge graphs built with [graphify](https://graphify.net/).
+
+> New to graphify? Start with [Graphify: turn any folder into a knowledge graph](https://openclawapi.org/en/blog/2026-04-12-graphify-knowledge-graph) for the conceptual intro, then [graphify CLI commands](https://graphify.net/graphify-cli-commands.html) for the operational reference.
 
 ## Layout
 
@@ -9,27 +11,116 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 ├── CLAUDE.md              # Top-level agent instructions
 ├── claude-md/             # Per-upstream-repo CLAUDE.md fragments (imported by CLAUDE.md)
 ├── upstream/              # Local clones, one directory per upstream repo
+├── graphs/                # Knowledge-graph outputs (gitignored except graphs/config.json)
+│   ├── config.json        # repo scopes + bundle definitions
+│   ├── <repo>/            # per-repo graph
+│   ├── _bundles/<name>/   # named cross-repo bundle (e.g. calls)
+│   └── _all/              # mega-graph across everything that's been built
 ├── tickets/               # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/          # /bootstrap, /git-pull, /git-switch, /draft-reply, /kb-article, /feature-request
+    ├── commands/          # /bootstrap, /git-pull, /git-switch, /graphify-scope, /graphify-update, /graphify-bundle, /draft-reply, /kb-article, /feature-request
     └── settings.local.json
 ```
 
 ## Slash commands
 
-**Repo management**
-- `/bootstrap` - clone any missing upstream repos and create `tickets/` if absent.
-- `/git-pull [<repo>]` - `git pull --ff-only` on the current branch of one repo or all.
-- `/git-switch <repo> [<ref>]` - check out a tag or branch (default: the repo's default branch).
+### Repo management
 
-> Note: these three commands begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`).
+- **`/bootstrap`** - clone any missing upstream repos and create `tickets/` if absent. Idempotent.
+  - `/bootstrap` - clone only, then prompt before any graphify build.
+  - `/bootstrap --build <bundle-name>` - after cloning, also build the repos listed under that bundle in `graphs/config.json`.
+  - `/bootstrap --build all` - build every repo in `graphs/config.json#/repos`.
+  - `/bootstrap --build <repo>` - build a single repo.
 
-**Output**
-- `/draft-reply [description]` - draft a customer reply from the current troubleshooting context. Optional arg: problem/solution hint.
-- `/kb-article [description]` - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
-- `/feature-request [title]` - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
+- **`/git-pull [<repo>]`** - `git pull --ff-only` on the current branch.
+  - `/git-pull` - pull every repo under `upstream/`.
+  - `/git-pull <repo>` - pull just one.
+  - Cascade: for every repo whose HEAD moved, runs `graphify update` (AST-only, no LLM calls), then re-merges affected bundles and `_all`.
+
+- **`/git-switch <repo> [<ref>]`** - switch a cloned repo to a tag, branch, or commit.
+  - `/git-switch <repo>` - return to the repo's default branch.
+  - `/git-switch <repo> <ref>` - switch to a tag (e.g. `v10.5.1`), branch, or commit. Fetches `--tags --prune` only as a fallback if the ref is unknown locally.
+  - Cascade: after the switch, runs `graphify update` for the repo, then re-merges affected bundles and `_all`.
+
+### Knowledge graph
+
+- **`/graphify-scope`** - manage which graph subsequent queries target.
+  - `/graphify-scope` - list available scopes (per-repo, bundle, `_all`) and the current pin.
+  - `/graphify-scope <scope>` - pin a scope. `<scope>` is a repo name, a bundle name, or `_all`.
+  - `/graphify-scope clear` - remove the pin; auto-select resumes (see `CLAUDE.md` for the heuristic).
+
+- **`/graphify-update`** - incrementally refresh graphs without a git operation.
+  - `/graphify-update` - update every built per-repo graph, then cascade bundles and `_all`.
+  - `/graphify-update <repo>` - update one repo and cascade to its bundles and `_all`.
+  - `/graphify-update <bundle-name>` - re-merge + re-cluster one bundle from existing per-repo graphs.
+  - `/graphify-update _all` - re-merge + re-cluster `_all` from all existing per-repo graphs.
+
+- **`/graphify-bundle`** - manage bundle definitions in `graphs/config.json`. Asks for confirmation before mutating.
+  - `/graphify-bundle` - list defined bundles (name, repos, keywords, built status).
+  - `/graphify-bundle <name>` - show one bundle's details.
+  - `/graphify-bundle add <name> [<repos>] [<keywords>]` - create a bundle. `<repos>` and `<keywords>` are optional comma-separated lists.
+  - `/graphify-bundle remove <name>` - delete a bundle from config and remove its built graph (if any).
+
+### Output (customer-facing artifacts)
+
+- **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context. Optional arg: problem/solution hint.
+- **`/kb-article [description]`** - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
+- **`/feature-request [title]`** - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
+
+> Note: `/bootstrap`, `/git-pull`, `/git-switch`, `/graphify-scope`, `/graphify-update`, and `/graphify-bundle` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
 
 ## First-time setup
+
+### Install graphify
+
+Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a Python CLI used to build the knowledge graphs under `graphs/`, and it also ships as an AI coding assistant skill (`graphify install` drops a `/graphify` skill into your assistant's config) so the model can drive build/query/update flows directly. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
+
+Requires Python 3.10 or newer.
+
+**macOS** - use `pipx` (recent macOS Pythons are externally managed and reject plain `pip install`):
+
+```
+brew install pipx
+pipx ensurepath
+pipx install graphifyy && graphify install
+```
+
+**Linux / Windows** - the one-liner from the graphify docs:
+
+```
+pip install graphifyy && graphify install
+```
+
+Verify: `graphify --help` should print usage.
+
+### Graphify build cost and model choice
+
+Graphify's build pipeline has two extraction phases with very different costs:
+
+- **AST extraction** (code files): deterministic parsing, no LLM calls, cached after the first run. Incremental updates (`/graphify-update`) that touch only code are essentially free.
+- **Semantic extraction** (doc/paper/image files): one Claude or Gemini subagent call per ~22-file chunk. This is where cost accumulates.
+
+**Use Gemini for initial builds** - it is significantly cheaper than Claude for the high-volume semantic extraction that happens on a first build. Install the extra dependency and set the key before running `/bootstrap --build`:
+
+```
+pipx inject graphifyy 'graphifyy[gemini]'
+export GEMINI_API_KEY=<your-key>   # or GOOGLE_API_KEY
+```
+
+The default Gemini model is `gemini-3-flash-preview` (fast, cheap). Override with `GRAPHIFY_GEMINI_MODEL` if needed.
+
+**If you use Anthropic instead**, choose the model and effort level deliberately:
+
+| Use case | Recommended | Why |
+|---|---|---|
+| Initial build or full rebuild | Sonnet 4.6 in auto mode (recommended); low effort is an acceptable fallback | Semantic subagents are simple extraction, but the orchestration around them (driving the Python pipeline, getting `multiprocessing` guards / `Path` conversions right, recovering from a single chunk failure without re-doing the rest) is where weaker models stumble. Auto mode lets Sonnet ramp effort up only on the orchestration decisions and stay cheap on the extraction subagents; pin to low effort if you want predictable cost at the price of a few more retries |
+| Incremental update (code only) | Any model | No LLM calls - AST only |
+| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed, but the agent still has to make judgment calls about what to rebuild and not invent shell commands. Sonnet at default effort is the sweet spot |
+| TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight |
+
+**Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain over Sonnet - the task is structured data extraction, not complex reasoning.
+
+### Clone and start
 
 ```
 git clone git@github.com:mrckndt/mattermost-troubleshooting.git
@@ -38,7 +129,7 @@ claude
 ```
 
 Then inside Claude:
-- `/bootstrap` - clone all upstream repos under `upstream/` and create `tickets/`.
+- `/bootstrap` - clone all upstream repos under `upstream/` and create `tickets/`. By default it prompts whether to build any graphify graphs; pick `calls` for the initial Calls bundle (six repos), `all` for everything, or `skip` to defer.
 
 ## Working a ticket
 
@@ -59,8 +150,34 @@ Then inside Claude:
    ```
 4. If the customer's server is on a specific version, pin the relevant repo first:
    - `/git-switch mattermost v10.5.1`
-5. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
-6. When you have a conclusion, generate the customer-facing output:
+   - This also rebuilds or updates the repo's knowledge graph and re-merges affected bundles.
+5. Optionally pin the graph scope for the session so the agent always queries the right graph:
+   - `/graphify-scope calls` for a Calls ticket.
+   - `/graphify-scope <repo>` for a single-repo ticket (e.g. `/graphify-scope mattermost-plugin-github`).
+   - `/graphify-scope _all` for cross-cutting research.
+   - `/graphify-scope clear` when you're done.
+6. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
+7. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
    - `/feature-request` - file a PM-facing request.
+
+## Pre-graphify state
+
+The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) (the last state before the graphify integration) and are being re-curated incrementally, trimmed to what graphs and docs cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
+
+## TODO
+
+- [ ] Backfill `claude-md/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
+- [ ] Define additional bundles in `graphs/config.json` for common products. 
+- [ ] Figure out the proper way to include private repos like `enterprise` (clone-time auth, agent visibility, what to commit vs. keep local).
+- [ ] Tune `.claude/settings.local.json` so it auto-allows the commands needed for normal workflows here but denies questionable ones - especially relevant in auto mode.
+- [ ] Add `scope: subdirs` entries to `graphs/config.json` for any repo too big for a full index. `graphify.detect.detect()` over every repo under `upstream/` (run 2026-05-12) flags four repos over the 2M-word hard cap and two more that warrant a split:
+  - [ ] `mattermost-mobile` - 2.7M words / 2,962 files (over hard cap; not in config yet)
+  - [ ] `mattermost-developer-documentation` - 2.4M words / 274 files (over hard cap; not in config yet)
+  - [ ] `docs` - 8.6M words / 482 files (over hard cap; not in config yet)
+  - [x] `mattermost` - 7.5M words / 8,022 files (over hard cap; already scoped in config)
+  - [ ] `mattermost-plugin-boards` - 1.1M words / 963 files (under hard cap but large; consider scoping)
+  - [ ] `mattermost-plugin-playbooks` - 746K words / 1,055 files (under hard cap but large; consider scoping)
+  - Everything else fits a full build; `desktop`, `mattermost-plugin-agents`, `mattermost-plugin-calls`, and `migration-assist` trip the 200-file soft warning but stay well under the word cap.
+- [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, auto-pin the right graph scope, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
