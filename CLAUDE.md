@@ -123,7 +123,12 @@ Scope selection (run on every graphify query you make):
    - Tokenize each repo name in `graphs/config.json#/repos` on `-`. Exclude the stopword tokens `mattermost` and `plugin` from triggering matches on their own. If exactly one repo has at least one non-stopword token appearing as a whole word in the question (case-insensitive), use `graphs/<repo>/`. Example: the word "github" in the question selects `mattermost-plugin-github`.
    - If zero or multiple repos match, check bundle `keywords` in `graphs/config.json` (case-insensitive substring match anywhere in the question). If exactly one bundle matches, use `graphs/_bundles/<bundle>/`.
    - Otherwise use `graphs/_all/`.
-3. Read `GRAPH_REPORT.md` of the chosen scope first. Use `graphify query`, `graphify path`, or `graphify explain` (run from that scope's directory) for deeper traversal.
+3. Read `GRAPH_REPORT.md` of the chosen scope first. For deeper traversal use `graphify query`, `graphify path`, or `graphify explain` from the project root, with the `--graph <absolute-path>` flag pointing at the chosen scope's `graphify-out/graph.json`. **Positional arguments must come before the `--graph` flag** - graphify's parser silently falls back to `./graphify-out/graph.json` if `--graph` appears first, so the working forms are:
+   - `graphify query "<question>" --graph /abs/path/to/graphify-out/graph.json`
+   - `graphify path "<source>" "<target>" --graph /abs/path/to/graphify-out/graph.json`
+   - `graphify explain "<node>" --graph /abs/path/to/graphify-out/graph.json`
+
+   Do NOT use `cd <scope> && graphify query "..."` - the Bash tool persists CWD across calls, so the next query in the same session would resolve `cd` relative to the already-deep directory and fail (e.g. `cd graphs/_bundles/server` from `graphs/_bundles/server/` looks for `graphs/_bundles/server/graphs/_bundles/server/`).
 4. Always state which scope was queried in the answer.
 5. If `graphs/<repo>/` is missing or stale (compare `.meta.json` ref to `upstream/<repo>` HEAD), fall back to reading `upstream/<repo>/` directly and flag the staleness in the answer.
 
