@@ -69,6 +69,65 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 > Note: `/bootstrap`, `/git-pull`, `/git-switch`, `/graphify-scope`, `/graphify-update`, and `/graphify-bundle` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
 
+## Scopes & bundles
+
+There are three kinds of graph **scope** the agent can query:
+
+| Scope | Path | Contents |
+|---|---|---|
+| Per-repo | `graphs/<repo>/graphify-out/graph.json` | One upstream repo, nodes for files/functions/types/concepts and edges for imports, calls, references, semantic similarity. |
+| Bundle | `graphs/_bundles/<name>/graphify-out/graph.json` | A **named cross-repo group** of two or more per-repo graphs merged together. Use these for product-level questions that span repos - e.g. the Calls pipeline (`mattermost` ↔ `mattermost-plugin-calls` ↔ `rtcd` ↔ `calls-offloader` ↔ `calls-recorder` ↔ `calls-transcriber`), or the AI stack (`mattermost` ↔ `mattermost-plugin-agents` ↔ `mattermost-plugin-channel-automation`). |
+| Mega-graph | `graphs/_all/graphify-out/graph.json` | Every built per-repo graph merged into one. Fallback for cross-cutting questions that don't fit a defined bundle. |
+
+**Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and every bundle definition (`repos` members + optional `keywords`) live in this single file. It is the only thing under `graphs/` that's tracked in git - all built outputs are `.gitignore`d, so the config plus a `/bootstrap --build-graphs <selector>` is enough for a teammate to reproduce the same scopes.
+
+A bundle definition looks like:
+
+```json
+"bundles": {
+  "calls": {
+    "repos": ["mattermost", "mattermost-plugin-calls", "rtcd",
+              "calls-offloader", "calls-recorder", "calls-transcriber"],
+    "keywords": ["calls", "rtcd", "recording", "transcription", "RTC", "ICE", "TURN"]
+  }
+}
+```
+
+**How the slash commands connect:**
+
+- `/graphify-bundle` manages the **definitions** in `graphs/config.json` (list, show, `add`, `remove`). It does not build anything; after `add`, run `/bootstrap --build-graphs <bundle-name>` to actually produce the merged graph.
+- `/bootstrap --build-graphs <bundle-name>` walks the bundle's `repos` list, builds any per-repo graph that isn't built yet, then merges them into `graphs/_bundles/<bundle-name>/graphify-out/`. Idempotent.
+- `/graphify-update <bundle-name>` re-merges and re-clusters the bundle from existing per-repo graphs (use after one of the members was updated).
+- `/graphify-scope <scope>` **pins which graph queries hit** for the rest of the session. The argument can be any repo name, any bundle name, or `_all`. When nothing is pinned (the default after `/graphify-scope clear`), the agent **auto-selects** the scope from the question: bundle `keywords` are matched case-insensitively against the question, and a single-word repo-name match also works (e.g. asking about "github" picks `mattermost-plugin-github`). The exact heuristic lives in `CLAUDE.md` under *Knowledge graphs*.
+
+In short: define bundles in `graphs/config.json` to mirror the products and ticket clusters you handle (or use `/graphify-bundle add` to do it for you), build them with `/bootstrap --build-graphs <name>`, and either pin a scope with `/graphify-scope <name>` for a session or let keyword auto-select route each question.
+
+### Why some repos are split into subdirs
+
+Graphify enforces two size thresholds during `detect`:
+
+- **Hard cap: 2,000,000 words.** Above this, a single-shot build is rejected. The repo *has* to be split.
+- **Soft warning: 200 files.** The build still runs, but graphify suggests scoping for predictability and incremental-update speed.
+
+For the Mattermost workspace, the repos over the hard cap are `mattermost` (~7.5M words), `docs` (~8.6M words), `mattermost-mobile` (~2.7M words), and `mattermost-developer-documentation` (~2.4M words). Two more (`mattermost-plugin-boards`, `mattermost-plugin-playbooks`) are large enough that a split is worth considering.
+
+The fix is `scope: "subdirs"` in `graphs/config.json#/repos/<repo>`. Instead of one detect-and-extract pass over the repo root, graphify runs the pipeline **once per listed subdir path**, each producing its own `graphs/<repo>/<subdir-name>/graphify-out/graph.json`. `<subdir-name>` is the relative path with `/` replaced by `_` (e.g. `server/channels/app` → `server_channels_app`). Each per-subdir directory is persistent - kept on disk so `/graphify-update` can refresh only the subdirs whose code actually changed.
+
+Today only `mattermost` is split. Its config entry lists ~20 paths (`api`, `server/public/model`, `server/channels/app`, `webapp/platform`, ...). Each is chosen because it surfaces in TSE tickets and stays under the limits individually; UI-rendering details (`webapp/channels/src/components` at ~3,000 files) and test directories are deliberately omitted.
+
+### How graph merging works
+
+Graphify graphs compose: any two `graph.json` files can be unioned into a third one. That's the whole basis of how scopes nest. The merge ladder, bottom-up:
+
+1. **Per-subdir → per-repo** (subdir-scoped repos only). After every listed subdir is built, the slash commands run `graphify merge-graphs graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json`, then `graphify cluster-only graphs/<repo>/ --no-viz` to compute community structure on the merged result. The top-level `graphs/<repo>/graphify-out/graph.json` is the canonical per-repo graph regardless of whether the repo was built in `full` or `subdirs` mode.
+2. **Per-repo → bundle.** When any member of a bundle finishes building, the cascade in `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update` re-runs `graphify merge-graphs` over the bundle's member graphs into `graphs/_bundles/<bundle>/graphify-out/graph.json`, followed by another `cluster-only` pass. Bundles with at least one missing member are skipped (and reported) rather than merged half-built.
+3. **All per-repo graphs → `_all`.** Any per-repo update also re-merges every existing per-repo `graph.json` into `graphs/_all/graphify-out/graph.json` and re-clusters. This is the only scope that renders an interactive `graph.html`; per-repo and bundle scopes pass `--no-viz` to keep builds fast (their `GRAPH_REPORT.md` plus `graphify query` is what the agent uses anyway).
+
+Two operational consequences worth knowing:
+
+- **Re-clustering after every merge.** A merge changes the graph's connected components, so community detection is re-run each time. This is fast (seconds) and uses no LLM calls.
+- **Cascade is automatic.** You rarely run `graphify merge-graphs` by hand. `/git-pull`, `/git-switch`, and `/graphify-update` decide which bundles intersect the updated repos and re-merge them, then re-merge `_all`. Manual merges (`/graphify-update <bundle-name>` or `/graphify-update _all`) are there for repairing a stale bundle without touching git.
+
 ## First-time setup
 
 ### Install graphify
