@@ -78,10 +78,19 @@ If a build was requested, do the following in order:
    PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//')
    ```
 
+   **How to invoke Python: inline `-c` or guarded script - never a bare top-level script.** `graphify.extract.extract` spawns worker processes. On macOS, Python uses `spawn` by default; child processes re-import `__main__`. A plain top-level script with no `if __name__ == "__main__":` guard fork-bombs into infinite recursion (you'll see the script's banner printed twice and the run won't return). Two safe shapes:
+
+   - **Inline `python -c "..."`** - simplest for one-shot calls, no guard needed because `__main__` is a string blob the children don't re-execute. Use this for full-scope repos.
+   - **Script file with `if __name__ == "__main__":`** - use when you'd otherwise be repeating the same Python across many subdirs (the `mattermost` subdir build). Wrap every body in `def main(): ...` and end the file with `if __name__ == "__main__": main()`.
+
+   **Type quirk:** `graphify.detect.detect()` returns file lists as **strings**, but `graphify.extract.extract()` requires **`Path` objects**. Wrap with `[Path(f) for f in result['files']['code']]` before passing.
+
+   **Working-directory convention:** run the pipeline from inside `BUILD_DIR/`'s parent (`graphs/<repo>/` for full, `graphs/<repo>/<subdir-name>/` for subdir) and pass `cache_root=Path('.')` to `extract()`. That keeps `.graphify_cache/` next to `graphify-out/` and matches what `/graphify-update` expects on re-runs.
+
    The pipeline for one repo (or one subdir, for subdir-scoped repos):
 
    1. **Detect.** Set `BUILD_DIR` to `graphs/<repo>/graphify-out/` (full scope) or `graphs/<repo>/<subdir-name>/graphify-out/` (subdir scope, with `<subdir-name>` being the relative path with `/` replaced by `_` - e.g. `server/channels/app` → `server_channels_app`). Set `SRC` to the absolute path of `upstream/<repo>` (full) or `upstream/<repo>/<path>` (subdir). Create `BUILD_DIR`, then from a Python script: `from graphify.detect import detect; result = detect(Path(SRC))`. Zero out every `result['files'][k]` where `k` is not in the resolved `include_types`. Recompute `total_files`. Write the result to `BUILD_DIR/.graphify_detect.json`. Also write `BUILD_DIR/.graphify_root` containing the absolute `SRC` (used by `/graphify-update`).
-   2. **AST extract** (code files). From Python: `from graphify.extract import collect_files, extract`. Build the code-file list from `result['files']['code']`. Call `extract(code_files, cache_root=Path(BUILD_DIR).parent)` and write the returned dict to `BUILD_DIR/.graphify_ast.json`.
+   2. **AST extract** (code files). From Python: `from graphify.extract import extract`. Build the code-file list as `[Path(f) for f in result['files']['code']]` (note the `Path` wrap - extract() requires it). `cd` into `BUILD_DIR`'s parent first, then call `extract(code_files, cache_root=Path('.'))` and write the returned dict to `BUILD_DIR/.graphify_ast.json`.
    3. **Semantic extract** (only if non-code categories survived the `include_types` filter and have files - typically `document` for our config). Dispatch parallel general-purpose subagents per ~20-file chunk to read the files and return a `{nodes, edges, hyperedges}` JSON fragment following the SKILL.md schema. Write each chunk under `BUILD_DIR/.graphify_semantic_<N>.json`. Skip this step entirely if only `code` is in the allowlist or there are zero non-code files.
    4. **Merge.** From Python: read `.graphify_ast.json` and every `.graphify_semantic_*.json`, concatenate their `nodes` / `edges` / `hyperedges` lists, write to `BUILD_DIR/graph.json`.
    5. **Cluster.** `graphify cluster-only <BUILD_DIR's parent dir> --no-viz` (e.g. `graphify cluster-only graphs/<repo>/ --no-viz` for full scope, or `graphify cluster-only graphs/<repo>/<subdir-name>/ --no-viz` for one subdir). This generates `GRAPH_REPORT.md` and the cluster annotations; the `--no-viz` skips the HTML render.

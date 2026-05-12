@@ -77,7 +77,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ### Install graphify
 
-Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a separate Python CLI used to build the knowledge graphs under `graphs/`. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
+Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a Python CLI used to build the knowledge graphs under `graphs/`, and it also ships as an AI coding assistant skill (`graphify install` drops a `/graphify` skill into your assistant's config) so the model can drive build/query/update flows directly. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
 
 Requires Python 3.10 or newer.
 
@@ -117,12 +117,12 @@ The default Gemini model is `gemini-3-flash-preview` (fast, cheap). Override wit
 
 | Use case | Recommended | Why |
 |---|---|---|
-| Initial build or full rebuild | Sonnet 4.6 at low effort, or Haiku 4.5 at default | Semantic subagents are simple extraction tasks; Opus is overkill and 5-10x more expensive |
+| Initial build or full rebuild | Sonnet 4.6 in auto mode (recommended); low effort is an acceptable fallback | Semantic subagents are simple extraction, but the orchestration around them (driving the Python pipeline, getting `multiprocessing` guards / `Path` conversions right, recovering from a single chunk failure without re-doing the rest) is where weaker models stumble. Auto mode lets Sonnet ramp effort up only on the orchestration decisions and stay cheap on the extraction subagents; pin to low effort if you want predictable cost at the price of a few more retries |
 | Incremental update (code only) | Any model | No LLM calls - AST only |
-| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed. Worth trying lower-effort or Haiku if the cascade is doing real work (semantic re-extraction); stay on Sonnet if you want the model to make judgment calls about what to rebuild |
+| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed, but the agent still has to make judgment calls about what to rebuild and not invent shell commands. Sonnet at default effort is the sweet spot |
 | TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight |
 
-**Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain over Sonnet or Haiku - the task is structured data extraction, not complex reasoning.
+**Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain over Sonnet - the task is structured data extraction, not complex reasoning.
 
 ### Clone and start
 
