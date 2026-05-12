@@ -104,7 +104,11 @@ To explicitly trigger an incremental update without a git operation: `/graphify-
 
 To manage bundle definitions in `graphs/config.json`: `/graphify-bundle` (list), `/graphify-bundle <name>` (show), `/graphify-bundle add <name> [<repos>] [<keywords>]` (create), `/graphify-bundle remove <name>` (delete). `repos` and `keywords` are both optional in a bundle definition; a bundle without `repos` is skipped during merges, and a bundle without `keywords` is excluded from keyword-based auto-select but can still be pinned manually.
 
-Use the graphs for questions about repo structure, call graphs, cross-file relationships, "where is X defined / called from", and cross-repo connectivity. Use the `claude-md/<repo>.md` fragments below for the TSE troubleshooting wisdom graphs and docs cannot reproduce: common support investigation patterns, misleading log signatures, known gotchas, license-tier traps, and curated cross-references.
+The graphs exist primarily to answer **cross-repo** questions - how a flow hands off between repos (e.g. plugin-calls → rtcd → calls-offloader → calls-recorder), which repo owns a behavior the customer is seeing, where a struct or interface defined in one repo is consumed by another. Always reach for the graphs first; only fall back to reading `upstream/<repo>/` directly when the graph query returns nothing useful or the relevant scope isn't built.
+
+If the per-repo or bundle scope the question would benefit from is not built (no `graphs/<repo>/graphify-out/graph.json` or no `graphs/_bundles/<bundle>/graphify-out/graph.json` for the relevant repos), print a short note naming the missing scope and the exact command to create it - `/bootstrap --build <repo>` for a per-repo graph, `/graphify-bundle add <name> <repos>` followed by `/bootstrap --build <name>` for a new bundle. Then ask whether to build it. If the user declines (or wants to keep moving), proceed by reading `upstream/<repo>/` directly and flag in the answer that the response is source-only, not graph-grounded.
+
+Use the `claude-md/<repo>.md` fragments below for the TSE troubleshooting wisdom graphs and docs cannot reproduce: common support investigation patterns, misleading log signatures, known gotchas, license-tier traps, and curated cross-references.
 
 Scope selection (run on every graphify query you make):
 
