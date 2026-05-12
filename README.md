@@ -128,6 +128,15 @@ Two operational consequences worth knowing:
 - **Re-clustering after every merge.** A merge changes the graph's connected components, so community detection is re-run each time. This is fast (seconds) and uses no LLM calls.
 - **Cascade is automatic.** You rarely run `graphify merge-graphs` by hand. `/git-pull`, `/git-switch`, and `/graphify-update` decide which bundles intersect the updated repos and re-merge them, then re-merge `_all`. Manual merges (`/graphify-update <bundle-name>` or `/graphify-update _all`) are there for repairing a stale bundle without touching git.
 
+### Why `_all` isn't usually the right scope for a ticket
+
+The mega-graph is convenient as a fallback - one scope that contains everything - but for an actual investigation it's almost always the worst choice:
+
+- **Signal-to-noise.** `graphify query` is a BFS traversal from the question's anchor nodes, capped by a token budget. The larger the graph the traversal runs on, the more weakly-related neighbours compete for that budget. `_all` is the largest scope by definition and will keep growing as more repos are built, so a bundle-scoped or repo-scoped traversal stays denser in what's actually relevant to the question. (Worth measuring rather than assuming - run the same `graphify query` against `_all` and against the matching bundle, compare the citations.)
+- **Communities span unrelated domains.** graphify clusters with Louvain / Leiden over whichever graph is being processed; the algorithm has no notion of "repo" or "product". On a per-repo or bundle graph the resulting communities track the natural domain boundaries; on `_all` they're free to lump together nodes from unrelated repos when surface similarity (shared names, identical imports) outweighs structural separation. How often that actually happens depends on how distinct your repos are - on the current build it's a theoretical risk more than a demonstrated one, but the risk grows with repo count.
+
+Rule of thumb: pin a bundle for product-level questions, pin a repo for repo-specific ones, and only reach for `_all` when you genuinely don't know where the answer lives - then use the result to decide which narrower scope to pin next.
+
 ## First-time setup
 
 ### Install graphify
