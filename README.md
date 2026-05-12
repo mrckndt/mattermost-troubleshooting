@@ -28,9 +28,9 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 - **`/bootstrap`** - clone any missing upstream repos and create `tickets/` if absent. Idempotent.
   - `/bootstrap` - clone only, then prompt before any graphify build.
-  - `/bootstrap --build <bundle-name>` - after cloning, also build the repos listed under that bundle in `graphs/config.json`.
-  - `/bootstrap --build all` - build every repo in `graphs/config.json#/repos`.
-  - `/bootstrap --build <repo>` - build a single repo.
+  - `/bootstrap --build-graphs <bundle-name>` - after cloning, also build the repos listed under that bundle in `graphs/config.json`.
+  - `/bootstrap --build-graphs all` - build every repo in `graphs/config.json#/repos`.
+  - `/bootstrap --build-graphs <repo>` - build a single repo.
 
 - **`/git-pull [<repo>]`** - `git pull --ff-only` on the current branch.
   - `/git-pull` - pull every repo under `upstream/`.
@@ -73,7 +73,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ### Install graphify
 
-Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a Python CLI used to build the knowledge graphs under `graphs/`, and it also ships as an AI coding assistant skill (`graphify install` drops a `/graphify` skill into your assistant's config) so the model can drive build/query/update flows directly. Install it before running `/bootstrap --build` so the initial graph build can happen. (`/bootstrap` without `--build` still works without graphify installed; you can install it later and run `/bootstrap --build <bundle-name>`.)
+Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a Python CLI used to build the knowledge graphs under `graphs/`, and it also ships as an AI coding assistant skill (`graphify install` drops a `/graphify` skill into your assistant's config) so the model can drive build/query/update flows directly. Install it before running `/bootstrap --build-graphs` so the initial graph build can happen. (`/bootstrap` without `--build-graphs` still works without graphify installed; you can install it later and run `/bootstrap --build-graphs <bundle-name>`.)
 
 Requires Python 3.10 or newer.
 
@@ -100,7 +100,7 @@ Graphify's build pipeline has two extraction phases with very different costs:
 - **AST extraction** (code files): deterministic parsing, no LLM calls, cached after the first run. Incremental updates (`/graphify-update`) that touch only code are essentially free.
 - **Semantic extraction** (doc/paper/image files): one Claude or Gemini subagent call per ~22-file chunk. This is where cost accumulates.
 
-**Use Gemini for initial builds** - it is significantly cheaper than Claude for the high-volume semantic extraction that happens on a first build. Install the extra dependency and set the key before running `/bootstrap --build`:
+**Use Gemini for initial builds** - it is significantly cheaper than Claude for the high-volume semantic extraction that happens on a first build. Install the extra dependency and set the key before running `/bootstrap --build-graphs`:
 
 ```
 pipx inject graphifyy 'graphifyy[gemini]'

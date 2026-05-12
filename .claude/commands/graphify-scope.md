@@ -17,7 +17,7 @@ Behavior depends on the argument.
    - **bundle** scopes: every directory `graphs/_bundles/<name>/` where `graphs/_bundles/<name>/graphify-out/graph.json` exists.
    - **all** scope: `graphs/_all/` if `graphs/_all/graphify-out/graph.json` exists.
 3. Report a Markdown table with columns `Scope | Type | Pinned`. `Type` is `repo`, `bundle`, or `all`. `Pinned` is `*` for the pinned row, empty otherwise. Sort: repos alphabetically, then bundles alphabetically, then `_all` last.
-4. If no scopes are built yet, print: `No scopes built. Run /bootstrap --build <bundle-name|all|repo-name> first (see graphs/config.json for defined bundles and repos).`
+4. If no scopes are built yet, print: `No scopes built. Run /bootstrap --build-graphs <bundle-name|all|repo-name> first (see graphs/config.json for defined bundles and repos).`
 
 ## `clear` argument: remove the pin
 

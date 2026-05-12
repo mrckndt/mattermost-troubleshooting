@@ -1,6 +1,6 @@
 ---
-description: Clone any missing Mattermost repos into upstream/. Idempotent - skips repos already present.
-argument-hint: [--build <bundle-name|all|repo-name>]
+description: Clone any missing Mattermost repos into upstream/. Idempotent. Optionally triggers a graphify knowledge-graph build with --build-graphs.
+argument-hint: [--build-graphs <bundle-name|all|repo-name>  (triggers graphify build)]
 ---
 
 First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `upstream/<name>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing.
@@ -51,13 +51,13 @@ Report a Markdown table with one row per repo and the columns: `Repo | Result`.
 
 After cloning, optionally trigger the initial knowledge-graph build. This is OFF by default - graph building uses LLM tokens and the user may want to run it in a different session.
 
-Parse `$ARGUMENTS` for a `--build <selector>` flag. Valid selectors:
-- `<bundle-name>` - build only the repos listed under `graphs/config.json#/bundles/<bundle-name>/repos`.
-- `all` - build every repo listed in `graphs/config.json#/repos`.
-- `<repo>` - build a single repo (must match a key under `graphs/config.json#/repos`).
-- `skip` (or no `--build` flag) - skip the build phase entirely.
+Parse `$ARGUMENTS` for a `--build-graphs <selector>` flag. The flag triggers a **graphify knowledge-graph build** (not a code compile / not a build of the upstream repo itself) - it runs `graphify` over the resolved repo set to produce `graphs/<repo>/graphify-out/graph.json` and the cluster artifacts. Valid selectors:
+- `<bundle-name>` - graphify-build only the repos listed under `graphs/config.json#/bundles/<bundle-name>/repos`.
+- `all` - graphify-build every repo listed in `graphs/config.json#/repos`.
+- `<repo>` - graphify-build a single repo (must match a key under `graphs/config.json#/repos`).
+- `skip` (or no `--build-graphs` flag) - skip the graphify-build phase entirely; only the clone summary is reported.
 
-If `--build` is absent, read `graphs/config.json#/bundles` to get the defined bundle names, then prompt the user with those names interpolated as `|`-separated options. For example, with bundles `calls` and `microsoft` defined the prompt is: `Build graphify graphs now? [calls|microsoft|all|skip]`. Wait for the answer. `skip` (or no defined bundles + `skip`) ends the command after the clone summary above.
+If `--build-graphs` is absent, read `graphs/config.json#/bundles` to get the defined bundle names, then prompt the user with those names interpolated as `|`-separated options. For example, with bundles `calls` and `microsoft` defined the prompt is: `Build graphify graphs now? [calls|microsoft|all|skip]`. Wait for the answer. `skip` (or no defined bundles + `skip`) ends the command after the clone summary above.
 
 If a build was requested, do the following in order:
 
@@ -113,10 +113,10 @@ Notes for the build phase:
 - The graphify CLI has no bare `graphify <path>` form - every call is a subcommand (`extract`, `update`, `cluster-only`, `merge-graphs`, ...). The pipeline above drives it from Python (`graphify.detect.detect`, `graphify.extract.extract`) so the `include_types` filter can be applied between detect and extract; only the `cluster-only` and `merge-graphs` steps shell out to the CLI.
 - `graphify extract <path> --out <dir>` exists as a one-shot CLI and is fine for ad-hoc builds with no filter, but the `--include-types` flag does not exist - it is enforced by the Python-driven detect step above.
 - `upstream/<repo>/` is read-only. Never write inside it.
-- If a single repo build fails, continue with the rest. Collect failures and report at the end. The user can re-run `/bootstrap --build <repo>` to retry one.
+- If a single repo build fails, continue with the rest. Collect failures and report at the end. The user can re-run `/bootstrap --build-graphs <repo>` to retry one.
 
 Notes:
 - Run each `git clone` as its own Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Parallelize across repos in a single message.
 - This command does NOT pull or switch. After bootstrap, run `/git-pull` to bring all repos to their latest tracked state (which also cascades graph updates for repos whose HEAD moved), `/git-switch <repo> <ref>` to pin one to a specific tag/branch, or `/graphify-update` to refresh graphs without touching git.
 - This file is the canonical list of expected repos. `CLAUDE.md` and `README.md` reference it rather than duplicating the URLs.
-- The graph build phase is independent of cloning. `/bootstrap --build <selector>` can be re-run after cloning to add graphs incrementally.
+- The graph build phase is independent of cloning. `/bootstrap --build-graphs <selector>` can be re-run after cloning to add graphs incrementally.
