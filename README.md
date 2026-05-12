@@ -172,5 +172,12 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior 
 - [ ] Define additional bundles in `graphs/config.json` for common products. 
 - [ ] Figure out the proper way to include private repos like `enterprise` (clone-time auth, agent visibility, what to commit vs. keep local).
 - [ ] Tune `.claude/settings.local.json` so it auto-allows the commands needed for normal workflows here but denies questionable ones - especially relevant in auto mode.
-- [ ] Add `scope: subdirs` entries to `graphs/config.json` for any repo too big for a full index. Run `graphify.detect.detect()` over every repo under `upstream/` to figure out which need scoping (start with `docs`, `mattermost-mobile`, `mattermost-developer-documentation`) and which fit a full build.
+- [ ] Add `scope: subdirs` entries to `graphs/config.json` for any repo too big for a full index. `graphify.detect.detect()` over every repo under `upstream/` (run 2026-05-12) flags four repos over the 2M-word hard cap and two more that warrant a split:
+  - [ ] `mattermost-mobile` - 2.7M words / 2,962 files (over hard cap; not in config yet)
+  - [ ] `mattermost-developer-documentation` - 2.4M words / 274 files (over hard cap; not in config yet)
+  - [ ] `docs` - 8.6M words / 482 files (over hard cap; not in config yet)
+  - [x] `mattermost` - 7.5M words / 8,022 files (over hard cap; already scoped in config)
+  - [ ] `mattermost-plugin-boards` - 1.1M words / 963 files (under hard cap but large; consider scoping)
+  - [ ] `mattermost-plugin-playbooks` - 746K words / 1,055 files (under hard cap but large; consider scoping)
+  - Everything else fits a full build; `desktop`, `mattermost-plugin-agents`, `mattermost-plugin-calls`, and `migration-assist` trip the 200-file soft warning but stay well under the word cap.
 - [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, auto-pin the right graph scope, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
