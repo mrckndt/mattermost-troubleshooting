@@ -20,3 +20,7 @@
 !.claude/commands/
 !.claude/commands/**
 !.claude/settings.local.json
+
+# Track only graphs/config.json; ignore all built graph outputs and .active_scope
+!graphs/
+!graphs/config.json
