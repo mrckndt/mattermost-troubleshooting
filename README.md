@@ -4,10 +4,6 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 > New to graphify? Start with [Graphify: turn any folder into a knowledge graph](https://openclawapi.org/en/blog/2026-04-12-graphify-knowledge-graph) for the conceptual intro, then [graphify CLI commands](https://graphify.net/graphify-cli-commands.html) for the operational reference.
 
-> Looking for the previous setup (full `claude-md/<repo>.md` content, no `graphs/`, no `/graphify-*` commands)? Check out commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) - the last state before the graphify integration. The `claude-md/` files there contain the prior TSE notes that are now being re-curated alongside the knowledge graphs.
->
-> The pre-graphify content is not lost - it will be added back into `claude-md/<repo>.md` incrementally, trimmed to what graphs and docs cannot reproduce (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas). Until then, the on-branch `claude-md/` files are header-only stubs.
-
 ## Layout
 
 ```
@@ -165,3 +161,7 @@ Then inside Claude:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
    - `/feature-request` - file a PM-facing request.
+
+## Pre-graphify state
+
+The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) (the last state before the graphify integration) and are being re-curated incrementally, trimmed to what graphs and docs cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
