@@ -80,6 +80,22 @@
     "desktop": {
       "scope": "full"
     },
+    "docs": {
+      "scope": "subdirs",
+      "paths": [
+        "source/_generated/agents/docs",
+        "source/administration-guide/comply",
+        "source/administration-guide/configure",
+        "source/administration-guide/manage",
+        "source/administration-guide/onboard",
+        "source/administration-guide/scale",
+        "source/administration-guide/upgrade",
+        "source/deployment-guide",
+        "source/end-user-guide",
+        "source/security-guide",
+        "source/integrations-guide"
+      ]
+    },
     "mattermost": {
       "scope": "subdirs",
       "paths": [
@@ -121,7 +137,6 @@
         "rtcd",
         "recording",
         "transcription",
-        "live caption",
         "RTC",
         "ICE",
         "TURN",
@@ -134,7 +149,25 @@
       "repos": [
         "mattermost",
         "mattermost-plugin-agents",
-        "mattermost-plugin-channel-automation"
+        "mattermost-plugin-channel-automation",
+        "docs"
+      ]
+    },
+    "server": {
+      "repos": [
+        "mattermost",
+        "docs",
+        "enterprise"
+      ],
+      "keywords": [
+        "system console",
+        "config.json",
+        "high availability",
+        "support packet",
+        "elasticsearch",
+        "ldap",
+        "saml",
+        "sso"
       ]
     }
   }
