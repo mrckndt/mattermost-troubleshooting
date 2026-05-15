@@ -164,7 +164,7 @@ What `[all]` bundles:
 | `bedrock` | AWS Bedrock (uses IAM, no API key) |
 | `sql` | SQL schema extraction |
 
-Pick one extra instead of `[all]` if you want a leaner install: `pipx install "graphifyy[gemini,pdf]"`, etc. Each extra is also installable in isolation via `pip install "graphifyy[<extra>]"`.
+Pick one extra instead of `[all]` if you want a leaner install: `pipx install "graphifyy[gemini,pdf]"`, etc. Each extra is also installable in isolation via `pip install "graphifyy[<extra>]"`. If graphify is already installed and you want to add an extra without reinstalling: `pipx inject graphifyy 'graphifyy[<extra>]'`.
 
 **macOS** - use `pipx` (recent macOS Pythons are externally managed and reject plain `pip install`):
 
@@ -201,34 +201,25 @@ graphify install   # refresh the /graphify skill in your assistant config
 Graphify's build pipeline has two extraction phases with very different costs:
 
 - **AST extraction** (code files): deterministic parsing, no LLM calls, cached after the first run. Incremental updates (`/graphify-update`) that touch only code are essentially free.
-- **Semantic extraction** (doc/paper/image files): one Claude or Gemini subagent call per ~22-file chunk. This is where cost accumulates.
+- **Semantic extraction** (doc/paper/image files): one LLM call per ~22-file chunk. This is where cost accumulates, and the backend matters.
 
-**Use Gemini for initial builds** - it is significantly cheaper than Claude for the high-volume semantic extraction that happens on a first build. Install the extra dependency and set the key before running `/bootstrap --build-graphs`:
+**Gemini Flash is the preferred extraction backend.** `/bootstrap` checks for `GEMINI_API_KEY` or `GOOGLE_API_KEY` and automatically routes semantic extraction through `graphify.llm.extract_corpus_parallel(backend="gemini")` when either key is set, saving significant tokens compared to Claude subagents. The default model is `gemini-3-flash-preview`; override with `GRAPHIFY_GEMINI_MODEL`. Without a key the pipeline falls back to Claude subagents - still works, just more expensive.
 
-```
-pipx inject graphifyy 'graphifyy[gemini]'
-export GEMINI_API_KEY=<your-key>   # or GOOGLE_API_KEY
-```
+Set the key via shell init or the project secrets file:
 
-The default Gemini model is `gemini-3-flash-preview` (fast, cheap). Override with `GRAPHIFY_GEMINI_MODEL` if needed. `/bootstrap` step 3 checks for `GEMINI_API_KEY`/`GOOGLE_API_KEY` and switches the semantic-extraction backend to `graphify.llm.extract_corpus_parallel(backend="gemini")` automatically when either key is set. Without a key, semantic extraction falls back to Claude subagents.
+- **Shell init** (recommended): `export GEMINI_API_KEY=<your-key>` in `~/.zshrc` or `~/.zshenv`. Claude Code inherits the env from the launching shell.
+- **`.claude/secrets.env`** (project-scoped, gitignored): one `KEY=value` per line. The slash commands source this file automatically so Python subprocesses inherit the key.
 
-Key storage options, in order of preference:
-
-1. **Shell init** (`~/.zshrc` / `~/.zshenv`): `export GEMINI_API_KEY=...`. The key never enters the repo; Claude Code inherits the env from the launching shell.
-2. **`.claude/secrets.env`** (project-scoped, gitignored): one `KEY=value` per line. The slash commands `/bootstrap`, `/graphify-update`, `/git-pull`, `/git-switch` source this file at the top of their Bash blocks so Python subprocesses inherit any keys set there.
-
-Do NOT put API keys in `.claude/settings.local.json` - that file is checked into git (allowlisted in `.gitignore`). For belt-and-braces protection, `.gitignore` carries explicit ignore entries for `.claude/GEMINI_API_KEY`, `.claude/GEMINI_API_KEY.txt`, `.claude/GOOGLE_API_KEY`, `.claude/GOOGLE_API_KEY.txt`, and `.claude/secrets.env` so accidental key files are never staged.
-
-**If you use Anthropic instead**, choose the model and effort level deliberately:
+**Model choice for Claude (when no Gemini key, or for TSE work):**
 
 | Use case | Recommended | Why |
 |---|---|---|
-| Initial build or full rebuild | Sonnet 4.6 in auto mode (recommended); low effort is an acceptable fallback | Semantic subagents are simple extraction, but the orchestration around them (driving the Python pipeline, getting `multiprocessing` guards / `Path` conversions right, recovering from a single chunk failure without re-doing the rest) is where weaker models stumble. Auto mode lets Sonnet ramp effort up only on the orchestration decisions and stay cheap on the extraction subagents; pin to low effort if you want predictable cost at the price of a few more retries |
+| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 low effort as fallback | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. If using Sonnet, low effort is recommended: subagents do simple extraction and don't need deep reasoning; save the context budget for TSE work. |
 | Incremental update (code only) | Any model | No LLM calls - AST only |
-| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed, but the agent still has to make judgment calls about what to rebuild and not invent shell commands. Sonnet at default effort is the sweet spot |
-| TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight |
+| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed, but the agent still has to make judgment calls about what to rebuild and not invent shell commands. Sonnet at default effort is the sweet spot. |
+| TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight. |
 
-**Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain over Sonnet - the task is structured data extraction, not complex reasoning.
+**Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain - the task is structured data extraction, not complex reasoning.
 
 ### Clone and start
 
