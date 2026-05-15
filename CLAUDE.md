@@ -99,35 +99,56 @@ This avoids state changes and works without `/git-switch`.
 
 ## Knowledge graphs
 
-Per-repo and cross-repo knowledge graphs live under `graphs/` and are built / refreshed by `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update`. Layout, repo scopes, and bundle definitions are in `graphs/config.json`. The currently pinned scope (if any) is in `graphs/.active_scope`.
+### What's here
 
-To explicitly trigger an incremental update without a git operation: `/graphify-update` (all built repos + cascade), `/graphify-update <repo>` (one repo + cascade), `/graphify-update <bundle-name>` (re-merge + re-cluster one bundle), `/graphify-update _all` (re-merge + re-cluster `_all`).
+Per-repo graphs live under `graphs/<repo>/`. Bundle graphs (cross-repo merges) live under `graphs/_bundles/<name>/`. There is no `_all` mega-graph. Layout, per-repo scope (`full` or `subdirs`), and bundle definitions are in `graphs/config.json`. The currently pinned scope (if any) is in `graphs/.active_scope`. Graphs are built and refreshed by `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update`. `graphs/` is `.gitignore`d except for `config.json`.
 
-To manage bundle definitions in `graphs/config.json`: `/graphify-bundle` (list), `/graphify-bundle <name>` (show), `/graphify-bundle add <name> [<repos>] [<keywords>]` (create), `/graphify-bundle remove <name>` (delete). `repos` and `keywords` are both optional in a bundle definition; a bundle without `repos` is skipped during merges, and a bundle without `keywords` is excluded from keyword-based auto-select but can still be pinned manually.
+### Workarounds (active)
 
-The graphs exist primarily to answer **cross-repo** questions - how a flow hands off between repos (e.g. plugin-calls → rtcd → calls-offloader → calls-recorder), which repo owns a behavior the customer is seeing, where a struct or interface defined in one repo is consumed by another. Always reach for the graphs first; only fall back to reading `upstream/<repo>/` directly when the graph query returns nothing useful or the relevant scope isn't built.
+- **`graphify merge-graphs` CLI bug** - the installed `graphify` initialises the accumulator as a plain `Graph` while `prefix_graph_for_global` returns a `MultiGraph`, so `networkx.compose` raises `All graphs must be graphs or multigraphs.`. Wrapped by `.claude/helpers/merge-graphs.py` (same `<inputs...> --out <output>` interface). All four cascade slash commands call the helper instead of the upstream CLI. When upstream lands the patch (`notes/graphify-merge-graphs-upstream-fix.md`), confirm with a real merge then delete the helper and revert the slash-command invocations to plain `graphify merge-graphs`.
 
-If the per-repo or bundle scope the question would benefit from is not built (no `graphs/<repo>/graphify-out/graph.json` or no `graphs/_bundles/<bundle>/graphify-out/graph.json` for the relevant repos), print a short note naming the missing scope and the exact command to create it - `/bootstrap --build-graphs <repo>` for a per-repo graph, `/graphify-bundle add <name> <repos>` followed by `/bootstrap --build-graphs <name>` for a new bundle. Then ask whether to build it. If the user declines (or wants to keep moving), proceed by reading `upstream/<repo>/` directly and flag in the answer that the response is source-only, not graph-grounded.
+### Slash commands
 
-Use the `claude-md/<repo>.md` fragments below for the TSE troubleshooting wisdom graphs and docs cannot reproduce: common support investigation patterns, misleading log signatures, known gotchas, license-tier traps, and curated cross-references.
+- `/graphify-update [<repo> | <bundle> | --all]` - incremental update of one repo / one bundle, or all built scopes. Cascades bundles containing any updated repo.
+- `/graphify-bundle [<name> | add <name> [<repos>] [<keywords>] | remove <name>]` - list / show / create / delete bundle definitions in `graphs/config.json`.
+- `/graphify-scope [<scope> | clear]` - pin a scope so every query in this session uses it, or clear the pin.
 
-Scope selection (run on every graphify query you make):
+### Query order
 
-1. Read `graphs/.active_scope`. If set, use that scope.
+When answering a codebase or behavior question, work through these tiers in order. Stop at the first tier that produces a usable answer; only proceed deeper if it doesn't.
+
+1. **`claude-md/<repo>.md` fragments first.** They are already loaded into context via `@import` at the bottom of this file. TSE-curated notes (misleading log signatures, license-tier traps, known gotchas) frequently answer the question directly. If they do, use them and cite the fragment by filename.
+2. **Graphify graph queries.** Pick a scope (see "Scope selection" below) and use `graphify query` / `graphify path` / `graphify explain` against that scope's `graphify-out/graph.json`. See "Subcommand reference" below.
+3. **Fall through to `grep` plus the Read tool on `upstream/<repo>/`.** When the graph returns nothing useful, no scope matches, or the relevant scope isn't built. State explicitly in the answer when this happens, e.g. `no scope matched, answering from upstream/`.
+
+### Subcommand reference
+
+Mirror the upstream `/graphify` usage examples:
+- `graphify query "<question>"` - BFS traversal, broad context.
+- `graphify query "<question>" --dfs` - DFS, trace a specific path.
+- `graphify path "<NodeA>" "<NodeB>"` - shortest path between two named concepts.
+- `graphify explain "<NodeName>"` - plain-language explanation of a single node and what it connects to.
+
+### Scope selection
+
+1. Read `graphs/.active_scope`. If set, use that scope path verbatim.
 2. Otherwise auto-select:
-   - Tokenize each repo name in `graphs/config.json#/repos` on `-`. Exclude the stopword tokens `mattermost` and `plugin` from triggering matches on their own. If exactly one repo has at least one non-stopword token appearing as a whole word in the question (case-insensitive), use `graphs/<repo>/`. Example: the word "github" in the question selects `mattermost-plugin-github`.
+   - Tokenize each repo name in `graphs/config.json#/repos` on `-`. Exclude the stopword tokens `mattermost` and `plugin` from matching on their own. If exactly one repo has at least one non-stopword token appearing as a whole word in the question (case-insensitive), use `graphs/<repo>/`. Example: "github" in the question selects `mattermost-plugin-github`.
    - If zero or multiple repos match, check bundle `keywords` in `graphs/config.json` (case-insensitive substring match anywhere in the question). If exactly one bundle matches, use `graphs/_bundles/<bundle>/`.
-   - Otherwise use `graphs/_all/`.
-3. Read `GRAPH_REPORT.md` of the chosen scope first. For deeper traversal use `graphify query`, `graphify path`, or `graphify explain` from the project root, with the `--graph <absolute-path>` flag pointing at the chosen scope's `graphify-out/graph.json`. **Positional arguments must come before the `--graph` flag** - graphify's parser silently falls back to `./graphify-out/graph.json` if `--graph` appears first, so the working forms are:
+   - Otherwise no scope is selected; skip tier 2 of the query order and fall through to tier 3 (`grep` + Read tool on `upstream/<repo>/`). State `no scope matched, answering from upstream/` in the answer.
+3. Read `GRAPH_REPORT.md` of the chosen scope first. For deeper traversal use `graphify query` / `graphify path` / `graphify explain` from the project root with the `--graph <absolute-path>` flag pointing at the chosen scope's `graphify-out/graph.json`. **Positional arguments must come before the `--graph` flag** - graphify's parser silently falls back to `./graphify-out/graph.json` if `--graph` appears first, so the working forms are:
    - `graphify query "<question>" --graph /abs/path/to/graphify-out/graph.json`
    - `graphify path "<source>" "<target>" --graph /abs/path/to/graphify-out/graph.json`
    - `graphify explain "<node>" --graph /abs/path/to/graphify-out/graph.json`
 
-   Do NOT use `cd <scope> && graphify query "..."` - the Bash tool persists CWD across calls, so the next query in the same session would resolve `cd` relative to the already-deep directory and fail (e.g. `cd graphs/_bundles/server` from `graphs/_bundles/server/` looks for `graphs/_bundles/server/graphs/_bundles/server/`).
-4. Always state which scope was queried in the answer.
-5. If `graphs/<repo>/` is missing or stale (compare `.meta.json` ref to `upstream/<repo>` HEAD), fall back to reading `upstream/<repo>/` directly and flag the staleness in the answer.
+   Do NOT use `cd <scope> && graphify query "..."` - the Bash tool persists CWD across calls, so the next query in the same session would resolve `cd` relative to the already-deep directory and fail.
+4. Always state which scope was queried in the answer (or note that no scope matched).
 
-`graphs/` is `.gitignore`d except for `config.json`. If a teammate hasn't built any graphs yet, the auto-select falls through gracefully because no scopes are available; the answer comes from `upstream/` + `claude-md/` only.
+### Scope is not built or is stale
+
+If the per-repo or bundle scope the question would benefit from is not built (no `graphs/<repo>/graphify-out/graph.json` or no `graphs/_bundles/<bundle>/graphify-out/graph.json`), print a short note naming the missing scope and the exact command to create it - `/bootstrap --build-graphs <repo>` for a per-repo graph, `/graphify-bundle add <name> <repos>` followed by `/bootstrap --build-graphs <name>` for a new bundle. Then ask whether to build it. If the user declines, fall through to tier 3 (grep + Read tool on `upstream/`) and flag that the response is source-only, not graph-grounded.
+
+If `graphs/<repo>/.meta.json#ref` is older than `upstream/<repo>` HEAD, the graph is stale: fall back to reading `upstream/<repo>/` directly and flag the staleness in the answer.
 
 ## Per-repo context
 
