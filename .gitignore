@@ -19,8 +19,18 @@
 !.claude/
 !.claude/commands/
 !.claude/commands/**
+!.claude/helpers/
+!.claude/helpers/**
 !.claude/settings.local.json
 
 # Track only graphs/config.json; ignore all built graph outputs and .active_scope
 !graphs/
 !graphs/config.json
+
+# Defensive: never commit API keys, even if the allowlist above is later relaxed.
+# Last rule wins in git, so these stay ignored even if `.claude/**` becomes tracked.
+.claude/GEMINI_API_KEY
+.claude/GEMINI_API_KEY.txt
+.claude/GOOGLE_API_KEY
+.claude/GOOGLE_API_KEY.txt
+.claude/secrets.env
