@@ -14,11 +14,11 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 ├── graphs/                # Knowledge-graph outputs (gitignored except graphs/config.json)
 │   ├── config.json        # repo scopes + bundle definitions
 │   ├── <repo>/            # per-repo graph
-│   ├── _bundles/<name>/   # named cross-repo bundle (e.g. calls)
-│   └── _all/              # mega-graph across everything that's been built
+│   └── _bundles/<name>/   # named cross-repo bundle (e.g. calls)
 ├── tickets/               # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/          # /bootstrap, /git-pull, /git-switch, /graphify-scope, /graphify-update, /graphify-bundle, /draft-reply, /kb-article, /feature-request
+    ├── commands/          # /bootstrap, /git-pull, /git-switch, /graphify-scope, /graphify-update, /graphify-bundle, /draft-reply, /kb-article, /feature-request, /clipboard
+    ├── helpers/           # Workaround scripts (see Active workarounds at the bottom)
     └── settings.local.json
 ```
 
@@ -35,25 +35,24 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 - **`/git-pull [<repo>]`** - `git pull --ff-only` on the current branch.
   - `/git-pull` - pull every repo under `upstream/`.
   - `/git-pull <repo>` - pull just one.
-  - Cascade: for every repo whose HEAD moved, runs `graphify update` (AST-only, no LLM calls), then re-merges affected bundles and `_all`.
+  - Cascade: for every repo whose HEAD moved, runs `graphify update` (AST-only, no LLM calls), re-merges affected bundles, and re-labels their communities.
 
 - **`/git-switch <repo> [<ref>]`** - switch a cloned repo to a tag, branch, or commit.
   - `/git-switch <repo>` - return to the repo's default branch.
   - `/git-switch <repo> <ref>` - switch to a tag (e.g. `v10.5.1`), branch, or commit. Fetches `--tags --prune` only as a fallback if the ref is unknown locally.
-  - Cascade: after the switch, runs `graphify update` for the repo, then re-merges affected bundles and `_all`.
+  - Cascade: after the switch, runs `graphify update` for the repo, re-merges affected bundles, and re-labels their communities.
 
 ### Knowledge graph
 
 - **`/graphify-scope`** - manage which graph subsequent queries target.
-  - `/graphify-scope` - list available scopes (per-repo, bundle, `_all`) and the current pin.
-  - `/graphify-scope <scope>` - pin a scope. `<scope>` is a repo name, a bundle name, or `_all`.
+  - `/graphify-scope` - list available scopes (per-repo, bundle) and the current pin.
+  - `/graphify-scope <scope>` - pin a scope. `<scope>` is a repo name or a bundle name.
   - `/graphify-scope clear` - remove the pin; auto-select resumes (see `CLAUDE.md` for the heuristic).
 
 - **`/graphify-update`** - incrementally refresh graphs without a git operation.
-  - `/graphify-update` - update every built per-repo graph, then cascade bundles and `_all`.
-  - `/graphify-update <repo>` - update one repo and cascade to its bundles and `_all`.
-  - `/graphify-update <bundle-name>` - re-merge + re-cluster one bundle from existing per-repo graphs.
-  - `/graphify-update _all` - re-merge + re-cluster `_all` from all existing per-repo graphs.
+  - `/graphify-update` - update every built per-repo graph, then cascade bundles.
+  - `/graphify-update <repo>` - update one repo and cascade to its bundles.
+  - `/graphify-update <bundle-name>` - re-merge + re-cluster + re-label one bundle from existing per-repo graphs.
 
 - **`/graphify-bundle`** - manage bundle definitions in `graphs/config.json`. Asks for confirmation before mutating.
   - `/graphify-bundle` - list defined bundles (name, repos, keywords, built status).
@@ -72,13 +71,14 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ## Scopes & bundles
 
-There are three kinds of graph **scope** the agent can query:
+There are two kinds of graph **scope** the agent can query:
 
 | Scope | Path | Contents |
 |---|---|---|
 | Per-repo | `graphs/<repo>/graphify-out/graph.json` | One upstream repo, nodes for files/functions/types/concepts and edges for imports, calls, references, semantic similarity. |
 | Bundle | `graphs/_bundles/<name>/graphify-out/graph.json` | A **named cross-repo group** of two or more per-repo graphs merged together. Use these for product-level questions that span repos - e.g. the Calls pipeline (`mattermost` ↔ `mattermost-plugin-calls` ↔ `rtcd` ↔ `calls-offloader` ↔ `calls-recorder` ↔ `calls-transcriber`), or the AI stack (`mattermost` ↔ `mattermost-plugin-agents` ↔ `mattermost-plugin-channel-automation`). |
-| Mega-graph | `graphs/_all/graphify-out/graph.json` | Every built per-repo graph merged into one. Fallback for cross-cutting questions that don't fit a defined bundle. |
+
+When no scope auto-selects (no repo-name token matches, no bundle keyword matches), the agent falls through to `grep` + the Read tool on `upstream/<repo>/` directly and says so in the answer. There is no `_all` mega-graph; product-level questions go through the matching bundle and cross-cutting research that doesn't fit any bundle goes through grep/upstream.
 
 **Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and every bundle definition (`repos` members + optional `keywords`) live in this single file. It is the only thing under `graphs/` that's tracked in git - all built outputs are `.gitignore`d, so the config plus a `/bootstrap --build-graphs <selector>` is enough for a teammate to reproduce the same scopes.
 
@@ -99,7 +99,7 @@ A bundle definition looks like:
 - `/graphify-bundle` manages the **definitions** in `graphs/config.json` (list, show, `add`, `remove`). It does not build anything; after `add`, run `/bootstrap --build-graphs <bundle-name>` to actually produce the merged graph.
 - `/bootstrap --build-graphs <bundle-name>` walks the bundle's `repos` list, builds any per-repo graph that isn't built yet, then merges them into `graphs/_bundles/<bundle-name>/graphify-out/`. Idempotent.
 - `/graphify-update <bundle-name>` re-merges and re-clusters the bundle from existing per-repo graphs (use after one of the members was updated).
-- `/graphify-scope <scope>` **pins which graph queries hit** for the rest of the session. The argument can be any repo name, any bundle name, or `_all`. When nothing is pinned (the default after `/graphify-scope clear`), the agent **auto-selects** the scope from the question: bundle `keywords` are matched case-insensitively against the question, and a single-word repo-name match also works (e.g. asking about "github" picks `mattermost-plugin-github`). The exact heuristic lives in `CLAUDE.md` under *Knowledge graphs*.
+- `/graphify-scope <scope>` **pins which graph queries hit** for the rest of the session. The argument can be any repo name or any bundle name. When nothing is pinned (the default after `/graphify-scope clear`), the agent **auto-selects** the scope from the question: bundle `keywords` are matched case-insensitively against the question, and a single-word repo-name match also works (e.g. asking about "github" picks `mattermost-plugin-github`). If neither matches, the agent skips the graph layer and answers from grep + upstream/. The exact heuristic lives in `CLAUDE.md` under *Knowledge graphs*.
 
 In short: define bundles in `graphs/config.json` to mirror the products and ticket clusters you handle (or use `/graphify-bundle add` to do it for you), build them with `/bootstrap --build-graphs <name>`, and either pin a scope with `/graphify-scope <name>` for a session or let keyword auto-select route each question.
 
@@ -116,27 +116,21 @@ The fix is `scope: "subdirs"` in `graphs/config.json#/repos/<repo>`. Instead of 
 
 Today only `mattermost` is split. Its config entry lists ~20 paths (`api`, `server/public/model`, `server/channels/app`, `webapp/platform`, ...). Each is chosen because it surfaces in TSE tickets and stays under the limits individually; UI-rendering details (`webapp/channels/src/components` at ~3,000 files) and test directories are deliberately omitted.
 
+Individual subdir graphs under `graphs/<repo>/<subdir-name>/` are intermediate artifacts. They're clustered (needed for the subdir-level merge) but **not labeled** - `/graphify-scope` never lists them, users never query them directly, and labeling them would waste tokens. Their `GRAPH_REPORT.md` retains placeholder `Community N` headings by design; the labeled, navigable report is at `graphs/<repo>/graphify-out/GRAPH_REPORT.md`.
+
 ### How graph merging works
 
-Graphify graphs compose: any two `graph.json` files can be unioned into a third one. That's the whole basis of how scopes nest. The merge ladder, bottom-up:
+Graphify graphs compose: any two `graph.json` files can be unioned into a third one. The merge ladder, bottom-up:
 
-1. **Per-subdir → per-repo** (subdir-scoped repos only). After every listed subdir is built, the slash commands run `graphify merge-graphs graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json`, then `graphify cluster-only graphs/<repo>/ --no-viz` to compute community structure on the merged result. The top-level `graphs/<repo>/graphify-out/graph.json` is the canonical per-repo graph regardless of whether the repo was built in `full` or `subdirs` mode.
-2. **Per-repo → bundle.** When any member of a bundle finishes building, the cascade in `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update` re-runs `graphify merge-graphs` over the bundle's member graphs into `graphs/_bundles/<bundle>/graphify-out/graph.json`, followed by another `cluster-only` pass. Bundles with at least one missing member are skipped (and reported) rather than merged half-built.
-3. **All per-repo graphs → `_all`.** Any per-repo update also re-merges every existing per-repo `graph.json` into `graphs/_all/graphify-out/graph.json` and re-clusters. This is the only scope that renders an interactive `graph.html`; per-repo and bundle scopes pass `--no-viz` to keep builds fast (their `GRAPH_REPORT.md` plus `graphify query` is what the agent uses anyway).
+1. **Per-subdir → per-repo** (subdir-scoped repos only). After every listed subdir is built, the slash commands run a merge helper (see below), then `graphify cluster-only graphs/<repo>/ --no-viz` to compute community structure on the merged result, then the Community-labeling pass to replace placeholder labels with real names. The top-level `graphs/<repo>/graphify-out/graph.json` is the canonical per-repo graph regardless of whether the repo was built in `full` or `subdirs` mode.
+2. **Per-repo → bundle.** When any member of a bundle finishes building, the cascade in `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update` re-runs the merge helper over the bundle's member graphs into `graphs/_bundles/<bundle>/graphify-out/graph.json`, then `cluster-only`, then the Community-labeling pass. Bundles with at least one missing member are skipped (and reported) rather than merged half-built.
 
-Two operational consequences worth knowing:
+Three operational consequences worth knowing:
 
 - **Re-clustering after every merge.** A merge changes the graph's connected components, so community detection is re-run each time. This is fast (seconds) and uses no LLM calls.
-- **Cascade is automatic.** You rarely run `graphify merge-graphs` by hand. `/git-pull`, `/git-switch`, and `/graphify-update` decide which bundles intersect the updated repos and re-merge them, then re-merge `_all`. Manual merges (`/graphify-update <bundle-name>` or `/graphify-update _all`) are there for repairing a stale bundle without touching git.
-
-### Why `_all` isn't usually the right scope for a ticket
-
-The mega-graph is convenient as a fallback - one scope that contains everything - but for an actual investigation it's almost always the worst choice:
-
-- **Signal-to-noise.** `graphify query` is a BFS traversal from the question's anchor nodes, capped by a token budget. The larger the graph the traversal runs on, the more weakly-related neighbours compete for that budget. `_all` is the largest scope by definition and will keep growing as more repos are built, so a bundle-scoped or repo-scoped traversal stays denser in what's actually relevant to the question. (Worth measuring rather than assuming - run the same `graphify query` against `_all` and against the matching bundle, compare the citations.)
-- **Communities span unrelated domains.** graphify clusters with Louvain / Leiden over whichever graph is being processed; the algorithm has no notion of "repo" or "product". On a per-repo or bundle graph the resulting communities track the natural domain boundaries; on `_all` they're free to lump together nodes from unrelated repos when surface similarity (shared names, identical imports) outweighs structural separation. How often that actually happens depends on how distinct your repos are - on the current build it's a theoretical risk more than a demonstrated one, but the risk grows with repo count.
-
-Rule of thumb: pin a bundle for product-level questions, pin a repo for repo-specific ones, and only reach for `_all` when you genuinely don't know where the answer lives - then use the result to decide which narrower scope to pin next.
+- **Re-labeling after every merge.** Communities get plain-language names (e.g. "Authentication Flow", "Calls RTC Loop") via Claude subagents. This is a one-time LLM cost per scope per cascade; the resulting labels persist to `.graphify_labels.json` and are read by `GRAPH_REPORT.md`. See the "Community labeling" section in `.claude/commands/bootstrap.md` for the full block.
+- **Cascade is automatic.** You rarely run the merge helper by hand. `/git-pull`, `/git-switch`, and `/graphify-update` decide which bundles intersect the updated repos and re-merge + re-label them. Manual merges (`/graphify-update <bundle-name>`) are there for repairing a stale bundle without touching git.
+- **Merge helper.** All four slash commands invoke `.claude/helpers/merge-graphs.py` rather than `graphify merge-graphs` directly, working around an upstream CLI bug. See the **Active workarounds** section at the bottom of this README for details and the path to removing it when upstream lands the fix.
 
 ## First-time setup
 
@@ -146,21 +140,61 @@ Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphif
 
 Requires Python 3.10 or newer.
 
+Recommended: install graphify with **all** optional extras enabled so PDF/office/Gemini/SQL extraction all work out of the box.
+
+```
+pipx install "graphifyy[all]" && graphify install
+```
+
+What `[all]` bundles:
+
+| Extra | What it adds |
+|---|---|
+| `pdf` | PDF extraction |
+| `office` | `.docx` and `.xlsx` support |
+| `google` | Google Sheets rendering |
+| `video` | Video/audio transcription (faster-whisper + yt-dlp) |
+| `mcp` | MCP stdio server |
+| `neo4j` | Neo4j push support |
+| `svg` | SVG graph export |
+| `leiden` | Leiden community detection (Python < 3.13 only) |
+| `ollama` | Ollama local inference |
+| `openai` | OpenAI / OpenAI-compatible APIs |
+| `gemini` | Google Gemini API |
+| `bedrock` | AWS Bedrock (uses IAM, no API key) |
+| `sql` | SQL schema extraction |
+
+Pick one extra instead of `[all]` if you want a leaner install: `pipx install "graphifyy[gemini,pdf]"`, etc. Each extra is also installable in isolation via `pip install "graphifyy[<extra>]"`.
+
 **macOS** - use `pipx` (recent macOS Pythons are externally managed and reject plain `pip install`):
 
 ```
 brew install pipx
 pipx ensurepath
-pipx install graphifyy && graphify install
+pipx install "graphifyy[all]" && graphify install
 ```
+
+`pipx ensurepath` is a one-time, idempotent step that adds `~/.local/bin` to your shell PATH. Skip it if pipx is already on your PATH (re-run is safe but does nothing).
 
 **Linux / Windows** - the one-liner from the graphify docs:
 
 ```
-pip install graphifyy && graphify install
+pip install "graphifyy[all]" && graphify install
 ```
 
 Verify: `graphify --help` should print usage.
+
+#### Updating graphify
+
+Update the Python package and the skill separately:
+
+```
+pipx upgrade graphifyy   # macOS / pipx
+pip install --upgrade graphifyy   # Linux / Windows
+graphify install   # refresh the /graphify skill in your assistant config
+```
+
+`graphify install` is idempotent - re-running it overwrites the installed skill with the version bundled in the upgraded Python package. Run it whenever you upgrade `graphifyy`.
 
 ### Graphify build cost and model choice
 
@@ -176,7 +210,14 @@ pipx inject graphifyy 'graphifyy[gemini]'
 export GEMINI_API_KEY=<your-key>   # or GOOGLE_API_KEY
 ```
 
-The default Gemini model is `gemini-3-flash-preview` (fast, cheap). Override with `GRAPHIFY_GEMINI_MODEL` if needed.
+The default Gemini model is `gemini-3-flash-preview` (fast, cheap). Override with `GRAPHIFY_GEMINI_MODEL` if needed. `/bootstrap` step 3 checks for `GEMINI_API_KEY`/`GOOGLE_API_KEY` and switches the semantic-extraction backend to `graphify.llm.extract_corpus_parallel(backend="gemini")` automatically when either key is set. Without a key, semantic extraction falls back to Claude subagents.
+
+Key storage options, in order of preference:
+
+1. **Shell init** (`~/.zshrc` / `~/.zshenv`): `export GEMINI_API_KEY=...`. The key never enters the repo; Claude Code inherits the env from the launching shell.
+2. **`.claude/secrets.env`** (project-scoped, gitignored): one `KEY=value` per line. The slash commands `/bootstrap`, `/graphify-update`, `/git-pull`, `/git-switch` source this file at the top of their Bash blocks so Python subprocesses inherit any keys set there.
+
+Do NOT put API keys in `.claude/settings.local.json` - that file is checked into git (allowlisted in `.gitignore`). For belt-and-braces protection, `.gitignore` carries explicit ignore entries for `.claude/GEMINI_API_KEY`, `.claude/GEMINI_API_KEY.txt`, `.claude/GOOGLE_API_KEY`, `.claude/GOOGLE_API_KEY.txt`, and `.claude/secrets.env` so accidental key files are never staged.
 
 **If you use Anthropic instead**, choose the model and effort level deliberately:
 
@@ -223,8 +264,8 @@ Then inside Claude:
 5. Optionally pin the graph scope for the session so the agent always queries the right graph:
    - `/graphify-scope calls` for a Calls ticket.
    - `/graphify-scope <repo>` for a single-repo ticket (e.g. `/graphify-scope mattermost-plugin-github`).
-   - `/graphify-scope _all` for cross-cutting research.
    - `/graphify-scope clear` when you're done.
+   - When nothing matches and no scope is pinned, the agent skips the graph layer and answers from grep + the Read tool on `upstream/`.
 6. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
 7. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
@@ -234,6 +275,12 @@ Then inside Claude:
 ## Pre-graphify state
 
 The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) (the last state before the graphify integration) and are being re-curated incrementally, trimmed to what graphs and docs cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
+
+## Design notes
+
+- `notes/removed-all-mega-graph.md` - explains why the `_all` mega-graph was removed (labeling cost, query signal-to-noise, cross-repo community mixing) and the steps to re-introduce it if needed.
+- `notes/bundle-skip-when-members-unchanged.md` - deferred design for skipping bundle re-merges when member refs haven't moved. Not implemented today; captured so the design isn't lost when labeling costs make per-cascade re-merges expensive enough to optimise.
+- `notes/graphify-merge-graphs-upstream-fix.md` - history of the upstream `graphify merge-graphs` `MultiGraph` accumulator bug and its fix.
 
 ## TODO
 
@@ -250,3 +297,26 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior 
   - [ ] `mattermost-plugin-playbooks` - 746K words / 1,055 files (under hard cap but large; consider scoping)
   - Everything else fits a full build; `desktop`, `mattermost-plugin-agents`, `mattermost-plugin-calls`, and `migration-assist` trip the 200-file soft warning but stay well under the word cap.
 - [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, auto-pin the right graph scope, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
+
+## Active workarounds
+
+Local workarounds for known upstream bugs. Each entry has a verification command and exact removal steps for the day the upstream fix lands.
+
+### `graphify merge-graphs` CLI bug
+
+**What:** all four cascade slash commands invoke `.claude/helpers/merge-graphs.py` instead of `graphify merge-graphs`. The helper accepts the same `<inputs...> --out <output>` argument shape as the upstream CLI and produces the same output, but works around a bug in the installed graphify version: `graphify merge-graphs` initialises its accumulator as a plain `Graph` while `prefix_graph_for_global` returns a `MultiGraph`, so `networkx.compose` fails with `All graphs must be graphs or multigraphs.`. The helper uses a `MultiGraph` accumulator and coerces inputs as needed.
+
+**How to check if it's still needed:** run `pipx upgrade graphifyy` (or pin the version that contains the upstream fix), then try a real merge with the bare CLI:
+
+```
+graphify merge-graphs graphs/mattermost-plugin-agents/graphify-out/graph.json graphs/mattermost-plugin-channel-automation/graphify-out/graph.json --out /tmp/test.json
+```
+
+**How to remove if the bare CLI succeeds:**
+1. Delete `.claude/helpers/merge-graphs.py`.
+2. Remove `!.claude/helpers/` and `!.claude/helpers/**` from `.gitignore`.
+3. In every `.claude/commands/*.md` file, replace every `"$PYTHON" .claude/helpers/merge-graphs.py ...` invocation with plain `graphify merge-graphs ...` (same arguments).
+4. Remove the "Workarounds (active)" subsection from `CLAUDE.md` (Knowledge graphs section).
+5. Remove this section from the README.
+
+The upstream patch and bug history live in `notes/graphify-merge-graphs-upstream-fix.md`. If you want to push the upstream fix yourself, file a GitHub issue or PR against the graphify repo and reference that note.
