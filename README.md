@@ -267,12 +267,6 @@ Then inside Claude:
 
 The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) (the last state before the graphify integration) and are being re-curated incrementally, trimmed to what graphs and docs cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
 
-## Design notes
-
-- `notes/removed-all-mega-graph.md` - explains why the `_all` mega-graph was removed (labeling cost, query signal-to-noise, cross-repo community mixing) and the steps to re-introduce it if needed.
-- `notes/bundle-skip-when-members-unchanged.md` - deferred design for skipping bundle re-merges when member refs haven't moved. Not implemented today; captured so the design isn't lost when labeling costs make per-cascade re-merges expensive enough to optimise.
-- `notes/graphify-merge-graphs-upstream-fix.md` - history of the upstream `graphify merge-graphs` `MultiGraph` accumulator bug and its fix.
-
 ## TODO
 
 - [ ] Backfill `claude-md/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
