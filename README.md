@@ -214,7 +214,7 @@ Set the key via shell init or the project secrets file:
 
 | Use case | Recommended | Why |
 |---|---|---|
-| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 low effort | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. If using Sonnet, low effort is recommended: subagents do simple extraction and don't need deep reasoning; save the context budget for TSE work. |
+| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 (low effort) | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. If using Sonnet, low effort is recommended: subagents do simple extraction and don't need deep reasoning; save the context budget for TSE work. |
 | Incremental update (code only) | Any model | No LLM calls - AST only |
 | Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed, but the agent still has to make judgment calls about what to rebuild and not invent shell commands. Sonnet at default effort is the sweet spot. |
 | TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight. |
