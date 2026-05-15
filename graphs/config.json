@@ -140,24 +140,21 @@
         "RTC",
         "ICE",
         "TURN",
-        "STUN",
-        "offloader",
-        "transcriber"
+        "STUN"
       ]
     },
     "AI": {
       "repos": [
         "mattermost",
         "mattermost-plugin-agents",
-        "mattermost-plugin-channel-automation",
-        "docs"
+        "mattermost-plugin-channel-automation"
       ]
     },
     "server": {
       "repos": [
         "mattermost",
-        "docs",
-        "enterprise"
+        "enterprise",
+        "docs"
       ],
       "keywords": [
         "system console",
