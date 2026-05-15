@@ -1,18 +1,28 @@
 ---
-description: Incrementally update one or more knowledge graphs. Per-repo runs graphify update; bundle/all runs merge + re-cluster.
-argument-hint: [<repo> | <bundle-name> | _all | --all]
+description: Incrementally update one or more knowledge graphs. Per-repo runs graphify update; bundle runs merge + re-cluster.
+argument-hint: [<repo> | <bundle-name> | --all]
 ---
 
 First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `graphs/<scope>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream graphs`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing. (If `graphs/` itself is missing, advise the user to run `/bootstrap` first - the rest of this command needs `graphs/config.json`.)
 
+Source `.claude/secrets.env` if present so Python subprocesses inherit any project-scoped API keys (no-op if the file is absent). If neither `GEMINI_API_KEY` nor `GOOGLE_API_KEY` is set after sourcing, print the Gemini tip - `graphify update` may run semantic extraction for any non-code files that changed, and Gemini is the cheap path:
+
+```
+[ -f .claude/secrets.env ] && set -a && . .claude/secrets.env && set +a
+if [ -z "$GEMINI_API_KEY" ] && [ -z "$GOOGLE_API_KEY" ]; then
+  echo "Couldn't source GEMINI_API_KEY or GOOGLE_API_KEY."
+  echo "Tip: set GEMINI_API_KEY or GOOGLE_API_KEY to use Gemini for semantic extraction (pip install 'graphifyy[gemini]')."
+  echo "Without it, semantic extraction falls back to Claude subagents (slower and more expensive)."
+fi
+```
+
 Args: $ARGUMENTS
 
-Behavior depends on the argument. Parse it into one of four modes:
+Behavior depends on the argument. Parse it into one of three modes:
 
-- **No argument or `--all`**: update every built per-repo graph, then cascade all bundles and `_all`. This is the "refresh everything" mode.
-- **`<repo>`**: matches a name under `graphs/config.json#/repos`. Update that one repo's graph, then cascade.
+- **No argument or `--all`**: update every built per-repo graph, then cascade all bundles. This is the "refresh everything" mode.
+- **`<repo>`**: matches a name under `graphs/config.json#/repos`. Update that one repo's graph, then cascade bundles containing it.
 - **`<bundle-name>`**: matches a name under `graphs/config.json#/bundles` AND `graphs/_bundles/<bundle-name>/graphify-out/graph.json` exists. Re-merge + re-cluster that bundle only (does not update the member repos first; assumes they are current).
-- **`_all` or `all`**: re-merge + re-cluster `graphs/_all/` only from whatever per-repo graphs currently exist.
 
 If the argument doesn't match any of the above, enumerate the built scopes (same logic as `/graphify-scope` with no argument) and stop with: `Target '<arg>' not found. Available scopes listed above.`
 
@@ -34,12 +44,14 @@ For each repo being updated:
      ```
      cd <abs-path>/graphs/<repo>/<subdir-name> && graphify update <abs-path>/upstream/<repo>/<subdir-path>
      ```
-     Then re-merge all subdir graphs and re-cluster:
+     Individual subdir graphs are intermediate artifacts and are **not labeled**. After all changed subdirs are re-extracted, re-merge (via the helper that works around the upstream `graphify merge-graphs` bug) and re-cluster the top-level:
      ```
-     graphify merge-graphs graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json
+     GRAPHIFY_BIN=$(which graphify); PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//')
+     "$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json
      graphify cluster-only graphs/<repo>/ --no-viz
      ```
-     Subdir name convention (slash → underscore): `server/channels/app` → `server_channels_app`. A full rebuild (replacing per-subdir graphs entirely) only happens when explicitly invoked via `/bootstrap`.
+     Then **label the subdir-merged top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (subagent batched mode - this scope is large). Subdir name convention (slash → underscore): `server/channels/app` → `server_channels_app`. A full rebuild (replacing per-subdir graphs entirely) only happens when explicitly invoked via `/bootstrap`.
+   - For `scope: full`: `graphify update` runs the upstream `--update` incremental pipeline which writes `.graphify_extract.json`, `.graphify_detect.json`, and re-runs clustering internally. After the command completes, **label the per-repo top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (host inline mode - these scopes are small). If `graphify update` preserves community IDs and `graphs/<repo>/graphify-out/.graphify_labels.json` already exists with no `Community N` entries, the labels are still valid - skip re-labeling. Otherwise regenerate.
 
    After the update, read the new node count (call it `new_nodes`); `Δ = new_nodes - old_nodes`.
 
@@ -58,20 +70,15 @@ For each bundle being processed (either named explicitly or as cascade from a pe
 
 1. Look up the bundle's `repos` list in `graphs/config.json#/bundles/<bundle-name>`.
 2. Collect the `graph.json` paths for every member repo whose `graphs/<repo>/graphify-out/graph.json` exists. If fewer than 2 member graphs exist, set cascade result `skipped (insufficient members: <n>/total)` and skip.
-3. Run: `graphify merge-graphs <member-graph.json files...> --out graphs/_bundles/<bundle-name>/graphify-out/graph.json`.
+3. Resolve graphify's Python interpreter and call the merge helper (wraps the upstream `graphify merge-graphs` CLI to work around the `MultiGraph` accumulator bug - see `.claude/helpers/merge-graphs.py` docstring):
+   ```
+   GRAPHIFY_BIN=$(which graphify); PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//')
+   "$PYTHON" .claude/helpers/merge-graphs.py <member-graph.json files...> --out graphs/_bundles/<bundle-name>/graphify-out/graph.json
+   ```
 4. Run: `graphify cluster-only graphs/_bundles/<bundle-name>/ --no-viz` (bundles are typically large; skip HTML render).
-5. Update `graphs/_bundles/<bundle-name>/.meta.json` with `built_at` (ISO timestamp) and `repos` list.
-6. Set result to `merged N nodes` or the error if it failed.
-
-
-## `_all` re-merge
-
-1. Collect all existing `graphs/<repo>/graphify-out/graph.json` files (every per-repo graph that has been built, regardless of whether it was updated in this run).
-2. If fewer than 2 exist, set result `skipped (insufficient repos)`.
-3. Run: `graphify merge-graphs <all-repo-graph.json files...> --out graphs/_all/graphify-out/graph.json`.
-4. Run: `graphify cluster-only graphs/_all/ --no-viz` (mega-graph is always large; skip HTML render).
-5. Update `graphs/_all/.meta.json`.
-6. Set result to `merged N nodes` or the error.
+5. **Label the bundle** via the "Community labeling" section of `.claude/commands/bootstrap.md` (subagent batched mode). This pass is mandatory - without it, the regenerated `GRAPH_REPORT.md` shows `Community N` placeholders and is unusable as a navigation map.
+6. Update `graphs/_bundles/<bundle-name>/.meta.json` with `built_at` (ISO timestamp) and `repos` list.
+7. Set result to `merged N nodes` or the error if it failed.
 
 
 ## Cascade logic
@@ -79,10 +86,9 @@ For each bundle being processed (either named explicitly or as cascade from a pe
 When one or more per-repo graphs are updated:
 
 - **Bundles**: read `graphs/config.json#/bundles`. Any bundle whose `repos` list intersects the set of updated repos is cascaded. Perform the bundle re-merge for each such bundle.
-- **`_all`**: cascade unconditionally if any per-repo graph was updated (not just skipped).
 - If a cascade step fails, report it inline and continue. Do not abort for one failure.
 
-When a bundle or `_all` is the explicit target (not a cascade), do not trigger further cascades.
+When a bundle is the explicit target (not a cascade), do not trigger further cascades.
 
 
 ## Output
@@ -92,8 +98,8 @@ For per-repo updates, report a Markdown table with columns `Repo | Scope | Old R
 - `New Ref`: first 8 chars of `current_ref`.
 - `Result`: as defined in the per-repo steps above.
 
-After the per-repo table (if any), report a second table for cascade/explicit bundle+all operations with columns `Target | Type | Result`.
-- `Type`: `bundle` or `all`.
+After the per-repo table (if any), report a second table for cascade/explicit bundle operations with columns `Target | Type | Result`.
+- `Type`: `bundle`.
 - `Result`: `merged N nodes`, `skipped (<reason>)`, or the error.
 
 If graphify is not installed (`command -v graphify` fails), print: `graphify not installed - install it per README.md then retry.` and stop.
@@ -103,4 +109,4 @@ If graphify is not installed (`command -v graphify` fails), print: `graphify not
 
 - Run each git invocation as a separate Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Exception: `cd <graphs/dir> && graphify update <upstream/path>` must stay chained in a single Bash call so graphify writes to the intended CWD.
 - Never write inside `upstream/<repo>/`. All output goes to `graphs/`.
-- For the no-argument / `--all` mode, parallelize per-repo updates in a single message where the repos are independent. Bundle and `_all` cascades run after all per-repo updates finish.
+- For the no-argument / `--all` mode, parallelize per-repo updates in a single message where the repos are independent. Bundle cascades run after all per-repo updates finish.
