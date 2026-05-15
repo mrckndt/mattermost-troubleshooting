@@ -15,8 +15,7 @@ Behavior depends on the argument.
 2. Enumerate available scopes:
    - **repo** scopes: every directory `graphs/<name>/` where `graphs/<name>/graphify-out/graph.json` exists.
    - **bundle** scopes: every directory `graphs/_bundles/<name>/` where `graphs/_bundles/<name>/graphify-out/graph.json` exists.
-   - **all** scope: `graphs/_all/` if `graphs/_all/graphify-out/graph.json` exists.
-3. Report a Markdown table with columns `Scope | Type | Pinned`. `Type` is `repo`, `bundle`, or `all`. `Pinned` is `*` for the pinned row, empty otherwise. Sort: repos alphabetically, then bundles alphabetically, then `_all` last.
+3. Report a Markdown table with columns `Scope | Type | Pinned`. `Type` is `repo` or `bundle`. `Pinned` is `*` for the pinned row, empty otherwise. Sort: repos alphabetically, then bundles alphabetically.
 4. If no scopes are built yet, print: `No scopes built. Run /bootstrap --build-graphs <bundle-name|all|repo-name> first (see graphs/config.json for defined bundles and repos).`
 
 ## `clear` argument: remove the pin
@@ -29,12 +28,10 @@ Behavior depends on the argument.
 1. Resolve `<scope>` to a directory, in this order:
    - `graphs/<scope>/` if it exists (per-repo scope).
    - `graphs/_bundles/<scope>/` if it exists (bundle scope).
-   - `graphs/_all/` if `<scope>` is `_all` or `all`.
 2. If the resolved directory does not contain `graphify-out/graph.json`, list the available scopes (same enumeration as the no-argument case) and stop with `Scope '<scope>' is not built. Available scopes listed above.`
 3. Otherwise, write the resolved relative path on a single line to `graphs/.active_scope`. The path is:
    - `<repo>` for a per-repo scope.
    - `_bundles/<bundle-name>` for a bundle scope.
-   - `_all` for the mega-graph.
 4. Report `Scope pinned to graphs/<resolved>/. All subsequent graphify queries use this scope until /graphify-scope clear.`
 
 ## Notes
