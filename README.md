@@ -22,6 +22,87 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
     └── settings.local.json
 ```
 
+## First-time setup
+
+### Install graphify
+
+Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) builds the knowledge graphs under `graphs/`. Install before running `/bootstrap --build-graphs`.
+
+Requires Python 3.10 or newer. Recommended: install with `[all]` for full extraction support:
+
+```
+pipx install "graphifyy[all]" && graphify install
+```
+
+What `[all]` bundles:
+
+| Extra | What it adds |
+|---|---|
+| `pdf` | PDF extraction |
+| `office` | `.docx` and `.xlsx` support |
+| `google` | Google Sheets rendering |
+| `video` | Video/audio transcription (faster-whisper + yt-dlp) |
+| `mcp` | MCP stdio server |
+| `neo4j` | Neo4j push support |
+| `svg` | SVG graph export |
+| `leiden` | Leiden community detection (Python < 3.13 only) |
+| `ollama` | Ollama local inference |
+| `openai` | OpenAI / OpenAI-compatible APIs |
+| `gemini` | Google Gemini API |
+| `bedrock` | AWS Bedrock (uses IAM, no API key) |
+| `sql` | SQL schema extraction |
+
+Pick a leaner install with `pipx install "graphifyy[gemini,pdf]"` etc. To add an extra to an existing install: `pipx inject graphifyy 'graphifyy[<extra>]'`.
+
+**macOS** - use `pipx` (recent macOS Pythons are externally managed and reject plain `pip install`):
+
+```
+brew install pipx && pipx ensurepath
+pipx install "graphifyy[all]" && graphify install
+```
+
+**Linux / Windows:**
+
+```
+pip install "graphifyy[all]" && graphify install
+```
+
+Verify: `graphify --help` should print usage. To update: `pipx upgrade graphifyy && graphify install` (or `pip install --upgrade graphifyy && graphify install` on Linux/Windows).
+
+### Graphify build cost and model choice
+
+Graphify's build pipeline has two extraction phases:
+
+- **AST extraction** (code files): deterministic parsing, no LLM calls, cached after the first run. Incremental updates (`/graphify-update`) that touch only code are essentially free.
+- **Semantic extraction** (doc/paper/image files): one LLM call per ~22-file chunk. This is where cost accumulates, and the backend matters.
+
+**Gemini Flash is the preferred extraction backend.** `/bootstrap` checks for `GEMINI_API_KEY` or `GOOGLE_API_KEY` and routes semantic extraction through Gemini when either key is set, saving significant tokens compared to Claude subagents. Without a key the pipeline falls back to Claude subagents.
+
+Set the key via shell init or the project secrets file:
+
+- **Shell init** (recommended): `export GEMINI_API_KEY=<your-key>` in `~/.zshrc` or `~/.zshenv`. Claude Code inherits the env from the launching shell.
+- **`.claude/secrets.env`** (project-scoped, gitignored): one `KEY=value` per line. The slash commands source this file automatically so Python subprocesses inherit the key.
+
+**Model choice:**
+
+| Use case | Recommended | Notes |
+|---|---|---|
+| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 at default effort | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. Consider low effort for Sonnet to reduce cost (less tokens/time spent on thinking). |
+| Incremental update (code only) | Any model | AST extraction only - no LLM calls, essentially free. |
+| Working on files in this repo | Sonnet 4.6 (1M context) at high effort | Handles complex troubleshooting notes and cross-file analysis well. Opus also works but is not necessary. |
+| Ticket troubleshooting | Opus 4.7 at high effort | High-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback if Opus quota is tight. |
+
+### Clone and start
+
+```
+git clone git@github.com:mrckndt/mattermost-troubleshooting.git
+cd mattermost-troubleshooting
+claude
+```
+
+Then inside Claude:
+- `/bootstrap` - clone all upstream repos under `upstream/` and create `tickets/`. By default it prompts whether to build any graphify graphs; pick `calls` for the initial Calls bundle (six repos), `all` for everything, or `skip` to defer.
+
 ## Slash commands
 
 ### Repo management
@@ -71,18 +152,18 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ## Scopes & bundles
 
-There are two kinds of graph **scope** the agent can query:
+Two kinds of graph scope:
 
 | Scope | Path | Contents |
 |---|---|---|
 | Per-repo | `graphs/<repo>/graphify-out/graph.json` | One upstream repo, nodes for files/functions/types/concepts and edges for imports, calls, references, semantic similarity. |
-| Bundle | `graphs/_bundles/<name>/graphify-out/graph.json` | A **named cross-repo group** of two or more per-repo graphs merged together. Use these for product-level questions that span repos - e.g. the Calls pipeline (`mattermost` ↔ `mattermost-plugin-calls` ↔ `rtcd` ↔ `calls-offloader` ↔ `calls-recorder` ↔ `calls-transcriber`), or the AI stack (`mattermost` ↔ `mattermost-plugin-agents` ↔ `mattermost-plugin-channel-automation`). |
+| Bundle | `graphs/_bundles/<name>/graphify-out/graph.json` | Named cross-repo group merged from two or more per-repo graphs (e.g. the Calls pipeline, the AI stack). |
 
-When no scope auto-selects (no repo-name token matches, no bundle keyword matches), the agent falls through to `grep` + the Read tool on `upstream/<repo>/` directly and says so in the answer. There is no `_all` mega-graph; product-level questions go through the matching bundle and cross-cutting research that doesn't fit any bundle goes through grep/upstream.
+When no scope auto-selects, the agent falls through to `grep` + the Read tool on `upstream/<repo>/` and says so in the answer.
 
-**Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and every bundle definition (`repos` members + optional `keywords`) live in this single file. It is the only thing under `graphs/` that's tracked in git - all built outputs are `.gitignore`d, so the config plus a `/bootstrap --build-graphs <selector>` is enough for a teammate to reproduce the same scopes.
+**Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and every bundle definition live here. Reproduce any scope with `/bootstrap --build-graphs <selector>`.
 
-A bundle definition looks like:
+A bundle definition:
 
 ```json
 "bundles": {
@@ -94,143 +175,35 @@ A bundle definition looks like:
 }
 ```
 
-**How the slash commands connect:**
-
-- `/graphify-bundle` manages the **definitions** in `graphs/config.json` (list, show, `add`, `remove`). It does not build anything; after `add`, run `/bootstrap --build-graphs <bundle-name>` to actually produce the merged graph.
-- `/bootstrap --build-graphs <bundle-name>` walks the bundle's `repos` list, builds any per-repo graph that isn't built yet, then merges them into `graphs/_bundles/<bundle-name>/graphify-out/`. Idempotent.
-- `/graphify-update <bundle-name>` re-merges and re-clusters the bundle from existing per-repo graphs (use after one of the members was updated).
-- `/graphify-scope <scope>` **pins which graph queries hit** for the rest of the session. The argument can be any repo name or any bundle name. When nothing is pinned (the default after `/graphify-scope clear`), the agent **auto-selects** the scope from the question: bundle `keywords` are matched case-insensitively against the question, and a single-word repo-name match also works (e.g. asking about "github" picks `mattermost-plugin-github`). If neither matches, the agent skips the graph layer and answers from grep + upstream/. The exact heuristic lives in `CLAUDE.md` under *Knowledge graphs*.
-
-In short: define bundles in `graphs/config.json` to mirror the products and ticket clusters you handle (or use `/graphify-bundle add` to do it for you), build them with `/bootstrap --build-graphs <name>`, and either pin a scope with `/graphify-scope <name>` for a session or let keyword auto-select route each question.
+**Slash commands:**
+- `/graphify-bundle` manages definitions (list, show, `add`, `remove`). Doesn't build; follow with `/bootstrap --build-graphs <name>`.
+- `/bootstrap --build-graphs <bundle-name>` builds missing per-repo graphs then merges them into the bundle. Idempotent.
+- `/graphify-update <bundle-name>` re-merges a bundle from existing per-repo graphs.
+- `/graphify-scope <scope>` pins which graph queries hit for the session; auto-selects from bundle keywords or repo-name tokens when unpinned.
 
 ### Why some repos are split into subdirs
 
-Graphify enforces two size thresholds during `detect`:
+Graphify enforces a 2,000,000-word hard cap (above this, a build is rejected) and a 200-file soft warning. Repos over the hard cap need `scope: "subdirs"` in `graphs/config.json`:
 
-- **Hard cap: 2,000,000 words.** Above this, a single-shot build is rejected. The repo *has* to be split.
-- **Soft warning: 200 files.** The build still runs, but graphify suggests scoping for predictability and incremental-update speed.
+- `mattermost` - 7.5M words / 8,022 files
+- `docs` - 8.6M words / 482 files
+- `mattermost-mobile` - 2.7M words / 2,962 files
+- `mattermost-developer-documentation` - 2.4M words / 274 files
 
-For the Mattermost workspace, the repos over the hard cap are `mattermost` (~7.5M words), `docs` (~8.6M words), `mattermost-mobile` (~2.7M words), and `mattermost-developer-documentation` (~2.4M words). Two more (`mattermost-plugin-boards`, `mattermost-plugin-playbooks`) are large enough that a split is worth considering.
-
-The fix is `scope: "subdirs"` in `graphs/config.json#/repos/<repo>`. Instead of one detect-and-extract pass over the repo root, graphify runs the pipeline **once per listed subdir path**, each producing its own `graphs/<repo>/<subdir-name>/graphify-out/graph.json`. `<subdir-name>` is the relative path with `/` replaced by `_` (e.g. `server/channels/app` → `server_channels_app`). Each per-subdir directory is persistent - kept on disk so `/graphify-update` can refresh only the subdirs whose code actually changed.
-
-Today only `mattermost` is split. Its config entry lists ~20 paths (`api`, `server/public/model`, `server/channels/app`, `webapp/platform`, ...). Each is chosen because it surfaces in TSE tickets and stays under the limits individually; UI-rendering details (`webapp/channels/src/components` at ~3,000 files) and test directories are deliberately omitted.
-
-Individual subdir graphs under `graphs/<repo>/<subdir-name>/` are intermediate artifacts. They're clustered (needed for the subdir-level merge) but **not labeled** - `/graphify-scope` never lists them, users never query them directly, and labeling them would waste tokens. Their `GRAPH_REPORT.md` retains placeholder `Community N` headings by design; the labeled, navigable report is at `graphs/<repo>/graphify-out/GRAPH_REPORT.md`.
+`scope: "subdirs"` runs the pipeline once per listed subdir path, each producing its own graph, then merges them into a single `graphs/<repo>/graphify-out/graph.json`. Currently only `mattermost` is split.
 
 ### How graph merging works
 
-Graphify graphs compose: any two `graph.json` files can be unioned into a third one. The merge ladder, bottom-up:
+Graphs merge bottom-up:
 
-1. **Per-subdir → per-repo** (subdir-scoped repos only). After every listed subdir is built, the slash commands run a merge helper (see below), then `graphify cluster-only graphs/<repo>/ --no-viz` to compute community structure on the merged result, then the Community-labeling pass to replace placeholder labels with real names. The top-level `graphs/<repo>/graphify-out/graph.json` is the canonical per-repo graph regardless of whether the repo was built in `full` or `subdirs` mode.
-2. **Per-repo → bundle.** When any member of a bundle finishes building, the cascade in `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update` re-runs the merge helper over the bundle's member graphs into `graphs/_bundles/<bundle>/graphify-out/graph.json`, then `cluster-only`, then the Community-labeling pass. Bundles with at least one missing member are skipped (and reported) rather than merged half-built.
+1. **Per-subdir to per-repo** (subdirs-scoped repos only): after all subdirs build, slash commands run the merge helper, `graphify cluster-only`, then community labeling. Result: `graphs/<repo>/graphify-out/graph.json`.
+2. **Per-repo to bundle**: when any bundle member finishes building, the cascade re-runs the merge helper over all member graphs, then cluster-only, then community labeling.
 
-Three operational consequences worth knowing:
-
-- **Re-clustering after every merge.** A merge changes the graph's connected components, so community detection is re-run each time. This is fast (seconds) and uses no LLM calls.
-- **Re-labeling after every merge.** Communities get plain-language names (e.g. "Authentication Flow", "Calls RTC Loop") via Claude subagents. This is a one-time LLM cost per scope per cascade; the resulting labels persist to `.graphify_labels.json` and are read by `GRAPH_REPORT.md`. See the "Community labeling" section in `.claude/commands/bootstrap.md` for the full block.
-- **Cascade is automatic.** You rarely run the merge helper by hand. `/git-pull`, `/git-switch`, and `/graphify-update` decide which bundles intersect the updated repos and re-merge + re-label them. Manual merges (`/graphify-update <bundle-name>`) are there for repairing a stale bundle without touching git.
-- **Merge helper.** All four slash commands invoke `.claude/helpers/merge-graphs.py` rather than `graphify merge-graphs` directly, working around an upstream CLI bug. See the **Active workarounds** section at the bottom of this README for details and the path to removing it when upstream lands the fix.
-
-## First-time setup
-
-### Install graphify
-
-Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) is a Python CLI used to build the knowledge graphs under `graphs/`, and it also ships as an AI coding assistant skill (`graphify install` drops a `/graphify` skill into your assistant's config) so the model can drive build/query/update flows directly. Install it before running `/bootstrap --build-graphs` so the initial graph build can happen. (`/bootstrap` without `--build-graphs` still works without graphify installed; you can install it later and run `/bootstrap --build-graphs <bundle-name>`.)
-
-Requires Python 3.10 or newer.
-
-Recommended: install graphify with **all** optional extras enabled so PDF/office/Gemini/SQL extraction all work out of the box.
-
-```
-pipx install "graphifyy[all]" && graphify install
-```
-
-What `[all]` bundles:
-
-| Extra | What it adds |
-|---|---|
-| `pdf` | PDF extraction |
-| `office` | `.docx` and `.xlsx` support |
-| `google` | Google Sheets rendering |
-| `video` | Video/audio transcription (faster-whisper + yt-dlp) |
-| `mcp` | MCP stdio server |
-| `neo4j` | Neo4j push support |
-| `svg` | SVG graph export |
-| `leiden` | Leiden community detection (Python < 3.13 only) |
-| `ollama` | Ollama local inference |
-| `openai` | OpenAI / OpenAI-compatible APIs |
-| `gemini` | Google Gemini API |
-| `bedrock` | AWS Bedrock (uses IAM, no API key) |
-| `sql` | SQL schema extraction |
-
-Pick one extra instead of `[all]` if you want a leaner install: `pipx install "graphifyy[gemini,pdf]"`, etc. Each extra is also installable in isolation via `pip install "graphifyy[<extra>]"`. If graphify is already installed and you want to add an extra without reinstalling: `pipx inject graphifyy 'graphifyy[<extra>]'`.
-
-**macOS** - use `pipx` (recent macOS Pythons are externally managed and reject plain `pip install`):
-
-```
-brew install pipx
-pipx ensurepath
-pipx install "graphifyy[all]" && graphify install
-```
-
-`pipx ensurepath` is a one-time, idempotent step that adds `~/.local/bin` to your shell PATH. Skip it if pipx is already on your PATH (re-run is safe but does nothing).
-
-**Linux / Windows** - the one-liner from the graphify docs:
-
-```
-pip install "graphifyy[all]" && graphify install
-```
-
-Verify: `graphify --help` should print usage.
-
-#### Updating graphify
-
-Update the Python package and the skill separately:
-
-```
-pipx upgrade graphifyy   # macOS / pipx
-pip install --upgrade graphifyy   # Linux / Windows
-graphify install   # refresh the /graphify skill in your assistant config
-```
-
-`graphify install` is idempotent - re-running it overwrites the installed skill with the version bundled in the upgraded Python package. Run it whenever you upgrade `graphifyy`.
-
-### Graphify build cost and model choice
-
-Graphify's build pipeline has two extraction phases with very different costs:
-
-- **AST extraction** (code files): deterministic parsing, no LLM calls, cached after the first run. Incremental updates (`/graphify-update`) that touch only code are essentially free.
-- **Semantic extraction** (doc/paper/image files): one LLM call per ~22-file chunk. This is where cost accumulates, and the backend matters.
-
-**Gemini Flash is the preferred extraction backend.** `/bootstrap` checks for `GEMINI_API_KEY` or `GOOGLE_API_KEY` and automatically routes semantic extraction through `graphify.llm.extract_corpus_parallel(backend="gemini")` when either key is set, saving significant tokens compared to Claude subagents. The default model is `gemini-3-flash-preview`; override with `GRAPHIFY_GEMINI_MODEL`. Without a key the pipeline falls back to Claude subagents - still works, just more expensive.
-
-Set the key via shell init or the project secrets file:
-
-- **Shell init** (recommended): `export GEMINI_API_KEY=<your-key>` in `~/.zshrc` or `~/.zshenv`. Claude Code inherits the env from the launching shell.
-- **`.claude/secrets.env`** (project-scoped, gitignored): one `KEY=value` per line. The slash commands source this file automatically so Python subprocesses inherit the key.
-
-**Model choice for Claude (when no Gemini key, or for TSE work):**
-
-| Use case | Recommended | Why |
-|---|---|---|
-| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 (low effort) | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. If using Sonnet, low effort is recommended: subagents do simple extraction and don't need deep reasoning; save the context budget for TSE work. |
-| Incremental update (code only) | Any model | No LLM calls - AST only |
-| Operational commands (`/git-pull`, `/bootstrap`, graphify rebuilds and cascades) | Sonnet 4.6 (default effort) | Mostly orchestration and merging - no deep reasoning needed, but the agent still has to make judgment calls about what to rebuild and not invent shell commands. Sonnet at default effort is the sweet spot. |
-| TSE troubleshooting sessions | Opus 4.7 at high effort | TSE work is high-stakes reasoning across logs, code, and customer context; the extra capability matters more than per-token cost on a few tickets per day. Sonnet 4.6 is a reasonable fallback if Opus quota is tight. |
-
-**Do not use Opus for graphify builds.** Semantic extraction dispatches tens to hundreds of subagents on a large repo. At Opus pricing this is expensive without any quality gain - the task is structured data extraction, not complex reasoning.
-
-### Clone and start
-
-```
-git clone git@github.com:mrckndt/mattermost-troubleshooting.git
-cd mattermost-troubleshooting
-claude
-```
-
-Then inside Claude:
-- `/bootstrap` - clone all upstream repos under `upstream/` and create `tickets/`. By default it prompts whether to build any graphify graphs; pick `calls` for the initial Calls bundle (six repos), `all` for everything, or `skip` to defer.
+Operational notes:
+- Re-clustering after every merge is fast (seconds, no LLM calls).
+- Community labeling is a one-time LLM cost per scope per cascade; labels persist to `.graphify_labels.json`.
+- The cascade is automatic via `/git-pull`, `/git-switch`, and `/graphify-update`. Use `/graphify-update <bundle-name>` to repair a stale bundle manually.
+- All four cascade commands invoke `.claude/helpers/merge-graphs.py` rather than `graphify merge-graphs` directly (active workaround - see below).
 
 ## Working a ticket
 
