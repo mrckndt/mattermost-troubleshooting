@@ -36,6 +36,18 @@ You are a Senior Technical Support Engineer at Mattermost. Your core job is to t
 - Settings changes go to `.claude/settings.local.json`, not user-level or system Claude settings.
 - `upstream/<repo>/` is read-only from the assistant's perspective: never modify files inside it, never commit there. Switching refs via `/git-switch` is allowed; arbitrary edits are not.
 
+## Shell conventions
+
+The Bash tool keeps the shell's working directory across calls; env vars do not. These rules apply to every slash command and every multi-step Bash sequence:
+
+1. **On entry**, verify the shell is at the project root. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the project root before continuing. For commands that need `graphs/` (e.g. `/graphify-update`, `/graphify-scope`), also verify `graphs/` exists; if it doesn't, advise running `/bootstrap` first.
+2. **Capture `PROJECT_ROOT="$(pwd)"`** once before any `cd` into a subdirectory. Use `"$PROJECT_ROOT/..."` in subsequent `git -C ...`, `cd ...`, and similar commands so they stay valid even after the shell drifts.
+3. **Use absolute paths** in `cd` and in any flag that takes a path (`-C`, `--graph`, etc.). Never issue a second relative `cd graphs/<repo>` after the first - the Bash tool's persistent CWD makes it compound to `graphs/<repo>/graphs/<repo>` and fail.
+4. **Exception for tools that write to CWD** (the `graphify` CLI does this for `update` and `cluster-only`): chain `cd "$PROJECT_ROOT/graphs/<repo>" && graphify update <abs-path>` in a single Bash call. Do not split the `cd` and the tool call across separate calls.
+5. **Before returning**, `cd "$PROJECT_ROOT"` so the shell ends at the project root. Slash commands invoked next have an on-entry check (rule 1) that errors noisily on drifted CWD; ending clean keeps logs quiet. Correctness-wise the preamble recovers either way.
+
+**graphify CLI quirk**: `graphify query/path/explain` resolves `--graph` relative to the current CWD if given a relative path, AND silently falls back to `./graphify-out/graph.json` if `--graph` appears before the positional args. Always pass an absolute `--graph` and put it after the positional args. Do NOT use `cd <scope> && graphify query "..."` - per rule 3, the next query in the same session would compound the CWD.
+
 ## Authoritative sources
 
 When verifying behavior or citing references, prefer these over paraphrasing.
@@ -63,16 +75,16 @@ The repos under `upstream/<name>/` are working trees the assistant uses to read 
 
 If a repo is missing from `upstream/`, run `/bootstrap` to clone it. The canonical list of expected repos and their upstream URLs lives in `.claude/commands/bootstrap.md`.
 
-Note: each of those three commands starts by verifying the shell is at the project root and `cd`-ing back if not. A prior skill or tool can leave the shell inside `upstream/<repo>/`, which would silently misroute the relative paths in those commands.
-
 ### Lazy auto-refresh
 
-The first time a repo is read in a session, do `git -C upstream/<repo> fetch --tags --prune`, then `git -C upstream/<repo> pull --ff-only` if safe. Track which repos have been refreshed and don't refetch them again in the same session.
+The `git -C` commands below use `"$PROJECT_ROOT/..."` per the Shell conventions section above. Capture `PROJECT_ROOT="$(pwd)"` once before any `cd`.
+
+The first time a repo is read in a session, do `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags --prune`, then `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only` if safe. Track which repos have been refreshed and don't refetch them again in the same session.
 
 Skip the pull (still do the fetch) when:
-- Dirty working tree (`git -C upstream/<repo> status -s` non-empty).
+- Dirty working tree (`git -C "$PROJECT_ROOT/upstream/<repo>" status -s` non-empty).
 - Detached HEAD (e.g. the user pinned a tag via `/git-switch` - leave it pinned).
-- Local branch with no upstream (`git -C upstream/<repo> rev-parse --abbrev-ref --symbolic-full-name @{u}` exits non-zero).
+- Local branch with no upstream (`git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref --symbolic-full-name @{u}` exits non-zero).
 
 Note in the response why a pull was skipped. If fetch or pull errors (offline, auth, etc.), continue with the current local state and flag the staleness.
 
@@ -84,16 +96,16 @@ After the user runs `/git-switch`, leave the repo on the chosen ref - do not aut
 
 - Mattermost releases are tagged `vMAJOR.MINOR.PATCH` (e.g. `v10.5.1`). Use the tag directly.
 - ESR labels (e.g. "ESR 10.11"): pick the highest matching tag with
-  `git -C upstream/<repo> tag -l 'v10.11.*' | sort -V | tail -1`.
+  `git -C "$PROJECT_ROOT/upstream/<repo>" tag -l 'v10.11.*' | sort -V | tail -1`.
 - "Current main" or "current master": resolve the default branch with
-  `git -C upstream/<repo> symbolic-ref refs/remotes/origin/HEAD --short` (handles `main` vs `master` per repo).
+  `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD --short` (handles `main` vs `master` per repo).
 
 ### Multi-version comparisons without switching
 
 Prefer log/diff against refs over checking out:
 
-- `git -C upstream/<repo> log <refA>..<refB> -- <path>`
-- `git -C upstream/<repo> diff <refA> <refB> -- <path>`
+- `git -C "$PROJECT_ROOT/upstream/<repo>" log <refA>..<refB> -- <path>`
+- `git -C "$PROJECT_ROOT/upstream/<repo>" diff <refA> <refB> -- <path>`
 
 This avoids state changes and works without `/git-switch`.
 
@@ -101,7 +113,7 @@ This avoids state changes and works without `/git-switch`.
 
 ### What's here
 
-Per-repo graphs live under `graphs/<repo>/`. Bundle graphs (cross-repo merges) live under `graphs/_bundles/<name>/`. There is no `_all` mega-graph. Layout, per-repo scope (`full` or `subdirs`), and bundle definitions are in `graphs/config.json`. The currently pinned scope (if any) is in `graphs/.active_scope`. Graphs are built and refreshed by `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update`. `graphs/` is `.gitignore`d except for `config.json`.
+Per-repo graphs live under `graphs/<repo>/`. Bundle graphs (cross-repo merges) live under `graphs/_bundles/<name>/`. Layout, per-repo scope (`full` or `subdirs`), and bundle definitions are in `graphs/config.json`. The currently pinned scope (if any) is in `graphs/.active_scope`. Graphs are built and refreshed by `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update`. `graphs/` is `.gitignore`d except for `config.json`.
 
 ### Workarounds (active)
 
@@ -136,12 +148,10 @@ Mirror the upstream `/graphify` usage examples:
    - Tokenize each repo name in `graphs/config.json#/repos` on `-`. Exclude the stopword tokens `mattermost` and `plugin` from matching on their own. If exactly one repo has at least one non-stopword token appearing as a whole word in the question (case-insensitive), use `graphs/<repo>/`. Example: "github" in the question selects `mattermost-plugin-github`.
    - If zero or multiple repos match, check bundle `keywords` in `graphs/config.json` (case-insensitive substring match anywhere in the question). If exactly one bundle matches, use `graphs/_bundles/<bundle>/`.
    - Otherwise no scope is selected; skip tier 2 of the query order and fall through to tier 3 (`grep` + Read tool on `upstream/<repo>/`). State `no scope matched, answering from upstream/` in the answer.
-3. Read `GRAPH_REPORT.md` of the chosen scope first. For deeper traversal use `graphify query` / `graphify path` / `graphify explain` from the project root with the `--graph <absolute-path>` flag pointing at the chosen scope's `graphify-out/graph.json`. **Positional arguments must come before the `--graph` flag** - graphify's parser silently falls back to `./graphify-out/graph.json` if `--graph` appears first, so the working forms are:
+3. Read `GRAPH_REPORT.md` of the chosen scope first. For deeper traversal use `graphify query` / `graphify path` / `graphify explain` from the project root with the `--graph <absolute-path>` flag pointing at the chosen scope's `graphify-out/graph.json`. See the "graphify CLI quirk" note in the Shell conventions section for argument-order rules. Working forms:
    - `graphify query "<question>" --graph /abs/path/to/graphify-out/graph.json`
    - `graphify path "<source>" "<target>" --graph /abs/path/to/graphify-out/graph.json`
    - `graphify explain "<node>" --graph /abs/path/to/graphify-out/graph.json`
-
-   Do NOT use `cd <scope> && graphify query "..."` - the Bash tool persists CWD across calls, so the next query in the same session would resolve `cd` relative to the already-deep directory and fail.
 4. Always state which scope was queried in the answer (or note that no scope matched).
 
 ### Scope is not built or is stale
