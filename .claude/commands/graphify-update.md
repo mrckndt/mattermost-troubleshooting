@@ -3,7 +3,7 @@ description: Incrementally update one or more knowledge graphs. Per-repo runs gr
 argument-hint: [<repo> | <bundle-name> | --all]
 ---
 
-First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `graphs/<scope>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream graphs`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing. (If `graphs/` itself is missing, advise the user to run `/bootstrap` first - the rest of this command needs `graphs/config.json`.)
+Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths). Also verify `graphs/` exists; if missing, advise the user to run `/bootstrap` first - the rest of this command needs `graphs/config.json`.
 
 Source `.claude/secrets.env` if present so Python subprocesses inherit any project-scoped API keys (no-op if the file is absent). If neither `GEMINI_API_KEY` nor `GOOGLE_API_KEY` is set after sourcing, print the Gemini tip - `graphify update` may run semantic extraction for any non-code files that changed, and Gemini is the cheap path:
 
@@ -28,19 +28,21 @@ If the argument doesn't match any of the above, enumerate the built scopes (same
 
 ## Per-repo incremental update
 
+Follow the Shell conventions in `CLAUDE.md` throughout: use absolute paths in every `cd` (the `<abs-path>/...` forms below already do), and `cd "$PROJECT_ROOT"` between repos in the loop and again before returning.
+
 For each repo being updated:
 
 1. **Check prerequisites.** If `graphs/<repo>/graphify-out/graph.json` does not exist, set result `not built` and skip to the next repo.
 
-2. **Get refs.** Read `graphs/<repo>/.meta.json` to get `old_ref`. Run `git -C upstream/<repo> rev-parse HEAD` to get `current_ref`. If `old_ref == current_ref`, set result `skipped (HEAD unchanged)` and skip.
+2. **Get refs.** Read `graphs/<repo>/.meta.json` to get `old_ref`. Run `git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse HEAD` to get `current_ref`. If `old_ref == current_ref`, set result `skipped (HEAD unchanged)` and skip.
 
 3. **Run the update.** Before running, read the node count from the existing `graphs/<repo>/graphify-out/graph.json` (call it `old_nodes`).
    - For `scope: full`: run from the repo's graph directory so graphify writes to `graphs/<repo>/graphify-out/`:
      ```
      cd <abs-path>/graphs/<repo> && graphify update <abs-path>/upstream/<repo>
      ```
-     `graphify update` re-extracts code files via AST (no LLM calls). Doc/paper/image changes accumulate until the next full rebuild.
-   - For `scope: subdirs`: per-subdir graphs live under `graphs/<repo>/<subdir-name>/graphify-out/`. For each subdir path in `graphs/config.json#/repos/<repo>/paths` that has changed files (`git -C upstream/<repo> diff --name-only <old_ref>..<current_ref> -- <subdir-path>`), run:
+     `graphify update` re-extracts code files via AST (no LLM calls). Doc/paper/image changes accumulate until the next full rebuild. After the command completes, **label the per-repo top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (host inline mode - these scopes are small). If `graphify update` preserves community IDs and `graphs/<repo>/graphify-out/.graphify_labels.json` already exists with no `Community N` entries, the labels are still valid - skip re-labeling. Otherwise regenerate.
+   - For `scope: subdirs`: per-subdir graphs live under `graphs/<repo>/<subdir-name>/graphify-out/`. For each subdir path in `graphs/config.json#/repos/<repo>/paths` that has changed files (`git -C "$PROJECT_ROOT/upstream/<repo>" diff --name-only <old_ref>..<current_ref> -- <subdir-path>`), run:
      ```
      cd <abs-path>/graphs/<repo>/<subdir-name> && graphify update <abs-path>/upstream/<repo>/<subdir-path>
      ```
@@ -51,7 +53,6 @@ For each repo being updated:
      graphify cluster-only graphs/<repo>/ --no-viz
      ```
      Then **label the subdir-merged top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (subagent batched mode - this scope is large). Subdir name convention (slash → underscore): `server/channels/app` → `server_channels_app`. A full rebuild (replacing per-subdir graphs entirely) only happens when explicitly invoked via `/bootstrap`.
-   - For `scope: full`: `graphify update` runs the upstream `--update` incremental pipeline which writes `.graphify_extract.json`, `.graphify_detect.json`, and re-runs clustering internally. After the command completes, **label the per-repo top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (host inline mode - these scopes are small). If `graphify update` preserves community IDs and `graphs/<repo>/graphify-out/.graphify_labels.json` already exists with no `Community N` entries, the labels are still valid - skip re-labeling. Otherwise regenerate.
 
    After the update, read the new node count (call it `new_nodes`); `Δ = new_nodes - old_nodes`.
 

@@ -3,7 +3,7 @@ description: Run git pull --ff-only on the current branch of one repo (arg) or e
 argument-hint: [<repo>]
 ---
 
-First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `upstream/<repo>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing.
+Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
 Source `.claude/secrets.env` if present (no-op if absent) so Python subprocesses in the graphify cascade inherit any project-scoped API keys. If neither `GEMINI_API_KEY` nor `GOOGLE_API_KEY` is set after sourcing, print the Gemini tip - the per-repo cascade calls `graphify update`, which may run semantic extraction for non-code changes:
 
@@ -24,8 +24,8 @@ Determine the target set:
 
 For each repo in the target set:
 
-1. Run `git -C upstream/<repo> pull --ff-only`. Let git handle upstream resolution, detached HEAD, dirty tree, missing remote ref, etc. - whatever git says, report. Do not pre-check or guard.
-2. Run `git -C upstream/<repo> rev-parse --abbrev-ref HEAD` to capture the current branch (`HEAD` means detached - report it as `(detached)`).
+1. Run `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only`. Let git handle upstream resolution, detached HEAD, dirty tree, missing remote ref, etc. - whatever git says, report. Do not pre-check or guard.
+2. Run `git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD` to capture the current branch (`HEAD` means detached - report it as `(detached)`).
 3. Continue to the next repo on any error.
 
 Report a Markdown table with one row per repo and the columns: `Repo | Branch | Pull | Graph | Cascade`.
@@ -44,7 +44,7 @@ For each repo whose `Pull` result is `updated <oldsha>..<newsha>` (HEAD moved):
 1. If `graphs/<repo>/graphify-out/graph.json` does NOT exist, set `Graph = n/a (not built)` and skip the per-repo update for this row. Cascade row entry: `none`.
 2. If `graphs/<repo>/graphify-out/graph.json` exists, capture `old_nodes` (node count from the existing graph.json), then run the update per the repo's scope from `graphs/config.json#/repos/<repo>/scope`:
    - For `scope: full`: run `cd <abs-path>/graphs/<repo> && graphify update <abs-path>/upstream/<repo>` (chained in one Bash call so graphify writes to the intended CWD). Re-extracts code via AST (no LLM calls). Doc/paper/image changes accumulate until the next full rebuild. After `graphify update` completes, **label the per-repo top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (host inline mode). If `.graphify_labels.json` already exists with no `Community N` entries and community IDs were preserved across `graphify update`, the labels are still valid - skip re-labeling.
-   - For `scope: subdirs`: for each subdir path in `graphs/config.json#/repos/<repo>/paths` with changed files (`git -C upstream/<repo> diff --name-only <oldsha>..<newsha> -- <subdir-path>`), run `cd <abs-path>/graphs/<repo>/<subdir-name> && graphify update <abs-path>/upstream/<repo>/<subdir-path>` where `<subdir-name>` is `<subdir-path>` with `/` replaced by `_`. Individual subdir graphs are not labeled. After all changed subdirs are updated, re-merge (via the helper that works around the upstream `graphify merge-graphs` bug) and re-cluster the top-level graph: `GRAPHIFY_BIN=$(which graphify); PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//'); "$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json`, then `graphify cluster-only graphs/<repo>/ --no-viz`, then **label the subdir-merged top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (subagent batched mode).
+   - For `scope: subdirs`: for each subdir path in `graphs/config.json#/repos/<repo>/paths` with changed files (`git -C "$PROJECT_ROOT/upstream/<repo>" diff --name-only <oldsha>..<newsha> -- <subdir-path>`), run `cd <abs-path>/graphs/<repo>/<subdir-name> && graphify update <abs-path>/upstream/<repo>/<subdir-path>` where `<subdir-name>` is `<subdir-path>` with `/` replaced by `_`. Individual subdir graphs are not labeled. After all changed subdirs are updated, re-merge (via the helper that works around the upstream `graphify merge-graphs` bug) and re-cluster the top-level graph: `GRAPHIFY_BIN=$(which graphify); PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//'); "$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json`, then `graphify cluster-only graphs/<repo>/ --no-viz`, then **label the subdir-merged top-level** via the "Community labeling" section of `.claude/commands/bootstrap.md` (subagent batched mode).
    - Update `graphs/<repo>/.meta.json` with the new HEAD sha and the current ISO timestamp.
    - Read `new_nodes` from the updated graph.json. Set `Graph = updated <Δ> nodes` where `Δ = new_nodes - old_nodes` (signed, e.g. `+12`, `-3`, `0`).
 3. If `Pull` is `up to date` and `graphs/<repo>/graphify-out/graph.json` exists, set `Graph = skipped (unchanged)`.
@@ -59,5 +59,5 @@ If a cascade merge or cluster step fails for a bundle, report the failure inline
 
 Notes:
 - Run each git invocation as a separate Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Parallelize across repos in a single message. Exception: `cd <graphs/dir> && graphify update <upstream/path>` must stay chained in a single Bash call so graphify writes to the intended CWD.
-- This command does NOT refresh tags or other branches. If you need new tags (e.g., before `/git-switch <repo> <tag>`), do a one-off `git -C upstream/<repo> fetch --tags` first.
+- This command does NOT refresh tags or other branches. If you need new tags (e.g., before `/git-switch <repo> <tag>`), do a one-off `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags` first.
 - The graphify update is best-effort. If it fails for a repo, the pull is still considered successful; the `Graph` column captures the failure reason.
