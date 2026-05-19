@@ -27,6 +27,22 @@
 !graphs/
 !graphs/config.json
 
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+__MACOSX/
+
+# Neovim / Vim
+.netrwhist
+Session.vim
+.viminfo
+
+# VS Code
+.vscode/
+
 # Defensive: never commit API keys, even if the allowlist above is later relaxed.
 # Last rule wins in git, so these stay ignored even if `.claude/**` becomes tracked.
 .claude/GEMINI_API_KEY
