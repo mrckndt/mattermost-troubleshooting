@@ -3,7 +3,7 @@ description: Clone any missing Mattermost repos into upstream/. Idempotent. Opti
 argument-hint: [--build-graphs <bundle-name|all|repo-name>  (triggers graphify build)]
 ---
 
-First verify the shell is at the project root - a prior skill/tool may have left it in a subdirectory, silently misrouting relative paths like `upstream/<name>`. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the root before continuing.
+Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
 Ensure every repo listed below is cloned under `upstream/<name>/` in the current working directory. For each URL:
 
@@ -74,6 +74,8 @@ If a build was requested, do the following in order:
 
    No-op if `.claude/secrets.env` is absent. Shell init exports (`~/.zshrc`, `~/.zshenv`) inherit automatically.
 
+   **Each Bash tool call is a fresh subshell** - env vars set here do NOT persist to later Bash calls. Every later Bash call that invokes Python with `graphify.llm.extract_corpus_parallel` (step 3 below) must re-source `.claude/secrets.env` in the same call, e.g. prefix the command with `[ -f .claude/secrets.env ] && . .claude/secrets.env;` so the Python child inherits `GEMINI_API_KEY`. (`secrets.env` uses `export` lines, so plain `.` sourcing is sufficient - `set -a` is not required.)
+
 1. **Prereq checks**:
    - `command -v graphify`. If missing, print `graphify CLI not installed - see README.md for install instructions. Skipping graph build.` and stop the build phase (the clone summary above is still the final report).
    - `[ -f graphs/config.json ]`. If missing, print `graphs/config.json not found. Skipping graph build.` and stop.
@@ -100,10 +102,12 @@ If a build was requested, do the following in order:
 
    **Working-directory convention:** run the pipeline from inside `BUILD_DIR/`'s parent (`graphs/<repo>/` for full, `graphs/<repo>/<subdir-name>/` for subdir) and pass `cache_root=Path('.')` to `extract()`. That keeps `.graphify_cache/` next to `graphify-out/` and matches what `/graphify-update` expects on re-runs.
 
+   Follow the Shell conventions in `CLAUDE.md` for all CWD/path handling across substeps: use absolute paths (`"$PROJECT_ROOT/..."`) in every `cd`, do not issue a relative `cd graphs/<repo>` more than once (rule 3 in that section explains why it compounds), and `cd "$PROJECT_ROOT"` at the end of each repo's loop iteration before moving on to the next.
+
    The pipeline for one repo (or one subdir, for subdir-scoped repos):
 
    1. **Detect.** Set `BUILD_DIR` to `graphs/<repo>/graphify-out/` (full scope) or `graphs/<repo>/<subdir-name>/graphify-out/` (subdir scope, with `<subdir-name>` being the relative path with `/` replaced by `_` - e.g. `server/channels/app` → `server_channels_app`). Set `SRC` to the absolute path of `upstream/<repo>` (full) or `upstream/<repo>/<path>` (subdir). Create `BUILD_DIR`, then from a Python script: `from graphify.detect import detect; result = detect(Path(SRC))`. Zero out every `result['files'][k]` where `k` is not in the resolved `include_types`. Recompute `total_files`. Write the result to `BUILD_DIR/.graphify_detect.json`. Also write `BUILD_DIR/.graphify_root` containing the absolute `SRC` (used by `/graphify-update`).
-   2. **AST extract** (code files). From Python: `from graphify.extract import extract`. Build the code-file list as `[Path(f) for f in result['files']['code']]` (note the `Path` wrap - extract() requires it). `cd` into `BUILD_DIR`'s parent first, then call `extract(code_files, cache_root=Path('.'))` and write the returned dict to `BUILD_DIR/.graphify_ast.json`.
+   2. **AST extract** (code files). From Python: `from graphify.extract import extract`. Build the code-file list as `[Path(f) for f in result['files']['code']]` (note the `Path` wrap - extract() requires it). `cd` into `BUILD_DIR`'s parent first **using an absolute path** (e.g. `cd "$PROJECT_ROOT/graphs/<repo>"`, where `PROJECT_ROOT` was captured before this step). Then call `extract(code_files, cache_root=Path('.'))` and write the returned dict to `BUILD_DIR/.graphify_ast.json`. Do not re-`cd` in later substeps; if a later substep needs a different CWD, use an absolute path.
    3. **Semantic extract** (only if non-code categories survived the `include_types` filter and have files - typically `document` for our config). Skip this step entirely if only `code` is in the allowlist or there are zero non-code files.
 
       **Backend selection** (matches upstream skill.md Step 3):
@@ -127,7 +131,7 @@ If a build was requested, do the following in order:
 
    - Write `graphs/<repo>/.meta.json` with:
      ```
-     { "ref": "<git -C upstream/<repo> rev-parse HEAD>", "built_at": "<ISO timestamp>", "scope": "full|subdirs" }
+     { "ref": "<git -C \"$PROJECT_ROOT/upstream/<repo>\" rev-parse HEAD>", "built_at": "<ISO timestamp>", "scope": "full|subdirs" }
      ```
 
 4. **Cascade re-merge**: after per-repo builds, for each bundle in `graphs/config.json#/bundles` whose `repos` list is fully built (every member has `graphs/<member>/graphify-out/graph.json`), merge into `graphs/_bundles/<bundle>/graphify-out/graph.json` with `"$PYTHON" .claude/helpers/merge-graphs.py <member graph.json files...> --out graphs/_bundles/<bundle>/graphify-out/graph.json` (helper wraps the upstream `graphify merge-graphs` CLI to work around the `MultiGraph` accumulator bug), then `graphify cluster-only graphs/_bundles/<bundle>/ --no-viz`, then **label the bundle** via the "Community labeling" section below (`subagent batched` mode). Skip bundles with missing members and report them.

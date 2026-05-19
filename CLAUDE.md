@@ -77,7 +77,7 @@ If a repo is missing from `upstream/`, run `/bootstrap` to clone it. The canonic
 
 ### Lazy auto-refresh
 
-The `git -C` commands below use `"$PROJECT_ROOT/..."` per the Shell conventions section above. Capture `PROJECT_ROOT="$(pwd)"` once before any `cd`.
+The `git -C` commands below use `"$PROJECT_ROOT/..."` per the Shell conventions section above.
 
 The first time a repo is read in a session, do `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags --prune`, then `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only` if safe. Track which repos have been refreshed and don't refetch them again in the same session.
 
