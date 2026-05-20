@@ -5,15 +5,15 @@ argument-hint: [--build-graphs <bundle-name|all|repo-name>  (triggers graphify b
 
 Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
-Ensure every repo listed below is cloned under `upstream/<name>/` in the current working directory. For each URL:
+Clone every repo listed below under `upstream/<name>/`. For each URL:
 
-1. Derive `<name>` from the last path segment of the URL (e.g. `https://github.com/mattermost/mattermost` -> `mattermost`).
+1. Derive `<name>` from the last path segment of the URL.
 2. If `upstream/<name>/` already exists, skip and report `already present`.
-3. Otherwise run `git clone <url> upstream/<name>` and report `cloned` or the error message git printed.
+3. Otherwise run `git clone <url> upstream/<name>` and report `cloned` or the git error.
 
 Continue on errors; collect failures and surface them at the end.
 
-Also ensure a `tickets/` directory exists at the working-directory root. If it's missing, create it: `mkdir tickets` (works on macOS / Linux and on Windows cmd / PowerShell). If it already exists, leave it alone - the engineer may have organised it differently and any internal structure is theirs to keep.
+Also ensure `tickets/` exists at the working-directory root. If missing, `mkdir tickets`. If present, leave it alone.
 
 Repos to bootstrap (alphabetical):
 
@@ -44,24 +44,21 @@ Repos to bootstrap (alphabetical):
 - `https://github.com/mattermost/migration-assist`
 - `https://github.com/mattermost/rtcd`
 
-Report a Markdown table with one row per repo and the columns: `Repo | Result`.
-- `Result`: `already present`, `cloned`, or the error message git printed.
+Report a Markdown table: `Repo | Result`, where `Result` is `already present`, `cloned`, or the git error.
 
 ## Initial graphify build (optional)
 
-After cloning, optionally trigger the initial knowledge-graph build. This is OFF by default - graph building uses LLM tokens and the user may want to run it in a different session.
+Graph building is OFF by default (uses LLM tokens). Parse `$ARGUMENTS` for `--build-graphs <selector>`. Valid selectors:
+- `<bundle-name>` - build the repos listed under `graphs/config.json#/bundles/<bundle-name>/repos`.
+- `all` - build every repo in `graphs/config.json#/repos`.
+- `<repo>` - build a single repo (must match a key under `graphs/config.json#/repos`).
+- `skip` (or flag absent) - skip the build phase; only the clone summary is reported.
 
-Parse `$ARGUMENTS` for a `--build-graphs <selector>` flag. The flag triggers a **graphify knowledge-graph build** (not a code compile / not a build of the upstream repo itself) - it runs `graphify` over the resolved repo set to produce `graphs/<repo>/graphify-out/graph.json` and the cluster artifacts. Valid selectors:
-- `<bundle-name>` - graphify-build only the repos listed under `graphs/config.json#/bundles/<bundle-name>/repos`.
-- `all` - graphify-build every repo listed in `graphs/config.json#/repos`.
-- `<repo>` - graphify-build a single repo (must match a key under `graphs/config.json#/repos`).
-- `skip` (or no `--build-graphs` flag) - skip the graphify-build phase entirely; only the clone summary is reported.
+If `--build-graphs` is absent, read `graphs/config.json#/bundles`, then prompt: `Build graphify graphs now? [<bundle1>|<bundle2>|all|skip]`. Wait for the answer. `skip` (or no bundles defined) ends here.
 
-If `--build-graphs` is absent, read `graphs/config.json#/bundles` to get the defined bundle names, then prompt the user with those names interpolated as `|`-separated options. For example, with bundles `calls` and `microsoft` defined the prompt is: `Build graphify graphs now? [calls|microsoft|all|skip]`. Wait for the answer. `skip` (or no defined bundles + `skip`) ends the command after the clone summary above.
+If a build was requested, proceed in order:
 
-If a build was requested, do the following in order:
-
-0. **Source `.claude/secrets.env` if present** so Python subprocesses inherit any project-scoped API keys (e.g. `GEMINI_API_KEY` for the fast-path in step 3). If neither `GEMINI_API_KEY` nor `GOOGLE_API_KEY` ends up set after sourcing (and after inheriting shell env), print the Gemini tip so the user knows the build will fall back to Claude subagents for semantic extraction:
+0. **Source `.claude/secrets.env` if present** so Python subprocesses inherit project-scoped API keys. If neither `GEMINI_API_KEY` nor `GOOGLE_API_KEY` is set after sourcing, print the Gemini tip:
 
    ```
    [ -f .claude/secrets.env ] && set -a && . .claude/secrets.env && set +a
@@ -72,47 +69,43 @@ If a build was requested, do the following in order:
    fi
    ```
 
-   No-op if `.claude/secrets.env` is absent. Shell init exports (`~/.zshrc`, `~/.zshenv`) inherit automatically.
+   No-op if `.claude/secrets.env` is absent. Each Bash tool call is a fresh subshell - env vars do not persist. Every Bash call that invokes `graphify.llm.extract_corpus_parallel` (step 3) must re-source `.claude/secrets.env` in the same call: `[ -f .claude/secrets.env ] && . .claude/secrets.env;`. (`secrets.env` uses `export` lines, so plain `.` sourcing is sufficient.)
 
-   **Each Bash tool call is a fresh subshell** - env vars set here do NOT persist to later Bash calls. Every later Bash call that invokes Python with `graphify.llm.extract_corpus_parallel` (step 3 below) must re-source `.claude/secrets.env` in the same call, e.g. prefix the command with `[ -f .claude/secrets.env ] && . .claude/secrets.env;` so the Python child inherits `GEMINI_API_KEY`. (`secrets.env` uses `export` lines, so plain `.` sourcing is sufficient - `set -a` is not required.)
+1. **Prereq checks**: `command -v graphify` (if missing, print `graphify CLI not installed - see README.md for install instructions. Skipping graph build.` and stop) and `[ -f graphs/config.json ]` (if missing, print `graphs/config.json not found. Skipping graph build.` and stop). The clone summary is still the final report.
 
-1. **Prereq checks**:
-   - `command -v graphify`. If missing, print `graphify CLI not installed - see README.md for install instructions. Skipping graph build.` and stop the build phase (the clone summary above is still the final report).
-   - `[ -f graphs/config.json ]`. If missing, print `graphs/config.json not found. Skipping graph build.` and stop.
+2. **Resolve build set**: read `graphs/config.json`. For `<bundle-name>`, take `bundles.<bundle-name>.repos`. For `all`, take all keys under `repos`. For `<repo>`, take just that one. Skip any repo not present under `upstream/<repo>/` with a warning row in the report.
 
-2. **Resolve build set**: read `graphs/config.json`. For a `<bundle-name>` selector, take `bundles.<bundle-name>.repos` - the list of member repos to process individually. For `all`, take all keys under `repos`. For a single `<repo>`, take just that one. Validate that each repo exists under `upstream/<repo>/`; if not, skip it with a warning row in the report.
+3. **For each repo in the build set** (parallel Bash tool calls where independent; do not chain with `&&` or pipes):
+   - If `graphs/<repo>/graphify-out/graph.json` exists, skip with status `already built` (idempotent). Bundle state is independent and is handled in step 4.
+   - Resolve `include_types`: `repos.<repo>.include_types` if present, else `defaults.include_types`, else all categories. Phase 1 default is `["code", "document"]`.
 
-3. **For each repo in the build set** (run in parallel via separate Bash tool calls where independent; do not chain with `&&` or pipes):
-   - Check `test -f graphs/<repo>/graphify-out/graph.json`. If present, skip with status `already built` (idempotent). The bundle merge file (`graphs/_bundles/<name>/graphify-out/graph.json`) does not satisfy this check - bundle state is independent of member state and is handled in step 4.
-   - Resolve `include_types` for this repo: per-repo `repos.<repo>.include_types` if present, else `defaults.include_types`, else all categories. Phase 1 default is `["code", "document"]`.
-
-   **There is no `graphify <path>` bare CLI** - the graphify CLI is subcommand-based (`extract`, `update`, `cluster-only`, `merge-graphs`, etc.). Build a repo by driving the pipeline manually from Python, because the `include_types` filter is applied between `detect` and the extraction stages and no single CLI subcommand does that. Resolve the Python interpreter once from graphify's shebang and reuse it for every Python call:
+   **No bare `graphify <path>` CLI** - graphify is subcommand-based (`extract`, `update`, `cluster-only`, `merge-graphs`, etc.). Drive the pipeline from Python because `include_types` must be applied between `detect` and extraction, and no single subcommand does that. Resolve the Python interpreter once from graphify's shebang:
 
    ```
    GRAPHIFY_BIN=$(which graphify)
    PYTHON=$(head -1 "$GRAPHIFY_BIN" | cut -d' ' -f1 | sed 's/#!//')
    ```
 
-   **How to invoke Python: inline `-c` or guarded script - never a bare top-level script.** `graphify.extract.extract` spawns worker processes. On macOS, Python uses `spawn` by default; child processes re-import `__main__`. A plain top-level script with no `if __name__ == "__main__":` guard fork-bombs into infinite recursion (you'll see the script's banner printed twice and the run won't return). Two safe shapes:
+   **Python invocation: inline `-c` or guarded script, never bare top-level.** `graphify.extract.extract` spawns workers; on macOS (spawn default), child processes re-import `__main__`. A bare top-level script with no `if __name__ == "__main__":` guard fork-bombs. Two safe forms:
 
-   - **Inline `python -c "..."`** - simplest for one-shot calls, no guard needed because `__main__` is a string blob the children don't re-execute. Use this for full-scope repos.
-   - **Script file with `if __name__ == "__main__":`** - use when you'd otherwise be repeating the same Python across many subdirs (the `mattermost` subdir build). Wrap every body in `def main(): ...` and end the file with `if __name__ == "__main__": main()`.
+   - **Inline `python -c "..."`** - no guard needed (children don't re-execute a string blob). Use for full-scope repos.
+   - **Script file with `if __name__ == "__main__":`** - use when repeating the same Python across many subdirs (e.g. the `mattermost` subdir build). Wrap the body in `def main()` and call it under the guard.
 
-   **Type quirk:** `graphify.detect.detect()` returns file lists as **strings**, but `graphify.extract.extract()` requires **`Path` objects**. Wrap with `[Path(f) for f in result['files']['code']]` before passing.
+   **Type quirk:** `detect()` returns file lists as strings; `extract()` requires `Path` objects. Wrap: `[Path(f) for f in result['files']['code']]`.
 
-   **Working-directory convention:** run the pipeline from inside `BUILD_DIR/`'s parent (`graphs/<repo>/` for full, `graphs/<repo>/<subdir-name>/` for subdir) and pass `cache_root=Path('.')` to `extract()`. That keeps `.graphify_cache/` next to `graphify-out/` and matches what `/graphify-update` expects on re-runs.
+   **CWD convention:** run the pipeline from `BUILD_DIR`'s parent and pass `cache_root=Path('.')` to `extract()`, keeping `.graphify_cache/` next to `graphify-out/` as `/graphify-update` expects.
 
-   Follow the Shell conventions in `CLAUDE.md` for all CWD/path handling across substeps: use absolute paths (`"$PROJECT_ROOT/..."`) in every `cd`, do not issue a relative `cd graphs/<repo>` more than once (rule 3 in that section explains why it compounds), and `cd "$PROJECT_ROOT"` at the end of each repo's loop iteration before moving on to the next.
+   Follow Shell conventions in `CLAUDE.md`: absolute paths in every `cd`, no repeated relative `cd graphs/<repo>` (it compounds), `cd "$PROJECT_ROOT"` at the end of each loop iteration.
 
-   The pipeline for one repo (or one subdir, for subdir-scoped repos):
+   The pipeline for one repo (or subdir):
 
-   1. **Detect.** Set `BUILD_DIR` to `graphs/<repo>/graphify-out/` (full scope) or `graphs/<repo>/<subdir-name>/graphify-out/` (subdir scope, with `<subdir-name>` being the relative path with `/` replaced by `_` - e.g. `server/channels/app` → `server_channels_app`). Set `SRC` to the absolute path of `upstream/<repo>` (full) or `upstream/<repo>/<path>` (subdir). Create `BUILD_DIR`, then from a Python script: `from graphify.detect import detect; result = detect(Path(SRC))`. Zero out every `result['files'][k]` where `k` is not in the resolved `include_types`. Recompute `total_files`. Write the result to `BUILD_DIR/.graphify_detect.json`. Also write `BUILD_DIR/.graphify_root` containing the absolute `SRC` (used by `/graphify-update`).
-   2. **AST extract** (code files). From Python: `from graphify.extract import extract`. Build the code-file list as `[Path(f) for f in result['files']['code']]` (note the `Path` wrap - extract() requires it). `cd` into `BUILD_DIR`'s parent first **using an absolute path** (e.g. `cd "$PROJECT_ROOT/graphs/<repo>"`, where `PROJECT_ROOT` was captured before this step). Then call `extract(code_files, cache_root=Path('.'))` and write the returned dict to `BUILD_DIR/.graphify_ast.json`. Do not re-`cd` in later substeps; if a later substep needs a different CWD, use an absolute path.
-   3. **Semantic extract** (only if non-code categories survived the `include_types` filter and have files - typically `document` for our config). Skip this step entirely if only `code` is in the allowlist or there are zero non-code files.
+   1. **Detect.** Set `BUILD_DIR` to `graphs/<repo>/graphify-out/` (full) or `graphs/<repo>/<subdir-name>/graphify-out/` (subdir; `<subdir-name>` = subdir path with `/` → `_`, e.g. `server/channels/app` → `server_channels_app`). Set `SRC` to the absolute path of `upstream/<repo>` (full) or `upstream/<repo>/<path>` (subdir). Create `BUILD_DIR`, then detect: `from graphify.detect import detect; result = detect(Path(SRC))`. Zero out `result['files'][k]` for every `k` not in `include_types`; recompute `total_files`. Write `BUILD_DIR/.graphify_detect.json` and `BUILD_DIR/.graphify_root` (absolute `SRC`, used by `/graphify-update`).
+   2. **AST extract** (code files). `cd` to `BUILD_DIR`'s parent using an absolute path, then call `extract([Path(f) for f in result['files']['code']], cache_root=Path('.'))` and write the result to `BUILD_DIR/.graphify_ast.json`. Do not re-`cd` in later substeps; use absolute paths if a different CWD is needed.
+   3. **Semantic extract** (non-code categories that survived `include_types` and have files, typically `document`). Skip if only `code` is in the allowlist or there are no non-code files.
 
-      **Backend selection** (matches upstream skill.md Step 3):
+      **Backend selection:**
 
-      - If `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set in the environment, use the Gemini fast-path:
+      - If `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set, use the Gemini fast-path:
 
         ```python
         from graphify.llm import extract_corpus_parallel
@@ -120,47 +113,47 @@ If a build was requested, do the following in order:
         # result is {nodes, edges, hyperedges, input_tokens, output_tokens}
         ```
 
-        Default model is `gemini-3-flash-preview`; allow override via `GRAPHIFY_GEMINI_MODEL`. Write the returned dict to `BUILD_DIR/.graphify_semantic_gemini.json`. The merge substep (step 4) consumes all `.graphify_semantic_*.json` files in the directory; this one plugs in seamlessly.
+        Default model is `gemini-3-flash-preview`; override via `GRAPHIFY_GEMINI_MODEL`. Write the result to `BUILD_DIR/.graphify_semantic_gemini.json`. The merge step (step 4) consumes all `.graphify_semantic_*.json` files.
 
-      - If neither key is set, dispatch parallel general-purpose subagents per ~20-file chunk to read the files and return a `{nodes, edges, hyperedges}` JSON fragment following the SKILL.md schema. Write each chunk under `BUILD_DIR/.graphify_semantic_<N>.json`. The Gemini tip already printed at step 0 if no key was found; do not repeat it here.
-   4. **Merge.** From Python: read `.graphify_ast.json` and every `.graphify_semantic_*.json`, concatenate their `nodes` / `edges` / `hyperedges` lists, write to `BUILD_DIR/graph.json`.
-   5. **Cluster.** `graphify cluster-only <BUILD_DIR's parent dir> --no-viz` (e.g. `graphify cluster-only graphs/<repo>/ --no-viz` for full scope, or `graphify cluster-only graphs/<repo>/<subdir-name>/ --no-viz` for one subdir). This generates `GRAPH_REPORT.md` and the cluster annotations; the `--no-viz` skips the HTML render.
+      - If neither key is set, dispatch parallel subagents per ~20-file chunk to return a `{nodes, edges, hyperedges}` JSON fragment per the SKILL.md schema. Write each chunk to `BUILD_DIR/.graphify_semantic_<N>.json`. Do not repeat the Gemini tip here.
+   4. **Merge.** Read `.graphify_ast.json` and every `.graphify_semantic_*.json`; concatenate `nodes` / `edges` / `hyperedges`; write to `BUILD_DIR/graph.json`.
+   5. **Cluster.** `graphify cluster-only <BUILD_DIR's parent> --no-viz`. Generates `GRAPH_REPORT.md` and cluster annotations; `--no-viz` skips the HTML render.
 
-   - For `scope: full`: run the pipeline once with `BUILD_DIR = graphs/<repo>/graphify-out/` and `SRC = absolute path of upstream/<repo>`. After substep 5, **label the per-repo top-level** via the "Community labeling" section below (using `host inline` mode - this scope is small).
-   - For `scope: subdirs`: per-subdir graphs live persistently under `graphs/<repo>/<subdir-name>/graphify-out/`. For each path in `repos.<repo>.paths`, run steps 1-5 with `BUILD_DIR = graphs/<repo>/<subdir-name>/graphify-out/` and `SRC = absolute path of upstream/<repo>/<path>`. **Do not label individual subdir graphs** - they are intermediate artifacts, not standalone query scopes. After every subdir is built, combine into the top-level graph: `"$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json` (helper wraps the upstream `graphify merge-graphs` CLI to work around the `MultiGraph` accumulator bug - see README and `.claude/helpers/merge-graphs.py` docstring), then `graphify cluster-only graphs/<repo>/ --no-viz`, then **label the subdir-merged top-level** via the "Community labeling" section below (using `subagent batched` mode - this scope is large, e.g. ~1076 communities for `mattermost`). Do not delete the per-subdir directories - they are required for incremental updates by `/graphify-update`.
+   - For `scope: full`: run the pipeline once (`BUILD_DIR = graphs/<repo>/graphify-out/`, `SRC = upstream/<repo>` absolute path). After substep 5, **label the per-repo top-level** via the "Community labeling" section below (host inline mode).
+   - For `scope: subdirs`: per-subdir graphs live under `graphs/<repo>/<subdir-name>/graphify-out/`. For each path in `repos.<repo>.paths`, run steps 1-5 (`BUILD_DIR = graphs/<repo>/<subdir-name>/graphify-out/`, `SRC = upstream/<repo>/<path>` absolute). **Do not label individual subdir graphs** - they are intermediate artifacts. After all subdirs are built, merge into the top-level: `"$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json` (helper works around the upstream `graphify merge-graphs` `MultiGraph` bug), then `graphify cluster-only graphs/<repo>/ --no-viz`, then **label the subdir-merged top-level** (subagent batched mode). Do not delete per-subdir directories - `/graphify-update` requires them.
 
    - Write `graphs/<repo>/.meta.json` with:
      ```
      { "ref": "<git -C \"$PROJECT_ROOT/upstream/<repo>\" rev-parse HEAD>", "built_at": "<ISO timestamp>", "scope": "full|subdirs" }
      ```
 
-4. **Cascade re-merge**: after per-repo builds, for each bundle in `graphs/config.json#/bundles` whose `repos` list is fully built (every member has `graphs/<member>/graphify-out/graph.json`), merge into `graphs/_bundles/<bundle>/graphify-out/graph.json` with `"$PYTHON" .claude/helpers/merge-graphs.py <member graph.json files...> --out graphs/_bundles/<bundle>/graphify-out/graph.json` (helper wraps the upstream `graphify merge-graphs` CLI to work around the `MultiGraph` accumulator bug), then `graphify cluster-only graphs/_bundles/<bundle>/ --no-viz`, then **label the bundle** via the "Community labeling" section below (`subagent batched` mode). Skip bundles with missing members and report them.
+4. **Cascade re-merge**: for each bundle in `graphs/config.json#/bundles` whose every member has `graphs/<member>/graphify-out/graph.json`, merge: `"$PYTHON" .claude/helpers/merge-graphs.py <member graph.json files...> --out graphs/_bundles/<bundle>/graphify-out/graph.json`, then `graphify cluster-only graphs/_bundles/<bundle>/ --no-viz`, then **label the bundle** (subagent batched mode). Skip and report bundles with missing members.
 
-5. **Report**: extend the clone summary with a second Markdown table titled `Graph build`, one row per repo in the build set. Columns: `Repo | Status | Nodes | Edges | Time`. Status values: `built`, `already built`, `skipped (<reason>)`, or the error message. Below that table, list the bundles with their final node/edge counts. Do not append destructive-shell rebuild suggestions (e.g. `rm -rf graphs/<repo>`) - if the user wants a rebuild, that's their next call.
+5. **Report**: add a second Markdown table (`Graph build`) with columns `Repo | Status | Nodes | Edges | Time`. Status: `built`, `already built`, `skipped (<reason>)`, or the error. Below it, list bundles with final node/edge counts. Do not suggest `rm -rf graphs/<repo>` rebuilds - that is the user's call.
 
 Notes for the build phase:
-- The graphify CLI has no bare `graphify <path>` form - every call is a subcommand (`extract`, `update`, `cluster-only`, `merge-graphs`, ...). The pipeline above drives it from Python (`graphify.detect.detect`, `graphify.extract.extract`) so the `include_types` filter can be applied between detect and extract; only the `cluster-only` and `merge-graphs` steps shell out to the CLI.
-- `graphify extract <path> --out <dir>` exists as a one-shot CLI and is fine for ad-hoc builds with no filter, but the `--include-types` flag does not exist - it is enforced by the Python-driven detect step above.
+- The graphify CLI has no bare `graphify <path>` form. The pipeline drives it from Python so `include_types` can be applied between detect and extract; only `cluster-only` and `merge-graphs` shell out to the CLI.
+- `graphify extract <path> --out <dir>` exists as a one-shot CLI but has no `--include-types` flag; use the Python-driven detect step to enforce the filter.
 - `upstream/<repo>/` is read-only. Never write inside it.
-- If a single repo build fails, continue with the rest. Collect failures and report at the end. The user can re-run `/bootstrap --build-graphs <repo>` to retry one.
+- If one repo fails, continue and report at the end. Retry with `/bootstrap --build-graphs <repo>`.
 
 Notes:
-- Run each `git clone` as its own Bash tool call. Do not chain with `&&`, `;`, or pipes; do not append `2>&1`. Parallelize across repos in a single message.
-- This command does NOT pull or switch. After bootstrap, run `/git-pull` to bring all repos to their latest tracked state (which also cascades graph updates for repos whose HEAD moved), `/git-switch <repo> <ref>` to pin one to a specific tag/branch, or `/graphify-update` to refresh graphs without touching git.
-- This file is the canonical list of expected repos. `CLAUDE.md` and `README.md` reference it rather than duplicating the URLs.
-- The graph build phase is independent of cloning. `/bootstrap --build-graphs <selector>` can be re-run after cloning to add graphs incrementally.
+- Run each `git clone` as its own Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
+- This command does NOT pull or switch. Use `/git-pull` (pulls + cascades graph updates), `/git-switch <repo> <ref>` (pin to tag/branch), or `/graphify-update` (refresh graphs without touching git).
+- This file is the canonical repo list. `CLAUDE.md` and `README.md` reference it rather than duplicating URLs.
+- The graph build phase is independent of cloning; re-run `/bootstrap --build-graphs <selector>` to add graphs incrementally.
 
 ## Community labeling
 
-Apply this after every `graphify cluster-only` call on a **top-level** scope: per-repo full-scope graph, per-repo subdir-merged top-level graph, bundle graph. Do NOT apply to individual subdir graphs under `graphs/<repo>/<subdir>/`.
+Apply after every `graphify cluster-only` on a **top-level** scope (per-repo full, per-repo subdir-merged, bundle). Do NOT apply to individual subdir graphs under `graphs/<repo>/<subdir>/`.
 
 ### Why this section exists separately from `cluster-only`
 
-`graphify cluster-only` writes `GRAPH_REPORT.md`, but it leaves community labels as placeholders (`Community 0..N`) and does NOT persist `.graphify_analysis.json`. Upstream skill.md Step 5 (the LLM labeling pass) reads `.graphify_analysis.json` to feed the report regeneration — that file only exists after the full upstream pipeline (skill.md Step 4). For our multi-scope flow (which uses `cluster-only` after merging), we need to **write `.graphify_analysis.json` ourselves**, then run the upstream-style labeling pass against it. The three sub-steps below mirror what upstream's full pipeline does (Step 4 + Step 5), just split across our cluster-then-label boundary.
+`graphify cluster-only` writes `GRAPH_REPORT.md` but leaves community labels as placeholders (`Community 0..N`) and does not persist `.graphify_analysis.json`. For our multi-scope flow we must write `.graphify_analysis.json` ourselves, then run the LLM labeling pass against it. The three sub-steps below mirror upstream's pipeline (Step 4 + Step 5) across our cluster-then-label boundary.
 
 ### Sub-step 1: compute analysis and dump community members
 
-Re-runs `cluster(G)` + `score_all` / `god_nodes` / `surprising_connections` (same calls as `cluster-only` and skill.md Step 4) and writes the result to `.graphify_analysis.json`. Also writes `.graphify_community_members.json` (top 20 member labels per community by degree) for the labeling step. The clustering pass is repeated here because `cluster-only` does not persist its in-memory `communities` dict; the cost is small (Leiden is sub-second on graphs of our typical size).
+Re-runs `cluster(G)` + `score_all` / `god_nodes` / `surprising_connections` and writes `.graphify_analysis.json`. Also writes `.graphify_community_members.json` (top 20 members per community by degree). The clustering re-run is necessary because `cluster-only` does not persist its `communities` dict; the cost is small (Leiden is sub-second at our graph sizes).
 
 ```
 $(cat <SCOPE>/graphify-out/.graphify_python 2>/dev/null || which graphify | xargs -I{} head -1 {} | sed 's/^#!//') -c "
@@ -205,17 +198,13 @@ print(f'Analysis written: {len(communities)} communities, {sum(len(v) for v in c
 
 ### Sub-step 2: generate labels (two modes)
 
-Read `<SCOPE>/graphify-out/.graphify_community_members.json` and produce `<SCOPE>/graphify-out/.graphify_labels.json` as `{ "<cid>": "<2-5 word label>", ... }`. Pick the mode by scale.
+Read `.graphify_community_members.json` and produce `.graphify_labels.json` as `{ "<cid>": "<2-5 word label>", ... }`. Pick mode by scale.
 
-**Mode A — host inline** (small scopes: per-repo full-scope graphs with ≤ ~300 communities):
+**Mode A — host inline** (small: per-repo full-scope graphs with ≤ ~300 communities): the host reads the member dump, writes a `{ "<cid>": "<label>", ... }` dict, and saves it to `.graphify_labels.json` in one Write tool call.
 
-The host Claude reads `.graphify_community_members.json` directly, writes a `{ "<cid>": "<label>", ... }` JSON dict based on the member labels for each community, and saves it to `.graphify_labels.json`. One Bash `Write` tool call.
+**Mode B — subagent batched** (large: subdir-merged top-level, bundles, typically hundreds to ~1000+ communities): choose a chunk size of 30-50 communities, compute `N = ceil(total / chunk_size)`, dispatch that many subagents in parallel (all Agent calls in one message; sequential calls defeat the speedup). Each subagent reads the same `.graphify_community_members.json` and labels its assigned ID range.
 
-**Mode B — subagent batched** (large scopes: subdir-merged top-level, bundles — typically hundreds to ~1000+ communities):
-
-The host does not pre-split anything. It decides on a chunk size (30-50 communities), computes how many chunks the total community count needs (`N = ceil(total / chunk_size)`), and dispatches that many subagents in parallel — each one reads the same `.graphify_community_members.json` and labels only its assigned ID range.
-
-1. Dispatch one general-purpose subagent per chunk **in parallel** (all Agent calls in a single message — sequential calls defeat the speedup). Pass each subagent the absolute path to the single shared member dump and its assigned `<start>` and `<end>` community IDs (inclusive-exclusive, like Python slicing).
+1. Dispatch one subagent per chunk in parallel with the absolute path to the member dump and its `<start>` / `<end>` IDs (inclusive-exclusive).
 
    Subagent prompt template:
    ```
@@ -236,7 +225,7 @@ The host does not pre-split anything. It decides on a chunk size (30-50 communit
      <ABSOLUTE-PATH>/<SCOPE>/graphify-out/.graphify_labels_chunk_<N>.json
    ```
 
-2. After all subagents complete, the host merges every `.graphify_labels_chunk_*.json` into one dict and writes the merged result to `<SCOPE>/graphify-out/.graphify_labels.json`. Helper:
+2. After all subagents complete, merge every `.graphify_labels_chunk_*.json` into one dict and write to `.graphify_labels.json`. Helper:
 
    ```
    $(cat <SCOPE>/graphify-out/.graphify_python 2>/dev/null || which graphify | xargs -I{} head -1 {} | sed 's/^#!//') -c "
@@ -300,10 +289,10 @@ print(f'Report regenerated: {len(communities)} communities labeled')
 
 ### Cleanup
 
-After sub-step 3 succeeds, remove the intermediate community-members dump:
+After sub-step 3 succeeds, remove the intermediate member dump:
 
 ```
 rm -f <SCOPE>/graphify-out/.graphify_community_members.json
 ```
 
-`.graphify_analysis.json` and `.graphify_labels.json` are kept on disk so `graphify cluster-only` (and future re-runs of this section) can read them.
+Keep `.graphify_analysis.json` and `.graphify_labels.json` on disk for future re-runs.
