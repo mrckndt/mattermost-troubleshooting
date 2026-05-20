@@ -127,7 +127,7 @@ If a build was requested, do the following in order:
    5. **Cluster.** `graphify cluster-only <BUILD_DIR's parent dir> --no-viz` (e.g. `graphify cluster-only graphs/<repo>/ --no-viz` for full scope, or `graphify cluster-only graphs/<repo>/<subdir-name>/ --no-viz` for one subdir). This generates `GRAPH_REPORT.md` and the cluster annotations; the `--no-viz` skips the HTML render.
 
    - For `scope: full`: run the pipeline once with `BUILD_DIR = graphs/<repo>/graphify-out/` and `SRC = absolute path of upstream/<repo>`. After substep 5, **label the per-repo top-level** via the "Community labeling" section below (using `host inline` mode - this scope is small).
-   - For `scope: subdirs`: per-subdir graphs live persistently under `graphs/<repo>/<subdir-name>/graphify-out/`. For each path in `repos.<repo>.paths`, run steps 1-5 with `BUILD_DIR = graphs/<repo>/<subdir-name>/graphify-out/` and `SRC = absolute path of upstream/<repo>/<path>`. **Do not label individual subdir graphs** - they are intermediate artifacts, never pinnable via `/graphify-scope`. After every subdir is built, combine into the top-level graph: `"$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json` (helper wraps the upstream `graphify merge-graphs` CLI to work around the `MultiGraph` accumulator bug - see README and `.claude/helpers/merge-graphs.py` docstring), then `graphify cluster-only graphs/<repo>/ --no-viz`, then **label the subdir-merged top-level** via the "Community labeling" section below (using `subagent batched` mode - this scope is large, e.g. ~1076 communities for `mattermost`). Do not delete the per-subdir directories - they are required for incremental updates by `/graphify-update`.
+   - For `scope: subdirs`: per-subdir graphs live persistently under `graphs/<repo>/<subdir-name>/graphify-out/`. For each path in `repos.<repo>.paths`, run steps 1-5 with `BUILD_DIR = graphs/<repo>/<subdir-name>/graphify-out/` and `SRC = absolute path of upstream/<repo>/<path>`. **Do not label individual subdir graphs** - they are intermediate artifacts, not standalone query scopes. After every subdir is built, combine into the top-level graph: `"$PYTHON" .claude/helpers/merge-graphs.py graphs/<repo>/*/graphify-out/graph.json --out graphs/<repo>/graphify-out/graph.json` (helper wraps the upstream `graphify merge-graphs` CLI to work around the `MultiGraph` accumulator bug - see README and `.claude/helpers/merge-graphs.py` docstring), then `graphify cluster-only graphs/<repo>/ --no-viz`, then **label the subdir-merged top-level** via the "Community labeling" section below (using `subagent batched` mode - this scope is large, e.g. ~1076 communities for `mattermost`). Do not delete the per-subdir directories - they are required for incremental updates by `/graphify-update`.
 
    - Write `graphs/<repo>/.meta.json` with:
      ```
@@ -152,7 +152,7 @@ Notes:
 
 ## Community labeling
 
-Apply this after every `graphify cluster-only` call on a **pinnable** scope: per-repo full-scope graph, per-repo subdir-merged top-level graph, bundle graph. Do NOT apply to individual subdir graphs under `graphs/<repo>/<subdir>/`.
+Apply this after every `graphify cluster-only` call on a **top-level** scope: per-repo full-scope graph, per-repo subdir-merged top-level graph, bundle graph. Do NOT apply to individual subdir graphs under `graphs/<repo>/<subdir>/`.
 
 ### Why this section exists separately from `cluster-only`
 
