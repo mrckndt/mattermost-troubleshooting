@@ -8,18 +8,18 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ```
 .
-├── CLAUDE.md              # Top-level agent instructions
-├── claude-md/             # Per-upstream-repo CLAUDE.md fragments (imported by CLAUDE.md)
-├── upstream/              # Local clones, one directory per upstream repo
-├── graphs/                # Knowledge-graph outputs (gitignored except graphs/config.json)
-│   ├── config.json        # repo scopes + bundle definitions
-│   ├── <repo>/            # per-repo graph
-│   └── _bundles/<name>/   # named cross-repo bundle (e.g. calls)
-├── tickets/               # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
+├── CLAUDE.md                # Top-level agent instructions
+├── claude-md/               # Per-upstream-repo CLAUDE.md fragments (imported by CLAUDE.md)
+├── upstream/                # Local clones, one directory per upstream repo
+├── graphs/                  # Knowledge-graph outputs (gitignored except graphs/config.json)
+│   ├── config.json          # repo scopes + bundle definitions
+│   ├── <repo>/              # per-repo graph
+│   └── _bundles/<name>/     # named cross-repo bundle (e.g. calls)
+├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/          # /bootstrap, /git-pull, /git-switch, /graphify-scope, /graphify-update, /graphify-bundle, /draft-reply, /kb-article, /feature-request, /clipboard
-    ├── helpers/           # Workaround scripts (see Active workarounds at the bottom)
-    └── settings.local.json
+    ├── commands/            # /bootstrap, /git-pull, /git-switch, /graphify-update, /graphify-bundle, /draft-reply, /kb-article, /feature-request, /clipboard
+    ├── helpers/             # Workaround scripts (see Active workarounds at the bottom)
+    └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
 ```
 
 ## First-time setup
@@ -87,7 +87,7 @@ Set the key via shell init or the project secrets file:
 
 | Use case | Recommended | Notes |
 |---|---|---|
-| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 at default effort | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. Consider low effort for Sonnet to reduce cost (less tokens/time spent on thinking). |
+| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 at lower effort | Semantic extraction is structured data output - Gemini Flash is fastest and cheapest. Consider low effort for Sonnet to reduce cost. |
 | Incremental update (code only) | Any model | AST extraction only - no LLM calls, essentially free. |
 | Working on files in this repo | Sonnet 4.6 (1M context) at high effort | Handles complex troubleshooting notes and cross-file analysis well. Opus also works but is not necessary. |
 | Ticket troubleshooting | Opus 4.7 at high effort | High-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback if Opus quota is tight. |
@@ -125,21 +125,18 @@ Then inside Claude:
 
 ### Knowledge graph
 
-- **`/graphify-scope`** - manage which graph subsequent queries target.
-  - `/graphify-scope` - list available scopes (per-repo, bundle) and the current pin.
-  - `/graphify-scope <scope>` - pin a scope. `<scope>` is a repo name or a bundle name.
-  - `/graphify-scope clear` - remove the pin; auto-select resumes (see `CLAUDE.md` for the heuristic).
-
 - **`/graphify-update`** - incrementally refresh graphs without a git operation.
   - `/graphify-update` - update every built per-repo graph, then cascade bundles.
   - `/graphify-update <repo>` - update one repo and cascade to its bundles.
   - `/graphify-update <bundle-name>` - re-merge + re-cluster + re-label one bundle from existing per-repo graphs.
 
 - **`/graphify-bundle`** - manage bundle definitions in `graphs/config.json`. Asks for confirmation before mutating.
-  - `/graphify-bundle` - list defined bundles (name, repos, keywords, built status).
+  - `/graphify-bundle` - list defined bundles (name, repos, built status).
   - `/graphify-bundle <name>` - show one bundle's details.
-  - `/graphify-bundle add <name> [<repos>] [<keywords>]` - create a bundle. `<repos>` and `<keywords>` are optional comma-separated lists.
+  - `/graphify-bundle add <name> [<repos>]` - create a bundle. `<repos>` is an optional comma-separated list.
   - `/graphify-bundle remove <name>` - delete a bundle from config and remove its built graph (if any).
+
+The agent picks which graph to query automatically every turn - see "Scopes & bundles" below for the model and `CLAUDE.md` "Scope selection" for the algorithm.
 
 ### Output (customer-facing artifacts)
 
@@ -148,7 +145,7 @@ Then inside Claude:
 - **`/feature-request [title]`** - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 - **`/clipboard [content or description]`** - copy content to the OS clipboard via the platform-appropriate CLI (`pbcopy` / `Set-Clipboard` / `wl-copy`). With no arg, copies the most recent generated artifact.
 
-> Note: `/bootstrap`, `/git-pull`, `/git-switch`, `/graphify-scope`, `/graphify-update`, and `/graphify-bundle` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
+> Note: `/bootstrap`, `/git-pull`, `/git-switch`, `/graphify-update`, and `/graphify-bundle` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
 
 ## Scopes & bundles
 
@@ -163,15 +160,23 @@ When no scope auto-selects, the agent falls through to `grep` + the Read tool on
 
 **Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and every bundle definition live here. Reproduce any scope with `/bootstrap --build-graphs <selector>`.
 
-A bundle definition:
+A bundle definition contains only `repos`:
 
 ```json
 "bundles": {
   "calls": {
     "repos": ["mattermost", "mattermost-plugin-calls", "rtcd",
-              "calls-offloader", "calls-recorder", "calls-transcriber"],
-    "keywords": ["calls", "rtcd", "recording", "transcription", "RTC", "ICE", "TURN"]
+              "calls-offloader", "calls-recorder", "calls-transcriber"]
   }
+}
+```
+
+Keyword-based scope routing is per-repo, not per-bundle. Each repo carries a `keywords` array that the agent matches against question terms; the bundle is then selected by membership. Example:
+
+```json
+"repos": {
+  "rtcd": { "scope": "full", "keywords": ["rtcd", "RTC", "ICE", "TURN", "STUN"] },
+  "enterprise": { "scope": "full", "keywords": ["ldap", "saml", "high availability", "cluster"] }
 }
 ```
 
@@ -179,7 +184,8 @@ A bundle definition:
 - `/graphify-bundle` manages definitions (list, show, `add`, `remove`). Doesn't build; follow with `/bootstrap --build-graphs <name>`.
 - `/bootstrap --build-graphs <bundle-name>` builds missing per-repo graphs then merges them into the bundle. Idempotent.
 - `/graphify-update <bundle-name>` re-merges a bundle from existing per-repo graphs.
-- `/graphify-scope <scope>` pins which graph queries hit for the session; auto-selects from bundle keywords or repo-name tokens when unpinned.
+
+The agent always queries the `server` bundle first (the foundation under almost every TSE ticket), then routes to additional bundles or per-repo scopes based on the question's keywords. See `CLAUDE.md` "Scope selection" for the full algorithm.
 
 ### Why some repos are split into subdirs
 
@@ -225,11 +231,7 @@ Operational notes:
 4. If the customer's server is on a specific version, pin the relevant repo first:
    - `/git-switch mattermost v10.5.1`
    - This also rebuilds or updates the repo's knowledge graph and re-merges affected bundles.
-5. Optionally pin the graph scope for the session so the agent always queries the right graph:
-   - `/graphify-scope calls` for a Calls ticket.
-   - `/graphify-scope <repo>` for a single-repo ticket (e.g. `/graphify-scope mattermost-plugin-github`).
-   - `/graphify-scope clear` when you're done.
-   - When nothing matches and no scope is pinned, the agent skips the graph layer and answers from grep + the Read tool on `upstream/`.
+5. The agent picks the graph scope automatically every turn. It queries `graphs/_bundles/server/` first, then any additional bundles or per-repo scopes that the question's keywords route to. Customer logs that mention `focalboard` route to the boards plugin scope; mentions of `rtcd` route to the calls bundle. When nothing matches, the agent falls through to grep + the Read tool on `upstream/<repo>/` and says so in the answer.
 6. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or just describe the issue - the agent looks under `./tickets/` by default.
 7. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
@@ -242,6 +244,7 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior 
 
 ## TODO
 
+- [ ] Reconsider adding the `docs` repo back to graphify bundles. See `notes/docs-repo-in-bundles-deferred.md` for the rationale (Tier 1.5 grep replaces docs-in-bundle for TSE work; the docs subgraph has zero cross-edges to code) and the conditions under which it would be worth revisiting.
 - [ ] Backfill `claude-md/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
 - [ ] Define additional bundles in `graphs/config.json` for common products. 
 - [ ] Figure out the proper way to include private repos like `enterprise` (clone-time auth, agent visibility, what to commit vs. keep local).
@@ -254,7 +257,7 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior 
   - [ ] `mattermost-plugin-boards` - 1.1M words / 963 files (under hard cap but large; consider scoping)
   - [ ] `mattermost-plugin-playbooks` - 746K words / 1,055 files (under hard cap but large; consider scoping)
   - Everything else fits a full build; `desktop`, `mattermost-plugin-agents`, `mattermost-plugin-calls`, and `migration-assist` trip the 200-file soft warning but stay well under the word cap.
-- [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, auto-pin the right graph scope, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
+- [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, let auto-select route to the right graph scope, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
 
 ## Active workarounds
 

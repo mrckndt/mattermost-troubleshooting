@@ -24,7 +24,7 @@ Behavior depends on the argument. Parse it into one of three modes:
 - **`<repo>`**: matches a name under `graphs/config.json#/repos`. Update that one repo's graph, then cascade bundles containing it.
 - **`<bundle-name>`**: matches a name under `graphs/config.json#/bundles` AND `graphs/_bundles/<bundle-name>/graphify-out/graph.json` exists. Re-merge + re-cluster that bundle only (does not update the member repos first; assumes they are current).
 
-If the argument doesn't match any of the above, enumerate the built scopes (same logic as `/graphify-scope` with no argument) and stop with: `Target '<arg>' not found. Available scopes listed above.`
+If the argument doesn't match any of the above, enumerate the built scopes (every directory `graphs/<repo>/` where `graphs/<repo>/graphify-out/graph.json` exists, plus every directory `graphs/_bundles/<bundle>/` where `graphs/_bundles/<bundle>/graphify-out/graph.json` exists) and stop with: `Target '<arg>' not found. Available scopes listed above.`
 
 ## Per-repo incremental update
 
