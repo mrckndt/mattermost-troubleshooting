@@ -9,7 +9,7 @@ Generate a knowledge-base article for the current troubleshooting context.
 
 ## How to reason
 
-1. Review everything known: files under `./tickets/<name>/`, the conversation so far, logs, config, error messages.
+1. Review everything known: `./tickets/<name>/` files, the conversation, logs, config, error messages.
 2. If $ARGUMENTS is provided, treat it as additional context or direction and incorporate it.
 3. Follow the three phases below in order.
 
@@ -26,22 +26,20 @@ Generate a knowledge-base article for the current troubleshooting context.
 - Ask for any missing items. Ask at most one follow-up before proceeding with what is available.
 
 **Phase 2 - Generate Markdown**
-- Produce the article in Markdown, following the template structure exactly. Do not add or remove sections.
-- Output this block under a ## heading that summarizes the article topic (e.g., "## LDAP Sync Fails After Upgrade to v9.5"). Print the Markdown as raw text (not inside a code block) so it renders natively in Mattermost.
-- Stop and review: does every template section have content? If a section has no applicable content, state "N/A" rather than omitting the section.
+- Produce the article in Markdown following the template exactly. Do not add or remove sections.
+- Output under a `##` heading summarizing the topic (e.g. "## LDAP Sync Fails After Upgrade to v9.5"). Print raw Markdown (not inside a code block) so it renders in Mattermost.
+- Every template section must have content; use "N/A" rather than omitting a section.
 
 **Phase 3 - Convert to HTML**
-- Convert the Markdown output to HTML using only tags with direct 1:1 Markdown equivalents (h1, h2, h3, h4, h5, h6, strong, em, del, code, a, p, img, ul, ol, li, blockquote, pre, hr, br, table, thead, tbody, tr, th, td, sup).
-- Do not add styling, classes, or wrapper divs.
-- Output this block labeled "# 📋 Article HTML". Wrap the HTML in a fenced code block so it can be copied without rendering.
+- Convert to HTML using only tags with direct Markdown equivalents (h1-h6, strong, em, del, code, a, p, img, ul, ol, li, blockquote, pre, hr, br, table, thead, tbody, tr, th, td, sup). No styling, classes, or wrapper divs.
+- Label this block "# 📋 Article HTML" and wrap in a fenced code block so it can be copied without rendering.
 
 **Writing style**
-- Use second person ("you", "your") when addressing the admin directly.
-- Use present tense for instructions ("Navigate to...", not "You should navigate to...").
-- Be specific about where settings live; include the full navigation path (e.g., **System Console > Environment > Web Server**).
-- Avoid vague language like "may", "might", or "sometimes". If behavior is conditional, state the condition explicitly.
-- Keep the **Symptoms** field in the header to one sentence; save detail for the ### Symptoms section.
-- No explanatory/preamble text before or after the article.
+- Second person ("you", "your"). Present tense for instructions ("Navigate to...", not "You should navigate to...").
+- Include the full navigation path for settings (e.g., **System Console > Environment > Web Server**).
+- No vague language ("may", "might", "sometimes"); state conditions explicitly.
+- Keep the **Symptoms** header field to one sentence; put detail in the `### Symptoms` section.
+- No preamble before or after the article.
 
 <article_template>
 **Applies to:** [Product Name and version, e.g., "Mattermost Server v9.0 and later" or "Mattermost Cloud"]

@@ -5,11 +5,11 @@ argument-hint: [feature description or short title]
 
 Args: $ARGUMENTS
 
-Generate a structured feature-request post for the current troubleshooting context, written for Mattermost product managers as the audience. The post should give a PM enough signal to triage and prioritize without having to chase context.
+Generate a structured feature-request post for the current troubleshooting context, written for Mattermost product managers. Give a PM enough signal to triage without chasing context.
 
 ## How to reason
 
-1. Review everything known: files under `./tickets/<name>/`, the conversation so far, logs, config, what the customer asked for and why current behavior is insufficient.
+1. Review everything known: `./tickets/<name>/` files, the conversation, logs, config, the customer's ask, and why current behavior is insufficient.
 2. If $ARGUMENTS is provided, treat it as the feature title or description and incorporate it.
 3. Follow the two phases below in order.
 
@@ -54,18 +54,17 @@ Generate a structured feature-request post for the current troubleshooting conte
 - For any other section with no applicable content, write `N/A` rather than omitting the section.
 
 **Writing style (audience: Mattermost product managers)**
-- Write to a PM who owns the affected product area. Assume product literacy but no ticket context.
-- Lead with the customer's actual ask, not background. A PM should grasp the ask in the first two sentences.
-- Be specific about scope: what the feature does, what it explicitly does not do, and where it fits in the existing product surface (config setting, UI flow, API, plugin).
-- Frame the problem in product terms (user impact, frequency, affected persona) rather than support terms (ticket noise, escalation count). PMs prioritize on user value and reach.
-- Surface signals a PM cares about: how many users / customers are affected, whether it's a blocker vs friction, whether revenue or a renewal is tied to it, and whether competitors solve it.
-- Avoid vague language like "may", "might", "could be useful". If a use case is conditional, state the condition.
-- Do not propose implementation details unless the customer specifically asked for one; PMs decide solution shape.
-- Keep it short. The whole post should fit on one screen and a PM should triage it in under 60 seconds.
-- No explanatory/preamble text before or after the post.
+- Assume product literacy but no ticket context. Lead with the customer's actual ask; a PM should grasp it in the first two sentences.
+- Be specific about scope: what the feature does, what it does not do, and where it fits (config, UI, API, plugin).
+- Frame the problem in product terms (user impact, frequency, affected persona), not support terms (ticket noise). PMs prioritize on user value and reach.
+- Surface signals a PM cares about: users/customers affected, blocker vs. friction, revenue/renewal tie-in, competitor parity.
+- No vague language ("may", "might", "could be useful"); state conditions explicitly.
+- Do not propose implementation details unless the customer asked; PMs decide solution shape.
+- The whole post should fit one screen; a PM should triage it in under 60 seconds.
+- No preamble before or after the post.
 
 **Phase 3 - Review before posting**
-- If the user asks for the feature request to be posted to a specific channel, chat, or thread, do not post it directly. Render the draft first and explicitly ask whether it needs changes or can be sent as-is. Only post after the user confirms.
+- If the user asks to post to a channel or thread, render the draft first and ask for confirmation before sending.
 
 <post_template>
 # Feature Request: [Customer] - [Short, Descriptive Title]
