@@ -17,7 +17,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 │   └── _bundles/<name>/     # named cross-repo bundle (e.g. calls)
 ├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/            # /bootstrap, /git-pull, /git-switch, /graphify-update, /graphify-bundle, /draft-reply, /kb-article, /feature-request, /clipboard
+    ├── commands/            # /bootstrap, /git-pull, /git-switch, /graphify-update, /draft-reply, /kb-article, /feature-request, /clipboard
     ├── helpers/             # Workaround scripts (see Active workarounds at the bottom)
     └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
 ```
@@ -130,12 +130,6 @@ Then inside Claude:
   - `/graphify-update <repo>` - update one repo and cascade to its bundles.
   - `/graphify-update <bundle-name>` - re-merge + re-cluster + re-label one bundle from existing per-repo graphs.
 
-- **`/graphify-bundle`** - manage bundle definitions in `graphs/config.json`. Asks for confirmation before mutating.
-  - `/graphify-bundle` - list defined bundles (name, repos, built status).
-  - `/graphify-bundle <name>` - show one bundle's details.
-  - `/graphify-bundle add <name> [<repos>]` - create a bundle. `<repos>` is an optional comma-separated list.
-  - `/graphify-bundle remove <name>` - delete a bundle from config and remove its built graph (if any).
-
 The agent picks which graph to query automatically every turn - see "Scopes & bundles" below for the model and `CLAUDE.md` "Scope selection" for the algorithm.
 
 ### Output (customer-facing artifacts)
@@ -145,7 +139,7 @@ The agent picks which graph to query automatically every turn - see "Scopes & bu
 - **`/feature-request [title]`** - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 - **`/clipboard [content or description]`** - copy content to the OS clipboard via the platform-appropriate CLI (`pbcopy` / `Set-Clipboard` / `wl-copy`). With no arg, copies the most recent generated artifact.
 
-> Note: `/bootstrap`, `/git-pull`, `/git-switch`, `/graphify-update`, and `/graphify-bundle` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
+> Note: `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
 
 ## Scopes & bundles
 
@@ -181,7 +175,6 @@ Keyword-based scope routing is per-repo, not per-bundle. Each repo carries a `ke
 ```
 
 **Slash commands:**
-- `/graphify-bundle` manages definitions (list, show, `add`, `remove`). Doesn't build; follow with `/bootstrap --build-graphs <name>`.
 - `/bootstrap --build-graphs <bundle-name>` builds missing per-repo graphs then merges them into the bundle. Idempotent.
 - `/graphify-update <bundle-name>` re-merges a bundle from existing per-repo graphs.
 

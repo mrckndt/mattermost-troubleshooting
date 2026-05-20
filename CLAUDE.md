@@ -49,7 +49,7 @@ Apply when editing this file, `claude-md/*.md` fragments, and `.claude/commands/
 
 The Bash tool keeps the shell's working directory across calls; env vars do not. These rules apply to every slash command and every multi-step Bash sequence:
 
-1. **On entry**, verify the shell is at the project root. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the project root before continuing. For commands that need `graphs/` (e.g. `/graphify-update`, `/graphify-bundle`), also verify `graphs/` exists; if it doesn't, advise running `/bootstrap` first.
+1. **On entry**, verify the shell is at the project root. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the project root before continuing. For commands that need `graphs/` (e.g. `/graphify-update`), also verify `graphs/` exists; if it doesn't, advise running `/bootstrap` first.
 2. **Capture `PROJECT_ROOT="$(pwd)"`** once before any `cd` into a subdirectory. Use `"$PROJECT_ROOT/..."` in subsequent `git -C ...`, `cd ...`, and similar commands so they stay valid even after the shell drifts.
 3. **Use absolute paths** in `cd` and in any flag that takes a path (`-C`, `--graph`, etc.). Never issue a second relative `cd graphs/<repo>` after the first - the Bash tool's persistent CWD makes it compound to `graphs/<repo>/graphs/<repo>` and fail.
 4. **Exception for tools that write to CWD** (the `graphify` CLI does this for `update` and `cluster-only`): chain `cd "$PROJECT_ROOT/graphs/<repo>" && graphify update <abs-path>` in a single Bash call. Do not split the `cd` and the tool call across separate calls.
@@ -170,7 +170,6 @@ Per-repo graphs live under `graphs/<repo>/`. Bundle graphs (cross-repo merges) l
 ### Slash commands
 
 - `/graphify-update [<repo> | <bundle> | --all]` - incremental update of one repo / one bundle, or all built scopes. Cascades bundles containing any updated repo.
-- `/graphify-bundle [<name> | add <name> [<repos>] | remove <name>]` - list / show / create / delete bundle definitions in `graphs/config.json`. Bundles carry only a `repos` array; keyword-based scope selection is driven by per-repo `keywords` instead.
 
 ### Query order
 
