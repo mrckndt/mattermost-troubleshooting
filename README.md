@@ -71,13 +71,12 @@ Verify: `graphify --help`. Update: `pipx upgrade graphifyy && graphify install` 
 
 ### Graphify build cost and model choice
 
-Three pipeline phases, two of them LLM-driven:
+Two LLM cost phases:
 
-- **AST extraction** (code files): deterministic, no LLM, cached. Free.
-- **Semantic extraction** (doc/image files): one LLM call per ~22-file chunk. Only runs in `/graphify-build` (full pipeline); `/graphify-update` skips it.
-- **Community labeling**: one LLM call per community (or one per ~30-50-community chunk via parallel subagents for large scopes). Runs in both `/graphify-build` and `/graphify-update` whenever the graph is re-clustered. This is typically the dominant cost on incremental updates of large scopes.
+- **Semantic extraction** (doc/image files only): runs in `/graphify-build`. Free for code-only repos.
+- **Community labeling**: runs in both `/graphify-build` and `/graphify-update` after every re-cluster.
 
-**Gemini Flash is the preferred extraction backend.** `/graphify-build` checks for `GEMINI_API_KEY` or `GOOGLE_API_KEY` and routes semantic extraction through Gemini when either is set; falls back to Claude subagents otherwise.
+Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` for Gemini Flash (recommended: faster and cheaper for both phases). Without it, slash commands fall back to Claude subagents.
 
 Set the key via:
 
@@ -136,18 +135,16 @@ Then inside Claude:
 
 ### Knowledge graph
 
-- **`/graphify-build`** - full pipeline (detect + AST + semantic extract + cluster + label). Always rebuilds when invoked - no idempotent skip on existing graphs. Use this for the initial build, after pulling doc/non-code changes, or for a clean slate.
+- **`/graphify-build`** - full pipeline (AST + semantic extract + cluster + label). Always rebuilds when invoked - no idempotent skip on existing graphs. Use this for the initial build, after pulling doc/non-code changes, or for a clean slate.
   - `/graphify-build` - prompt for which scope to build.
   - `/graphify-build <bundle-name>` - build the repos in that bundle and merge into a bundle graph.
   - `/graphify-build all` - build every repo in `graphs/config.json#/repos`.
   - `/graphify-build <repo>` - build a single repo.
-  - Cost: AST extract (free) + semantic extract (one LLM call per ~22-file chunk; Gemini Flash or Claude subagents) + community labeling (LLM, subagent-batched for large scopes).
 
 - **`/graphify-update`** - incremental code-only refresh (wraps upstream `graphify update`, AST only). Doc/image/paper changes are silently ignored - use `/graphify-build` for those.
   - `/graphify-update` - update every built per-repo graph, then cascade bundles.
   - `/graphify-update <repo>` - update one repo and cascade to its bundles.
   - `/graphify-update <bundle-name>` - re-merge + re-cluster + re-label one bundle from existing per-repo graphs.
-  - Cost: AST extract is free, but community re-labeling is still LLM-driven and runs subagents for large scopes. Not zero-cost.
 
 The agent picks which graph to query automatically every turn - see "Scopes & bundles" below for the model and `CLAUDE.md` "Scope selection" for the algorithm.
 
@@ -157,8 +154,6 @@ The agent picks which graph to query automatically every turn - see "Scopes & bu
 - **`/kb-article [description]`** - generate a KB article (Markdown + HTML) from the current troubleshooting context. Optional arg: problem/solution hint.
 - **`/feature-request [title]`** - generate a structured feature-request post (for PMs) from the current troubleshooting context. Optional arg: feature title or description.
 - **`/clipboard [content or description]`** - copy content to the OS clipboard via the platform-appropriate CLI (`pbcopy` / `Set-Clipboard` / `wl-copy`). With no arg, copies the most recent generated artifact.
-
-> Note: `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update` all begin by `cd`-ing the shell to the project root if it isn't already there. A previous skill or tool may have left the shell in a subdirectory; relative paths like `upstream/<repo>` or `graphs/<scope>` would silently misroute. The check uses the `pwd` value plus the presence of the tracked top-level entries (`CLAUDE.md`, `README.md`, `.gitignore`, `.claude/`, `claude-md/`, `upstream/`, `graphs/`).
 
 ## Scopes & bundles
 
@@ -194,7 +189,7 @@ Keyword routing is per-repo: each repo carries a `keywords` array matched agains
 ```
 
 **Slash commands:**
-- `/graphify-build <bundle-name>` builds missing per-repo graphs then merges them into the bundle. Idempotent.
+- `/graphify-build <bundle-name>` builds all per-repo graphs in the bundle then merges them.
 - `/graphify-update <bundle-name>` re-merges a bundle from existing per-repo graphs.
 
 The agent queries the `server` bundle first, then routes to additional bundles or per-repo scopes by keyword. See `CLAUDE.md` "Scope selection" for the full algorithm.
