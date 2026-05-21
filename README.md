@@ -93,6 +93,23 @@ Set the key via:
 | Working on files in this repo | Sonnet 4.6 (1M context) at high effort | Handles complex notes and cross-file analysis well. |
 | Ticket troubleshooting | Opus 4.7 at high effort | Best for high-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback. |
 
+### Optional CLI tools
+
+The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep` when available. Falls back to the standard tools if they are not installed.
+
+**macOS:**
+```
+brew install fd ripgrep
+```
+
+**Linux:**
+```
+# Debian/Ubuntu
+apt install fd-find ripgrep
+# Arch
+pacman -S fd ripgrep
+```
+
 ### Clone and start
 
 ```
