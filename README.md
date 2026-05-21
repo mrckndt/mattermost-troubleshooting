@@ -88,9 +88,9 @@ Set the key via:
 
 | Use case | Recommended | Notes |
 |---|---|---|
-| Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 at lower effort | Gemini Flash is fastest and cheapest for structured data output; use low effort for Sonnet to reduce cost. |
-| Incremental update (code only) | Gemini Flash for labeling subagents | AST extract is free, but community re-labeling is LLM-driven. Sonnet/Opus only if you want richer labels. |
-| Working on files in this repo | Sonnet 4.6 (1M context) at high effort | Handles complex notes and cross-file analysis well. |
+| Full (re)build (`/graphify-build`) | Sonnet 4.6 auto mode, low/medium effort; Gemini Flash (Recommended) | Gemini Flash is fastest and cheapest for semantic extraction and labeling subagents. Sonnet in auto mode at lower effort works as a fallback. |
+| AST update (`/graphify-update`) | Sonnet 4.6 auto mode, low/medium effort; Gemini Flash (Recommended) | AST extract is free; cost comes from community re-labeling subagents. Gemini Flash keeps that cost low. |
+| Working on files in this repo | Sonnet 4.6 (1M context) high effort (Recommended); Opus 4.7 high effort for deeper reasoning | Sonnet 1M handles complex notes and cross-file analysis well. Reach for Opus when the problem requires deeper multi-step reasoning. |
 | Ticket troubleshooting | Opus 4.7 at high effort | Best for high-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback. |
 
 ### Optional CLI tools
