@@ -249,6 +249,8 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior 
 
 ## TODO
 
+- [ ] Clean up README: review all sections for accuracy and trim anything stale or redundant after the graphify-build/graphify-update refactor.
+
 - [ ] Reconsider adding the `docs` repo back to graphify bundles. See `notes/docs-repo-in-bundles-deferred.md` for the rationale (Tier 1.5 grep replaces docs-in-bundle for TSE work; the docs subgraph has zero cross-edges to code) and the conditions under which it would be worth revisiting.
 - [ ] Backfill `claude-md/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
 - [ ] Define additional bundles in `graphs/config.json` for common products. 
