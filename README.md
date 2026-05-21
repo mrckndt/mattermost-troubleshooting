@@ -102,12 +102,9 @@ The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep` when available.
 brew install fd ripgrep
 ```
 
-**Linux:**
+**Linux (Debian/Ubuntu):**
 ```
-# Debian/Ubuntu
 apt install fd-find ripgrep
-# Arch
-pacman -S fd ripgrep
 ```
 
 ### Clone and start
