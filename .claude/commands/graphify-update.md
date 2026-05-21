@@ -3,6 +3,8 @@ description: Incrementally update one or more knowledge graphs. Per-repo runs gr
 argument-hint: [<repo> | <bundle-name> | --all]
 ---
 
+**Code-only refresh.** This command wraps upstream `graphify update`, which is AST-only by design: doc/paper/image changes are silently ignored. For doc-heavy repos (e.g. `docs`, `mattermost-developer-documentation`) or any pull that touched non-code files, run `/graphify-build <repo>` instead - the full pipeline picks up semantic changes too. Community re-labeling still runs and is LLM-driven (subagent-batched for large scopes), so this is not zero-cost even on code-only updates.
+
 Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths). Verify `graphs/` exists; if missing, advise running `/bootstrap` first.
 
 Source `.claude/secrets.env` if present (no-op if absent) so Python subprocesses inherit project-scoped API keys. If neither `GEMINI_API_KEY` nor `GOOGLE_API_KEY` is set after sourcing, print the Gemini tip (`graphify update` may run semantic extraction for non-code changes):
@@ -41,7 +43,7 @@ For each repo being updated:
      ```
      cd <abs-path>/graphs/<repo> && graphify update <abs-path>/upstream/<repo>
      ```
-     Re-extracts code via AST (no LLM calls); doc/paper/image changes accumulate until the next full rebuild. After the command, **label the per-repo top-level** via "Community labeling" in `.claude/commands/bootstrap.md` (host inline mode). If `.graphify_labels.json` already exists with no `Community N` entries and community IDs were preserved, skip re-labeling.
+     Re-extracts code via AST (no LLM calls); doc/paper/image changes accumulate until the next full rebuild. After the command, **label the per-repo top-level** via "Community labeling" in `.claude/commands/graphify-build.md` (host inline mode). If `.graphify_labels.json` already exists with no `Community N` entries and community IDs were preserved, skip re-labeling.
    - For `scope: subdirs`: for each subdir in `graphs/config.json#/repos/<repo>/paths` with changed files (`git -C "$PROJECT_ROOT/upstream/<repo>" diff --name-only <old_ref>..<current_ref> -- <subdir-path>`), run:
      ```
      cd <abs-path>/graphs/<repo>/<subdir-name> && graphify update <abs-path>/upstream/<repo>/<subdir-path>
@@ -77,7 +79,7 @@ For each bundle being processed (explicit or cascaded):
    "$PYTHON" .claude/helpers/merge-graphs.py <member-graph.json files...> --out graphs/_bundles/<bundle-name>/graphify-out/graph.json
    ```
 4. Run: `graphify cluster-only graphs/_bundles/<bundle-name>/ --no-viz`.
-5. **Label the bundle** via "Community labeling" in `.claude/commands/bootstrap.md` (subagent batched mode). Mandatory - without it, `GRAPH_REPORT.md` shows `Community N` placeholders.
+5. **Label the bundle** via "Community labeling" in `.claude/commands/graphify-build.md` (subagent batched mode). Mandatory - without it, `GRAPH_REPORT.md` shows `Community N` placeholders.
 6. Update `graphs/_bundles/<bundle-name>/.meta.json` with `built_at` and `repos`.
 7. Set result to `merged N nodes` or the error.
 
