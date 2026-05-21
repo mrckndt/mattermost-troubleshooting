@@ -29,6 +29,10 @@ Re-apply after every upgrade; package upgrades replace the binary and drop the c
 - Pool-exhaustion signature: `context deadline exceeded` on store calls. Happens whenever callers wait too long for a free connection, which has two common causes: (a) `MaxOpenConns` exceeds the database's connection limit (e.g. `MaxOpenConns=300` against PostgreSQL default `max_connections=100`), so the pool silently saturates at the DB ceiling; or (b) `MaxOpenConns` is simply too low for the workload and the pool saturates on its own. Fix (a): raise PostgreSQL `max_connections` to at least the sum of `MaxOpenConns` across cluster nodes, plus headroom. Fix (b): raise `MaxOpenConns` (and `max_connections` accordingly).
 - Query-timeout signature: when `SqlSettings.QueryTimeout` is exceeded, the `pq` driver cancels the in-flight query and logs `pq: canceling statement due to user request`. Distinct from the pool-exhaustion path above.
 
+#### Cluster gossip: `model.ClusterMessage.LogFields()`
+
+`LogFields()` was added to `model.ClusterMessage` (`server/public/model/cluster_message.go`) in v11.7.0 via `https://github.com/mattermost/mattermost/pull/36214`. It partially unmarshals message `Data` on error paths only (no performance impact on normal traffic) to surface `ws_event`, `channel_id`, `team_id`, `omit_users_len` for publish events, and `plugin_id`/`event_id` for plugin events. The enterprise cluster send path was updated in the same milestone to call this method. For troubleshooting `sendto: message too long` errors, see "Cluster gossip drop" in the enterprise notes.
+
 #### MariaDB is not a supported backend
 
 MariaDB is **not** a supported database backend. It diverges from MySQL enough that Mattermost queries can fail in different places as the codebase evolves. The fix is always the same: migrate to MySQL 8.0 (or PostgreSQL). Don't tune around individual symptoms.

@@ -31,6 +31,26 @@ Symptom: `URL is too long` / HTTP 414 returned during the IdP callback (e.g. `/s
 
 Cause: `ServiceSettings.MaximumURLLength` (default `2048`) caps incoming request URL length at the application layer. Rule out the reverse proxy first (NGINX `large_client_header_buffers`, etc.); if the proxy is fine, raise this setting to `4096` (or `8192` if needed) in `config.json` and restart. Pick the minimum value that resolves the issue.
 
+#### Cluster gossip drop: `sendto: message too long`
+
+Symptom: a cluster node logs `sendto: message too long` on a UDP gossip send. Production instances have been observed with `buf_len` values of 98-357 KB, far above the ~65 KB UDP ceiling. Before v11.7.0 the only context was `event: publish`, making it impossible to identify the source without a packet capture.
+
+Cause: the gossip transport is UDP with an effective payload ceiling around 65 KB. Any `ClusterMessage` above that limit is silently dropped by the OS. Two common contributors: a large `omit_users` broadcast list, or a plugin generating oversized DM post bodies that inflate the associated WebSocket event. The GitHub plugin was a confirmed source (fixed - see `mattermost-plugin-github` notes).
+
+Diagnosis (v11.7.0+): `model.ClusterMessage.LogFields()` was added in `https://github.com/mattermost/mattermost/pull/36214` (commit `f37352e51d60c90b2b7462b60e5f2c6fa3d35e23`) and wired into cluster error paths in enterprise PR #2133 (`https://github.com/mattermost/enterprise/commit/702a4a83f4be64275042d81939784deb2db4706a`). The error log now includes event-specific context. For WebSocket broadcast events (`ClusterEventPublish`):
+
+```
+msg="sendto: message too long" ws_event=<type> channel_id=<id> team_id=<id> omit_users_len=<n>
+```
+
+For plugin events (`ClusterEventPluginEvent`):
+
+```
+msg="sendto: message too long" plugin_id=<id> event_id=<id>
+```
+
+A large `omit_users_len` indicates broadcast fan-out as the cause. A `plugin_id` in the log points directly to the offending plugin. On earlier versions, use `tcpdump` on the gossip port (default `8075`) to inspect payload sizes.
+
 #### AWS OpenSearch bulk index only covers one day (v9.11+)
 
 Symptom: bulk index job reports success but only the current day's posts are indexed; historical data missing from search. Purge Indexes fails silently or partially. Server logs show `flush: 404 page not found`.
