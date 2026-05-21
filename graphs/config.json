@@ -119,7 +119,7 @@
         "server/einterfaces",
         "server/config",
         "server/cmd/mmctl",
-        "server/i18n/en.json",
+        "server/i18n",
         "server/channels/api4",
         "server/channels/app",
         "server/channels/store/sqlstore",
