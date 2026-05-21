@@ -59,6 +59,7 @@ The Bash tool keeps the shell's working directory across calls; env vars do not.
 ## Search tools
 
 - Prefer `fd` over `find` for path searches; fall back to `find` only for predicates `fd` does not support.
+- Prefer `rg` over `grep` for content searches; fall back to `grep` only when `rg` is unavailable or for predicates it does not support.
 
 ## Authoritative sources
 
