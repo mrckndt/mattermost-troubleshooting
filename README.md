@@ -17,7 +17,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 │   └── _bundles/<name>/     # named cross-repo bundle (e.g. calls)
 ├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/            # /bootstrap, /git-pull, /git-switch, /graphify-update, /draft-reply, /kb-article, /feature-request, /clipboard
+    ├── commands/            # /bootstrap, /git-pull, /git-switch, /graphify-build, /graphify-update, /draft-reply, /kb-article, /feature-request, /clipboard
     ├── helpers/             # Workaround scripts (see Active workarounds at the bottom)
     └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
 ```
@@ -26,7 +26,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ### Install graphify
 
-Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) builds the knowledge graphs under `graphs/`. Install before running `/bootstrap --build-graphs`.
+Graphify ([graphify.net](https://graphify.net/), [CLI reference](https://graphify.net/graphify-cli-commands.html)) builds the knowledge graphs under `graphs/`. Install before running `/graphify-build`.
 
 Requires Python 3.10 or newer. Install with `[all]` for full extraction support:
 
@@ -71,12 +71,13 @@ Verify: `graphify --help`. Update: `pipx upgrade graphifyy && graphify install` 
 
 ### Graphify build cost and model choice
 
-Two extraction phases:
+Three pipeline phases, two of them LLM-driven:
 
-- **AST extraction** (code files): deterministic, no LLM calls, cached. Incremental updates that touch only code are essentially free.
-- **Semantic extraction** (doc/image files): one LLM call per ~22-file chunk - this is where cost accumulates.
+- **AST extraction** (code files): deterministic, no LLM, cached. Free.
+- **Semantic extraction** (doc/image files): one LLM call per ~22-file chunk. Only runs in `/graphify-build` (full pipeline); `/graphify-update` skips it.
+- **Community labeling**: one LLM call per community (or one per ~30-50-community chunk via parallel subagents for large scopes). Runs in both `/graphify-build` and `/graphify-update` whenever the graph is re-clustered. This is typically the dominant cost on incremental updates of large scopes.
 
-**Gemini Flash is the preferred extraction backend.** `/bootstrap` checks for `GEMINI_API_KEY` or `GOOGLE_API_KEY` and routes semantic extraction through Gemini when either is set; falls back to Claude subagents otherwise.
+**Gemini Flash is the preferred extraction backend.** `/graphify-build` checks for `GEMINI_API_KEY` or `GOOGLE_API_KEY` and routes semantic extraction through Gemini when either is set; falls back to Claude subagents otherwise.
 
 Set the key via:
 
@@ -88,7 +89,7 @@ Set the key via:
 | Use case | Recommended | Notes |
 |---|---|---|
 | Initial build or full rebuild | Gemini Flash (preferred); Sonnet 4.6 at lower effort | Gemini Flash is fastest and cheapest for structured data output; use low effort for Sonnet to reduce cost. |
-| Incremental update (code only) | Any model | AST only - no LLM calls. |
+| Incremental update (code only) | Gemini Flash for labeling subagents | AST extract is free, but community re-labeling is LLM-driven. Sonnet/Opus only if you want richer labels. |
 | Working on files in this repo | Sonnet 4.6 (1M context) at high effort | Handles complex notes and cross-file analysis well. |
 | Ticket troubleshooting | Opus 4.7 at high effort | Best for high-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback. |
 
@@ -101,34 +102,38 @@ claude
 ```
 
 Then inside Claude:
-- `/bootstrap` - clone all upstream repos under `upstream/` and create `tickets/`. By default it prompts whether to build any graphify graphs; pick `calls` for the initial Calls bundle (six repos), `all` for everything, or `skip` to defer.
+- `/bootstrap` - clone all upstream repos under `upstream/` and create the working directories. Run `/graphify-build` afterwards to build knowledge graphs.
 
 ## Slash commands
 
 ### Repo management
 
-- **`/bootstrap`** - clone any missing upstream repos and create `tickets/` if absent. Idempotent.
-  - `/bootstrap` - clone only, then prompt before any graphify build.
-  - `/bootstrap --build-graphs <bundle-name>` - after cloning, also build the repos listed under that bundle in `graphs/config.json`.
-  - `/bootstrap --build-graphs all` - build every repo in `graphs/config.json#/repos`.
-  - `/bootstrap --build-graphs <repo>` - build a single repo.
+- **`/bootstrap`** - clone any missing upstream repos and ensure working directories exist. Idempotent. No arguments.
 
-- **`/git-pull [<repo>]`** - `git pull --ff-only` on the current branch.
+- **`/git-pull [<repo>]`** - `git pull --ff-only` on the current branch. Pure git wrapper; does not touch graphs.
   - `/git-pull` - pull every repo under `upstream/`.
   - `/git-pull <repo>` - pull just one.
-  - Cascade: for every repo whose HEAD moved, runs `graphify update` (AST-only, no LLM calls), re-merges affected bundles, and re-labels their communities.
+  - After a HEAD move, run `/graphify-update <repo>` (code-only, AST + re-label) or `/graphify-build <repo>` (full rebuild, also re-runs semantic extraction) to refresh.
 
-- **`/git-switch <repo> [<ref>]`** - switch a cloned repo to a tag, branch, or commit.
+- **`/git-switch <repo> [<ref>]`** - switch a cloned repo to a tag, branch, or commit. Pure git wrapper; does not touch graphs.
   - `/git-switch <repo>` - return to the repo's default branch.
   - `/git-switch <repo> <ref>` - switch to a tag (e.g. `v10.5.1`), branch, or commit. Fetches `--tags --prune` only as a fallback if the ref is unknown locally.
-  - Cascade: after the switch, runs `graphify update` for the repo, re-merges affected bundles, and re-labels their communities.
+  - After the switch, run `/graphify-update <repo>` or `/graphify-build <repo>` if you need the graph refreshed for that version.
 
 ### Knowledge graph
 
-- **`/graphify-update`** - incrementally refresh graphs without a git operation.
+- **`/graphify-build`** - full pipeline (detect + AST + semantic extract + cluster + label). Always rebuilds when invoked - no idempotent skip on existing graphs. Use this for the initial build, after pulling doc/non-code changes, or for a clean slate.
+  - `/graphify-build` - prompt for which scope to build.
+  - `/graphify-build <bundle-name>` - build the repos in that bundle and merge into a bundle graph.
+  - `/graphify-build all` - build every repo in `graphs/config.json#/repos`.
+  - `/graphify-build <repo>` - build a single repo.
+  - Cost: AST extract (free) + semantic extract (one LLM call per ~22-file chunk; Gemini Flash or Claude subagents) + community labeling (LLM, subagent-batched for large scopes).
+
+- **`/graphify-update`** - incremental code-only refresh (wraps upstream `graphify update`, AST only). Doc/image/paper changes are silently ignored - use `/graphify-build` for those.
   - `/graphify-update` - update every built per-repo graph, then cascade bundles.
   - `/graphify-update <repo>` - update one repo and cascade to its bundles.
   - `/graphify-update <bundle-name>` - re-merge + re-cluster + re-label one bundle from existing per-repo graphs.
+  - Cost: AST extract is free, but community re-labeling is still LLM-driven and runs subagents for large scopes. Not zero-cost.
 
 The agent picks which graph to query automatically every turn - see "Scopes & bundles" below for the model and `CLAUDE.md` "Scope selection" for the algorithm.
 
@@ -152,7 +157,7 @@ Two kinds of graph scope:
 
 When no scope auto-selects, the agent falls through to `grep` + the Read tool on `upstream/<repo>/` and says so.
 
-**Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and bundle definitions all live here. Reproduce any scope with `/bootstrap --build-graphs <selector>`.
+**Source of truth: `graphs/config.json`.** Repo scope (`full` vs `subdirs`), per-repo `include_types` filters, and bundle definitions all live here. Reproduce any scope with `/graphify-build <selector>`.
 
 A bundle definition contains only `repos`:
 
@@ -175,7 +180,7 @@ Keyword routing is per-repo: each repo carries a `keywords` array matched agains
 ```
 
 **Slash commands:**
-- `/bootstrap --build-graphs <bundle-name>` builds missing per-repo graphs then merges them into the bundle. Idempotent.
+- `/graphify-build <bundle-name>` builds missing per-repo graphs then merges them into the bundle. Idempotent.
 - `/graphify-update <bundle-name>` re-merges a bundle from existing per-repo graphs.
 
 The agent queries the `server` bundle first, then routes to additional bundles or per-repo scopes by keyword. See `CLAUDE.md` "Scope selection" for the full algorithm.
@@ -201,8 +206,8 @@ Graphs merge bottom-up:
 Operational notes:
 - Re-clustering is fast (seconds, no LLM calls).
 - Community labeling is a one-time LLM cost per cascade; labels persist to `.graphify_labels.json`.
-- The cascade runs automatically via `/git-pull`, `/git-switch`, and `/graphify-update`. Use `/graphify-update <bundle-name>` to repair a stale bundle manually.
-- All four cascade commands use `.claude/helpers/merge-graphs.py` instead of `graphify merge-graphs` directly (active workaround - see below).
+- The cascade is triggered manually via `/graphify-update` (code-only) or `/graphify-build` (full). `/git-pull` and `/git-switch` print a hint when graphs may need refresh; they do not run the cascade themselves.
+- Both graph-refresh commands (`/graphify-build`, `/graphify-update`) use `.claude/helpers/merge-graphs.py` instead of `graphify merge-graphs` directly (active workaround - see below).
 
 ## Working a ticket
 
@@ -221,7 +226,7 @@ Operational notes:
    cd /path/to/mattermost-troubleshooting
    claude
    ```
-4. If the customer's server is on a specific version, pin the repo first (`/git-switch mattermost v10.5.1`). This also updates the knowledge graph and re-merges affected bundles.
+4. If the customer's server is on a specific version, pin the repo first (`/git-switch mattermost v10.5.1`). The switch is git-only - if you need the knowledge graph aligned to that ref too, run `/graphify-update mattermost` (code-only) or `/graphify-build mattermost` (full rebuild) afterwards.
 5. The agent picks the graph scope automatically. It queries `graphs/_bundles/server/` first, then routes to additional bundles or per-repo scopes by keyword (e.g. `focalboard` routes to boards, `rtcd` to calls). When nothing matches, it falls through to grep + the Read tool and says so in the answer.
 6. Reference ticket files in your prompt (e.g. `@tickets/12345/mattermost.log`) or describe the issue - the agent checks `./tickets/` by default.
 7. When you have a conclusion, generate the customer-facing output:

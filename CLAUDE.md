@@ -148,13 +148,13 @@ Prefer log/diff against refs over checking out:
 
 ### What's here
 
-Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_bundles/<name>/`. Scope layout (`full` or `subdirs`), repo keywords, and bundle definitions are in `graphs/config.json`. Graphs are built/refreshed by `/bootstrap`, `/git-pull`, `/git-switch`, and `/graphify-update`. `graphs/` is `.gitignore`d except `config.json`.
+Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_bundles/<name>/`. Scope layout (`full` or `subdirs`), repo keywords, and bundle definitions are in `graphs/config.json`. Graphs are built/refreshed by `/graphify-build` and `/graphify-update`; `/git-pull` and `/git-switch` do not touch graphs. `graphs/` is `.gitignore`d except `config.json`.
 
 **Code and docs are independent subgraphs.** AST extraction (code) and semantic extraction (docs) use separate ID namespaces with no cross-edges. The `docs` repo is not a bundle member but is a per-repo scope that Tier-2 auto-select routes to for broad-concept questions. Docs lookups follow a two-step pattern: Tier 1.5 grep on `upstream/docs/source/` for line-precise prose, then Tier 2 graphify on `graphs/docs/` for adjacent-concept discovery. See `notes/docs-repo-in-bundles-deferred.md` for the empirical comparison and conditions for re-adding docs to bundles.
 
 ### Workarounds (active)
 
-- **`graphify merge-graphs` CLI bug** - the installed `graphify` initialises the accumulator as a plain `Graph` while `prefix_graph_for_global` returns a `MultiGraph`, so `networkx.compose` raises `All graphs must be graphs or multigraphs.`. Wrapped by `.claude/helpers/merge-graphs.py` (same `<inputs...> --out <output>` interface). All four cascade slash commands call the helper instead of the upstream CLI. When upstream lands the patch (`notes/graphify-merge-graphs-upstream-fix.md`), confirm with a real merge then delete the helper and revert the slash-command invocations to plain `graphify merge-graphs`.
+- **`graphify merge-graphs` CLI bug** - the installed `graphify` initialises the accumulator as a plain `Graph` while `prefix_graph_for_global` returns a `MultiGraph`, so `networkx.compose` raises `All graphs must be graphs or multigraphs.`. Wrapped by `.claude/helpers/merge-graphs.py` (same `<inputs...> --out <output>` interface). Both graph-refresh slash commands (`/graphify-build`, `/graphify-update`) call the helper instead of the upstream CLI. When upstream lands the patch (`notes/graphify-merge-graphs-upstream-fix.md`), confirm with a real merge then delete the helper and revert the slash-command invocations to plain `graphify merge-graphs`.
 
 ### Slash commands
 
@@ -215,7 +215,7 @@ For deeper traversal, use `graphify query` / `graphify explain` from the project
 
 ### Scope is not built or is stale
 
-If a scope's graph is missing (no `graphs/<repo>/graphify-out/graph.json` or `graphs/_bundles/<bundle>/graphify-out/graph.json`), skip it during Tier 2 and collect the missing scope. Do not interrupt mid-flow. At the end of the response, list missing scopes with exact build commands (`/bootstrap --build-graphs <repo>` for per-repo, `/bootstrap --build-graphs <bundle>` for a bundle).
+If a scope's graph is missing (no `graphs/<repo>/graphify-out/graph.json` or `graphs/_bundles/<bundle>/graphify-out/graph.json`), skip it during Tier 2 and collect the missing scope. Do not interrupt mid-flow. At the end of the response, list missing scopes with exact build commands (`/graphify-build <repo>` for per-repo, `/graphify-build <bundle>` for a bundle).
 
 If `graphs/<repo>/.meta.json#ref` is older than `upstream/<repo>` HEAD, skip and flag the staleness alongside the build commands at the end.
 
