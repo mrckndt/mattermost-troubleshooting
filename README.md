@@ -73,8 +73,8 @@ Verify: `graphify --help`. Update: `pipx upgrade graphifyy && graphify install` 
 
 Two LLM cost phases:
 
-- **Semantic extraction** (doc/image files only): runs in `/graphify-build`. Free for code-only repos.
-- **Community labeling**: runs in both `/graphify-build` and `/graphify-update` after every re-cluster.
+- **Semantic extraction** (doc/image files): only in `/graphify-build`. Cost scales with the number of non-code files. Code-only repos pay nothing here.
+- **Community labeling**: in both `/graphify-build` and `/graphify-update` after every re-cluster. Cost scales with graph size; large repos run labeling in parallel subagents and this dominates the cost of an incremental update.
 
 Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` for Gemini Flash (recommended: faster and cheaper for both phases). Without it, slash commands fall back to Claude subagents.
 
