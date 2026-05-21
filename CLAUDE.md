@@ -159,7 +159,8 @@ Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_b
 
 ### Slash commands
 
-- `/graphify-update [<repo> | <bundle> | --all]` - incremental update of one repo / one bundle, or all built scopes. Cascades bundles containing any updated repo.
+- `/graphify-build [<repo> | <bundle> | all]` - full rebuild (AST + semantic extract + cluster + label). Always rebuilds; no skip on existing graphs.
+- `/graphify-update [<repo> | <bundle> | --all]` - incremental code-only update (AST only). Cascades bundles containing any updated repo.
 
 ### Query order
 
