@@ -101,6 +101,8 @@ Maintain `tickets/<ID>/analysis.md` for every ticket. This is the highest-priori
 
 **When the rule fires:** any turn that references, reads, or discusses a `tickets/<ID>/` directory - including one-shot lookups, clipboard requests, and follow-up clarifications. No "too small to log" threshold. Fire on every new finding, hypothesis, customer response, or drafted reply.
 
+Also fires when: (a) a scenario is introduced as a customer-reported symptom (logs, error messages, "a customer is on...") and a `tickets/<ID>/` folder exists whose evidence matches the symptom family - the rule fires against that folder even without an explicit ID in the prompt; (b) a turn produces a finding that materially refines or disproves a hypothesis in a prior ticket's `analysis.md` (e.g. a commit hash that changes the historical narrative, a code path that disproves a "never-existed" claim) - update that ticket's `analysis.md` in the same turn regardless of whether the current turn touched that directory.
+
 **How to apply:**
 
 1. On any ticket-touching turn, the first or last tool call must be a `Write`/`Edit` to `tickets/<ID>/analysis.md`. "I already answered the user" is not done until this file is current.
@@ -172,43 +174,19 @@ Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_b
 - `/graphify-build [<repo> | <bundle> | all]` - full rebuild (AST + semantic extract + cluster + label). Always rebuilds; no skip on existing graphs.
 - `/graphify-update [<repo> | <bundle> | --all]` - incremental code-only update (AST only). Cascades bundles containing any updated repo.
 
-### Chain rule
-
-The query chain runs end-to-end every time. No stopping conditions, no skips except where a knowledge source is structurally unavailable (e.g. a graphify scope is not built or is stale).
-
-Order: Tier 1 → Tier 1.5 → Tier 2 → Tier 3 → Re-validation. Each tier feeds the next; none of them closes the chain on its own. A claude-md fragment that matches the symptom is cited and informs the analysis, but the chain continues through docs, graphify, and source-code grep regardless. The conclusion is formed only after Re-validation has run.
-
-"I already have a plausible answer" is not a stopping condition. The cost of running every tier is the explicit trade for never silently skipping a knowledge source.
-
 ### Query order
 
-For any turn that performs ticket triage, codebase exploration, or behavioural analysis, output a tier preamble at the start of the response. The preamble lists every tier consulted this turn, including Tier 1 even when no fragment was a match, and Tier 1.5 / Tier 2 / Tier 3 / Re-validation with a one-line reason per tier (queried/skipped + reason). The preamble is required even when the answer feels in-hand after Tier 1 - the Chain rule forbids early stopping; the preamble exposes any silent stop.
+The chain runs end-to-end every time (Tier 1 → 1.5 → 2 → 3 → Re-validation). No stopping conditions - "I already have a plausible answer" is not a stopping condition. Skips are only legal when a knowledge source is structurally unavailable (scopes not built, or the allowlisted Tier 1.5 skip). Every non-skipped tier must produce a cited artefact; the conclusion forms only after Re-validation runs.
 
-The opening preamble is a forecast of which tiers you intend to consult. At the END of the response, emit a closing tier summary line listing every tier actually consulted, in order, with the artefact citation for each:
-
-```
-Tiers consulted: Tier 1 (claude-md/mattermost.md MariaDB note), Tier 1.5 (grep ...), Tier 2 (server bundle + boards), Tier 3 (rg ...), Re-validation (git log -S ...).
-```
-
-Any tier listed in the opening preamble as "queried" but missing from the closing line is a fabrication. Any tier appearing in the closing line but not in the opening preamble must be added to the opening preamble as a self-correction (or the opening preamble must be re-emitted with the additions).
-
-Every non-skipped tier MUST emit at least one cited artefact in the response, otherwise the tier is treated as silently skipped (hard violation). The artefact requirement per tier:
-
-- **Tier 1**: name the fragment(s) cited (`claude-md/<repo>.md` filename, with the matching section heading or paragraph).
-- **Tier 1.5**: a `grep -rn ... upstream/docs/source/` command and at least one `path:line` from its output.
-- **Tier 2**: either a god-nodes block excerpt OR a `graphify explain <symbol>` invocation with a quoted result fragment (`Source: ...`, `Degree: ...`, or at least one connection line).
-- **Tier 3**: an `rg`/`Read` command targeting `upstream/<repo>/` and at least one quoted line from its output.
-- **Re-validation**: see "Re-validation" subsection below for the strengthened command+output requirement.
-
-A preamble line that lists a tier as "queried" but the response contains no artefact for that tier is silently-skipped; emitting both is a fabrication and a hard violation distinct from a clean skip.
-
-Format:
+For every turn that performs ticket triage, codebase exploration, or behavioural analysis, output a tier preamble at the start listing every tier with a one-line reason (queried/skipped + reason). At the END emit the closing summary line:
 
 ```
-Tier <n>: <scope or fragment or reason>
+Tiers consulted: Tier 1 (<fragment or "no match">), Tier 1.5 (grep ...), Tier 2 (server bundle + ...), Tier 3 (rg ...), Re-validation (<command>).
 ```
 
-Skipping the preamble or proceeding to a deeper tier without one is a hard violation, as is stopping the chain at any tier short of Re-validation regardless of whether a preamble was emitted.
+A tier in the opening preamble that is absent from the closing line is a fabrication. Every non-skipped tier must produce a cited artefact or it is treated as silently skipped (hard violation). Artefact requirements: Tier 1 - fragment filename + section; Tier 1.5 - grep command + at least one `path:line`; Tier 2 - god-nodes excerpt or `graphify explain` result fragment; Tier 3 - `rg`/`Read` command + quoted line; Re-validation - see subsection below.
+
+Format: `Tier <n>: <scope or fragment or reason>`. Skipping the preamble or stopping short of Re-validation is a hard violation.
 
 1. **Tier 1 - `claude-md/<repo>.md` fragments.** Loaded via `@import` at the bottom of this file. Read all applicable fragments. Cite any that match the ticket's symptom family, even when the match is not exact.
 
@@ -228,58 +206,31 @@ Skipping the preamble or proceeding to a deeper tier without one is a hard viola
 
 3. **Tier 2 - graphify multi-scope.** Run graphify per "Scope selection" below. Every selected scope is queried to completion - no early stopping. Preamble must list scopes queried, e.g. `Tier 2: server bundle, rtcd, calls bundle`.
 
-   **Log-error workflow (mandatory steps, no skip):**
+   **Log-error workflow (mandatory, no skip):**
 
-   1. Extract every symbol from the log. Symbols are: package-qualified type names (`*mysql.MySQLError`), RPC method names (`Plugin.Stmt`), plugin ids (`plugin_id=focalboard`), error wrappers (`error running deleted membership boards migration`), and any other identifier that grep could pin to a file. Print the extracted symbol list in the response as a code block before the first `graphify explain` call. Example:
+   1. **Extract symbols** and print them as a code block before the first `graphify explain`. Symbols: package-qualified types (`*mysql.MySQLError`), RPC method names (`Plugin.Stmt`), plugin ids (`plugin_id=focalboard`), error-wrapper strings, any identifier grep could pin to a file. When the log contains multiple independent failures (different `plugin_id`, different error chains), extract symbols for the failure being triaged; note excluded chains with a one-line reason (e.g. `zoom: OAuth not configured - independent`). When the question names symbols directly instead of providing a log, emit the same block from the question. Block form: `` ```\nSymbols extracted from log:\n- <symbol> (<type>)\n``` ``
 
-      ```
-      Symbols extracted from log:
-      - *mysql.MySQLError (driver error type)
-      - Plugin.Stmt, Plugin.StmtNumInput, Plugin.StmtClose (server plugin RPC)
-      - plugin_id=focalboard
-      - RunDeletedMembershipBoardsMigration
-      ```
+   2. **Read god-nodes block** of `graphs/_bundles/server/graphify-out/GRAPH_REPORT.md` (~10 lines). Unconditional first query per session; skip if already read this session. If any extracted symbol - or a plausible abstraction - appears in the list, run `graphify explain <node>` on it. For broad-concept questions with no log and no named symbol, after the god-nodes read print `Symbols selected from god-node match: ...` and run `graphify explain` on the relevant nodes.
 
-      This makes the symbol set auditable from the transcript without inspecting the operator's reasoning.
-   2. Read the `## God Nodes` block of `graphs/_bundles/server/graphify-out/GRAPH_REPORT.md`. Ten lines, unconditional (subject to the existing per-session deduplication). If any symbol from step 1 - or a plausible abstraction over it - appears in the god-node list, run `graphify explain <node>` on it.
-   3. For each symbol extracted in step 1, run `graphify explain <symbol>` on the scope it likely belongs to (server bundle for RPC/driver symbols, per-repo scope for plugin-id-anchored symbols). Run explain on every extracted symbol unconditionally - the obligation does not lift once a plausible answer has been found via grep, the orientation read, or an earlier explain. Tier 3 grep does not satisfy the explain obligation for an un-explained symbol.
+   3. **Run `graphify explain <symbol>`** on the scope it likely belongs to (server bundle for RPC/driver symbols, per-repo for plugin-id-anchored). Run explain on every extracted symbol unconditionally. Tier 3 grep does not satisfy the explain obligation. When Tier 3 surfaces a function closer to the failure than any extracted symbol, add it to the set and explain it before concluding.
 
-      After each successful `graphify explain` invocation, run `graphify save-result` against the same scope's `memory/` directory (per the "graphify CLI quirk" in Shell conventions for the correct `--memory-dir` form). Absence of a `save-result` call following a successful `explain` is a hard violation parallel to a missing Re-validation line. `save-result` calls must appear in the response as a visible Bash invocation, not be claimed in prose.
-   3a. After the per-symbol explain calls, emit a symbol-coverage table in the response:
+      After each successful `graphify explain`, run `graphify save-result --memory-dir <scope>/graphify-out/memory` (see Shell conventions "graphify CLI quirk" for the exact form). Absence of a `save-result` after a successful `explain` is a hard violation. Both must appear as visible Bash invocations.
+
+   3a. **Symbol-coverage table** after all explain calls:
 
       ```
       Symbol coverage:
-      - <symbol>: explain run on <scope> (link/citation of result)
-      - <symbol>: skipped (<legal reason from the allowlist>)
+      - <symbol>: explain run on <scope> (<degree or "no node">)
+      - <symbol>: skipped (no scope contains this symbol)
       ```
 
-      An extracted symbol with no `explain` and no allowlisted skip reason is a hard violation. The skip reasons allowed here are limited to "no scope contains this symbol" and "scope not built / stale". "Already covered by an earlier explain" is NOT a legal skip - each symbol's `explain` produces distinct neighbourhood information; one symbol's result does not stand in for another's.
-   4. `graphify query` on raw log strings remains banned (seeds on the wrong nouns, returns noise). Use `graphify query` only for broad conceptual discovery when no symbol is yet in hand. When you do run `graphify query`, follow the upstream skill's Step 0 (see "Skill compliance" below).
+      One row per symbol; no collapsing. "Explain invoked, no node" is NOT a skip - record it as `explain run on <scope> (no matching node)`. `skipped (covered by sibling explain)` / `skipped (same package)` are NOT legal skip reasons.
 
-   Legal skip reasons (exhaustive, apply to every tier):
+   4. **`graphify query`** - banned on raw log strings (noisy). For broad-concept questions where the user states "no specific symbol yet", `graphify query` with Step 0 vocab expansion (see "Skill compliance") is the required first traversal - routing through `explain`-only to avoid Step 0 is treated as a skipped Step 0. After any `graphify query`, run `graphify save-result`.
 
-   - **No scope matched** (Tier 2 only; state `Tier 2: skipped (no scope matched)`).
-   - **All matched scopes not built / stale** (Tier 2 only; state `Tier 2: skipped (<scope> not built)` + report build commands at end of response).
-   - **Pure code-structure question with no documented surface** (Tier 1.5 only; state `Tier 1.5: skipped (no documented surface)`).
-
-   No other rationale is legal. The following are hard violations on parse and must not appear in a preamble:
-
-   - `skipped (fragment already supplies the answer)` / `skipped (Tier 1 answers it)` / similar.
-   - `skipped (I already know the answer)`.
-   - `skipped (would not change the conclusion)`.
-   - `skipped (low-value)`.
-   - Any unenumerated rationale.
-
-   A tier with no entry in the legal-skip list MUST be queried. A preamble that asserts an illegal skip is treated identically to no preamble (hard violation). "Log-error workflow" is not a legal skip - the orientation read and per-symbol explain are mandatory.
+   Legal skip reasons (exhaustive): **Tier 2 only** - `no scope matched`; `<scope> not built / stale` (report build commands at end). **Tier 1.5 only** - `no documented surface` (pure code-structure questions). No other rationale is legal. Hard violations on parse: `skipped (fragment already supplies / Tier 1 answers / would not change the conclusion / I already know the answer)` or any unenumerated rationale. A preamble that asserts an illegal skip is treated identically to no preamble (hard violation). "Log-error workflow" is not a legal skip - the orientation read and per-symbol explain are mandatory.
 
 4. **Tier 3 - `grep` plus the Read tool on `upstream/<repo>/`.** Reachable via a legal Tier-2 skip or when Tier 2 yielded nothing useful. State `Tier 3: <reason>`. Graphify-yielded-nothing is a valid reason.
-
-### Subcommand reference
-
-Mirror the upstream `/graphify` usage examples:
-- `graphify query "<question>"` - BFS traversal, broad context.
-- `graphify query "<question>" --dfs` - DFS, trace a specific path.
-- `graphify explain "<NodeName>"` - plain-language explanation of a single node and what it connects to.
 
 ### Scope selection
 
@@ -301,11 +252,7 @@ Tier 2 actually queried: <scope-list>.
 
 Any divergence from the opening-preamble scope list must be flagged inline as a deviation, with a reason. The opening preamble is a forecast; the closing reconciliation line is the audit trail. A response in which the opening preamble lists scopes that were never queried (even though `graphify explain` was run on the server bundle) is a fabrication and is treated as a hard violation distinct from a silent skip.
 
-**Orientation (first query per scope per session):** before querying a scope for the first time this session, read the `## God Nodes` block of `graphs/<scope>/graphify-out/GRAPH_REPORT.md` (~10 lines, maps the scope's most-connected concepts). Skip if already read this session. Skip the rest of the report unless a cross-cutting concern warrants checking "Surprising Connections".
-
-For deeper traversal, use `graphify query` / `graphify explain` from the project root with `--graph <absolute-path>`. See the "graphify CLI quirk" in Shell conventions for argument-order rules. Working forms:
-- `graphify query "<broad concept>" --graph /abs/path/to/graphify-out/graph.json`
-- `graphify explain "<node>" --graph /abs/path/to/graphify-out/graph.json`
+**Orientation:** before querying a scope for the first time this session, read its `GRAPH_REPORT.md` `## God Nodes` block (~10 lines). Skip if already read this session. Always pass an absolute `--graph` after the positional arg (see Shell conventions "graphify CLI quirk").
 
 **Symbol-driven scope addition:** during the log-error workflow, if symbol extraction yields a symbol that points at a repo whose keywords didn't match (e.g. a plugin id from a plugin not in the keyword hit list), add that per-repo scope to the list and re-apply step 3 (bundle-via-member cascade) over the augmented per-repo set.
 
@@ -325,34 +272,16 @@ Before forming a conclusion, run at least one query designed to **disprove** the
 - If the hypothesis points to a specific function, `graphify explain` it and inspect callers/callees for an alternative root cause.
 - Empty grep results are a signal to widen scope, not narrow it. Treat silence as "I don't yet know where the answer lives", not "the answer doesn't exist".
 
-The Re-validation step must produce a visible artefact in the response. The artefact MUST contain a real shell command (`rg`, `grep`, `git`, `graphify`, or equivalent) and at least one quoted line of its output. Asserting that "the fragment text supports the conclusion" or that "the symptom matches" is not Re-validation - those statements are claims, not disproofs.
-
-Format:
+The Re-validation step must produce a visible artefact: a real shell command (`rg`, `grep`, `git`, `graphify`) plus at least one quoted output line (or "no matches"). Fragment-text assertions are not Re-validation. Required format:
 
 ```
 Re-validation: <hypothesis>; disproved by <command>:
-  <one or more quoted output lines, or "no matches">.
+  <quoted output or "no matches">.
 ```
 
-Example:
+For code-location questions, use the "disprove absence of alternatives" form: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg -n '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits require disambiguation (e.g. struct vs interface).
 
-```
-Re-validation: "the gob registration was added in a later patch"; disproved by
-`git -C upstream/mattermost log --all -S "mysql.MySQLError" -- server/public/plugin/`:
-  (no matches - registration never landed).
-```
-
-A Re-validation line that does not name a shell command and quote at least one line of its output (or explicitly state "no matches" / "no output") is treated as absent. Absence of a valid Re-validation line is a hard violation, equivalent to skipping the step.
-
-For pure code-location questions (e.g. "where is X defined?"), the "disprove the hypothesis" framing is awkward because the file:line either exists or it does not. The prescribed Re-validation form for these questions is "disprove the absence of alternatives":
-
-```
-Re-validation: "no alternative definition of <X> exists in <scope>"; disproved by
-`rg -n 'type <X> ' upstream/<repo>/`:
-  <output - either a single hit confirming uniqueness, or multiple hits naming the alternatives>.
-```
-
-A single hit confirms the answer is unique; multiple hits change the answer (the operator must then disambiguate, e.g. interface vs struct).
+A Re-validation line without a shell command and quoted output is treated as absent. Absence is a hard violation.
 
 ### Skill compliance
 
@@ -376,6 +305,8 @@ When a customer-side configuration choice (unsupported backend, deprecated setti
 Do not let the configuration framing eclipse the bug framing. "Your DB is unsupported, migrate" is correct customer guidance and incomplete root-cause: it does not explain that the same code path would misbehave on a supported backend if the underlying defect were reachable. Stating both gives the customer the action AND lets the next ticket on the same defect be recognised quickly.
 
 A conclusion that names only the customer-config remediation when an upstream defect was identified during the chain is a framing violation, even when the customer guidance itself is correct.
+
+If the chain found no upstream defect, state that outright: "No upstream defect identified - the configuration is out of contract and the code path is correct on every supported backend." Do not substitute an architectural observation for a missing defect.
 
 ## Per-repo context
 
