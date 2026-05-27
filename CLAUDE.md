@@ -190,25 +190,19 @@ Format: `Tier <n>: <scope or fragment or reason>`. Skipping the preamble or stop
 
 1. **Tier 1 - `claude-md/<repo>.md` fragments.** Loaded via `@import` at the bottom of this file. Read all applicable fragments. Cite any that match the ticket's symptom family, even when the match is not exact.
 
-   "Symptom family" means the cause-class, not the literal error string. Canonical families and matching fragments:
-
-   - Driver-error from a non-PostgreSQL backend masquerading as syntax-class error → `claude-md/mattermost.md` (MariaDB JSON-function note).
-   - Plugin RPC encoding error (gob, net/rpc, plugin client/server) → no fragment yet; cite as "no fragment match" but note the family.
-   - License-tier trap (feature visible in code, gated at runtime) → relevant `claude-md/<repo>.md` if any.
-   - Cluster gossip drop / oversized message → `claude-md/enterprise.md` (gossip), `claude-md/mattermost-plugin-github.md` (oversized DM).
-   - LDAP/SAML auth-data drift → `claude-md/enterprise.md` (LDAP sync, SAML reset).
+   "Symptom family" means the cause-class, not the literal error string. A fragment matches when it names the same underlying failure mechanism (e.g. unsupported backend, auth-data mismatch, cluster transport limit), even if the exact error text differs. When no fragment matches the family, note that explicitly and continue.
 
    Fragments inform the analysis but do not stop the chain - continue to Tier 1.5 in all cases.
 
-2. **Tier 1.5 - grep on `upstream/docs/source/`.** For questions about config defaults, deployment posture, supported product surface area (database backends, OS, license tiers, supported versions), supported behavior, or admin-facing settings, run `grep -rn "<term>" upstream/docs/source/` before Tier 2. This is where documented defaults (e.g. `MaxOpenConns=100`), env variable names, and System Console paths live. State `Tier 1.5: grep -rn "<term>" upstream/docs/source/` in the preamble. Skip only when the question is purely about code structure with no documented surface.
+2. **Tier 1.5 - grep on `upstream/docs/source/`.** For questions about config defaults, deployment posture, supported product surface area (database backends, OS, license tiers, supported versions), supported behavior, or admin-facing settings, run `grep -rn "<term>" upstream/docs/source/` before Tier 2. This is where documented defaults, env variable names, and System Console paths live. State `Tier 1.5: grep -rn "<term>" upstream/docs/source/` in the preamble. Skip only when the question is purely about code structure with no documented surface.
 
-   **Tier 1.5 also runs the docs graph for broad-concept questions.** The docs subgraph captures conceptual neighborhoods grep misses (e.g. `gossip compression` surfaces `Transport Encryption`, `Cluster SSH Tunneling`, `Encryption at Rest`). When the question matches any keyword in `graphs/config.json#/repos/docs/keywords` (`high availability`, `scaling`, `disaster recovery`, etc.), the docs scope is auto-routed via Tier 2 step 4 - no separate manual step. Order: grep first, then Tier 2 multi-scope (docs included when keywords match).
+   **Tier 1.5 also runs the docs graph for broad-concept questions.** When the question matches any keyword in `graphs/config.json#/repos/docs/keywords`, the docs scope is auto-routed via Tier 2 - no separate manual step. Order: grep first, then Tier 2 multi-scope (docs included when keywords match).
 
-3. **Tier 2 - graphify multi-scope.** Run graphify per "Scope selection" below. Every selected scope is queried to completion - no early stopping. Preamble must list scopes queried, e.g. `Tier 2: server bundle, rtcd, calls bundle`.
+3. **Tier 2 - graphify multi-scope.** Run graphify per "Scope selection" below. Every selected scope is queried to completion - no early stopping. Preamble must list scopes queried, e.g. `Tier 2: server bundle, <repo>, <bundle>`.
 
    **Log-error workflow (mandatory, no skip):**
 
-   1. **Extract symbols** and print them as a code block before the first `graphify explain`. Symbols: package-qualified types (`*mysql.MySQLError`), RPC method names (`Plugin.Stmt`), plugin ids (`plugin_id=focalboard`), error-wrapper strings, any identifier grep could pin to a file. When the log contains multiple independent failures (different `plugin_id`, different error chains), extract symbols for the failure being triaged; note excluded chains with a one-line reason (e.g. `zoom: OAuth not configured - independent`). When the question names symbols directly instead of providing a log, emit the same block from the question. Block form: `` ```\nSymbols extracted from log:\n- <symbol> (<type>)\n``` ``
+   1. **Extract symbols** and print them as a code block before the first `graphify explain`. Symbols: package-qualified types, RPC method names, plugin ids (`plugin_id=<name>`), error-wrapper strings, any identifier grep could pin to a file. When the log contains multiple independent failures (different `plugin_id`, different error chains), extract symbols for the failure being triaged; note excluded chains with a one-line reason (e.g. `plugin_id=<other>: unrelated config error - independent`). When the question names symbols directly instead of providing a log, emit the same block from the question. Block form: `` ```\nSymbols extracted from log:\n- <symbol> (<type>)\n``` ``
 
    2. **Read god-nodes block** of `graphs/_bundles/server/graphify-out/GRAPH_REPORT.md` (~10 lines). Unconditional first query per session; skip if already read this session. If any extracted symbol - or a plausible abstraction - appears in the list, run `graphify explain <node>` on it. For broad-concept questions with no log and no named symbol, after the god-nodes read print `Symbols selected from god-node match: ...` and run `graphify explain` on the relevant nodes.
 
@@ -268,7 +262,7 @@ If Tier 2 ran but no scope yielded anything useful, fall through to Tier 3 and s
 
 Before forming a conclusion, run at least one query designed to **disprove** the leading hypothesis:
 
-- If the hypothesis points to a missing/buggy code path, `rg` for the expected fix (e.g. `gob.Register(&mysql.MySQLError{})`) in the customer's version. Absent → hypothesis supported. Present → hypothesis is wrong; widen the search.
+- If the hypothesis points to a missing/buggy code path, `rg` for the expected fix in the customer's version. Absent → hypothesis supported. Present → hypothesis is wrong; widen the search.
 - If the hypothesis points to a specific function, `graphify explain` it and inspect callers/callees for an alternative root cause.
 - Empty grep results are a signal to widen scope, not narrow it. Treat silence as "I don't yet know where the answer lives", not "the answer doesn't exist".
 
