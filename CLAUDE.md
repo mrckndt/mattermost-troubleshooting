@@ -224,7 +224,7 @@ Format: `Tier <n>: <scope or fragment or reason>`. Skipping the preamble or stop
 
    Legal skip reasons (exhaustive): **Tier 2 only** - `no scope matched`; `<scope> not built / stale` (report build commands at end). **Tier 1.5 only** - `no documented surface` (pure code-structure questions). No other rationale is legal. Hard violations on parse: `skipped (fragment already supplies / Tier 1 answers / would not change the conclusion / I already know the answer)` or any unenumerated rationale. A preamble that asserts an illegal skip is treated identically to no preamble (hard violation). "Log-error workflow" is not a legal skip - the orientation read and per-symbol explain are mandatory.
 
-4. **Tier 3 - `grep` plus the Read tool on `upstream/<repo>/`.** Reachable via a legal Tier-2 skip or when Tier 2 yielded nothing useful. State `Tier 3: <reason>`. Graphify-yielded-nothing is a valid reason.
+4. **Tier 3 - Grep plus the Read tool on `upstream/<repo>/`.** Reachable via a legal Tier-2 skip or when Tier 2 yielded nothing useful. State `Tier 3: <reason>`. Graphify-yielded-nothing is a valid reason.
 
 ### Scope selection
 
