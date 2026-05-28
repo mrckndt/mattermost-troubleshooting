@@ -70,13 +70,6 @@ pip install --upgrade graphifyy && graphify install
 
 ### Graphify build cost and model choice
 
-Two LLM cost phases:
-
-- **Semantic extraction** (doc/image files): only in `/graphify-build`. Cost scales with the number of non-code files. Code-only repos pay nothing here.
-- **Community labeling**: in both `/graphify-build` and `/graphify-update` after every re-cluster. Cost scales with graph size; large repos run labeling in parallel subagents and this dominates the cost of an incremental update.
-
-**Model choice:**
-
 | Use case | Recommended | Notes |
 |---|---|---|
 | Full (re)build (`/graphify-build`) | Sonnet 4.6 auto mode, low effort; Gemini Flash (see below) | Labeling subagents don't need deep reasoning - low effort keeps cost down. Gemini Flash is faster and cheaper if you have an API key. |
@@ -84,7 +77,12 @@ Two LLM cost phases:
 | Working on files in this repo | Sonnet 4.6 (1M context) high effort; Opus 4.7 for deeper reasoning | Sonnet 1M handles complex notes and cross-file analysis well. |
 | Ticket troubleshooting | Opus 4.7 at high effort | Best for high-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback. |
 
-### Gemini API key (optional)
+Two LLM cost phases:
+
+- **Semantic extraction** (doc/image files): only in `/graphify-build`. Cost scales with the number of non-code files. Code-only repos pay nothing here.
+- **Community labeling**: in both `/graphify-build` and `/graphify-update` after every re-cluster. Cost scales with graph size; large repos run labeling in parallel subagents and this dominates the cost of an incremental update.
+
+#### Gemini API key (optional)
 
 Gemini Flash can replace Claude subagents for graph builds and updates, reducing cost and build time. Without it, slash commands use Claude subagents automatically.
 
@@ -97,7 +95,7 @@ pipx inject graphifyy 'graphifyy[gemini]'
 Then set the key via:
 
 - **Shell init** (recommended): `export GEMINI_API_KEY=<your-key>` in `~/.zshrc` or `~/.zshenv`.
-- **`.claude/secrets.env`** (project-scoped, gitignored): one `KEY=value` per line; slash commands source this automatically.
+- **`.claude/secrets.env`** (project-scoped, gitignored): one `export KEY=value` per line; slash commands source this automatically.
 
 Both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are recognized.
 
@@ -128,8 +126,8 @@ Then inside Claude:
    cd /path/to/mattermost-troubleshooting
    claude
    ```
-4. If the customer's server is on a specific version, pin the repo first (`/git-switch mattermost v10.5.1`). The switch is git-only - run `/graphify-update mattermost` (code-only) or `/graphify-build mattermost` (full rebuild) if you need the knowledge graph aligned to that ref too.
-5. Reference ticket files in your prompt (`@tickets/12345/mattermost.log`) or describe the issue - the agent checks `./tickets/` by default. Graph scope is selected automatically; see Scopes & bundles for the routing algorithm.
+4. Pin the repo to the customer's version if needed: `/git-switch mattermost v10.5.1`. Follow with `/graphify-update mattermost` (code only) or `/graphify-build mattermost` (full) to align the knowledge graph.
+5. Describe the issue or reference ticket files directly (`@tickets/12345/mattermost.log`). The agent checks `./tickets/` by default and selects graph scope automatically.
 6. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
@@ -139,27 +137,36 @@ Then inside Claude:
 
 ### Repo management
 
-| Command | What it does |
-|---|---|
-| `/bootstrap` | Clone missing upstream repos; create working directories. Idempotent. |
-| `/git-pull [<repo>]` | `git pull --ff-only`. No arg = all repos; `<repo>` = one repo. Run `/graphify-update` or `/graphify-build` afterwards if HEAD moved. |
-| `/git-switch <repo> [<ref>]` | Switch to a tag, branch, or commit. No ref = default branch. Fetches `--tags --prune` as a fallback if the ref is unknown locally. Run a graph refresh after switching. |
+- **`/bootstrap`** - clone missing upstream repos and create working directories. Idempotent.
+
+- **`/git-pull [<repo>]`** - `git pull --ff-only`. Run `/graphify-update` or `/graphify-build` afterwards if HEAD moved.
+  - No argument: pulls all repos.
+  - `<repo>`: pulls one repo.
+
+- **`/git-switch <repo> [<ref>]`** - switch to a tag, branch, or commit. Run a graph refresh after switching.
+  - No ref: returns to the default branch.
+  - `<ref>`: switches to a tag (e.g. `v10.5.1`), branch, or commit.
 
 ### Knowledge graph
 
-| Command | What it does |
-|---|---|
-| `/graphify-build [<scope>]` | Full pipeline (AST + semantic + cluster + label). Always rebuilds. No arg = prompted; `all` = every repo in config; `<repo>` or `<bundle>` = one scope. Use for initial build, after doc changes, or for a clean slate. |
-| `/graphify-update [<scope>]` | Incremental code-only refresh (AST only). No arg = all built repos + cascade bundles; `<repo>` = one repo + cascade; `<bundle>` = re-merge + re-label. Doc/image changes require `/graphify-build`. |
+- **`/graphify-build [<scope>]`** - full pipeline (AST + semantic + cluster + label). Always rebuilds.
+  Use for initial build, after doc/non-code changes, or for a clean slate.
+  - No argument: prompts for scope.
+  - `<repo>`: builds one repo.
+  - `<bundle>`: builds all member repos and merges them.
+  - `all`: builds every repo in config.
+
+- **`/graphify-update [<scope>]`** - incremental code-only refresh (AST only). Doc/image changes require `/graphify-build`.
+  - No argument: updates all built repos, then cascades to their bundles.
+  - `<repo>`: updates one repo and cascades to its bundles.
+  - `<bundle>`: re-merges and re-labels one bundle from existing per-repo graphs.
 
 ### Output
 
-| Command | What it does |
-|---|---|
-| `/draft-reply [description]` | Draft a customer reply (email, Zendesk, hub thread) from current troubleshooting context. |
-| `/kb-article [description]` | Generate a KB article (Markdown + HTML). |
-| `/feature-request [title]` | Generate a structured PM-facing feature-request post. |
-| `/clipboard [content]` | Copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact. |
+- **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
+- **`/kb-article [description]`** - generate a KB article (Markdown + HTML).
+- **`/feature-request [title]`** - generate a structured PM-facing feature-request post.
+- **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ## Scopes & bundles
 
