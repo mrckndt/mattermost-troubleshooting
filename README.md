@@ -22,7 +22,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
     └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
 ```
 
-## First-time setup
+## Setup
 
 ### Install graphify
 
@@ -68,37 +68,6 @@ On Linux / Windows (without pipx):
 pip install --upgrade graphifyy && graphify install
 ```
 
-### Graphify build cost and model choice
-
-| Use case | Recommended | Notes |
-|---|---|---|
-| Full (re)build (`/graphify-build`) | Sonnet 4.6 auto mode, low effort; Gemini Flash (see below) | Labeling subagents don't need deep reasoning - low effort keeps cost down. Gemini Flash is faster and cheaper if you have an API key. |
-| AST update (`/graphify-update`) | Sonnet 4.6 auto mode, low effort; Gemini Flash (see below) | AST extract is free; cost comes from community re-labeling subagents. |
-| Working on files in this repo | Sonnet 4.6 (1M context) high effort; Opus 4.7 for deeper reasoning | Sonnet 1M handles complex notes and cross-file analysis well. |
-| Ticket troubleshooting | Opus 4.7 at high effort | Best for high-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback. |
-
-Two LLM cost phases:
-
-- **Semantic extraction** (doc/image files): only in `/graphify-build`. Cost scales with the number of non-code files. Code-only repos pay nothing here.
-- **Community labeling**: in both `/graphify-build` and `/graphify-update` after every re-cluster. Cost scales with graph size; large repos run labeling in parallel subagents and this dominates the cost of an incremental update.
-
-#### Gemini API key (optional)
-
-Gemini Flash can replace Claude subagents for graph builds and updates, reducing cost and build time. Without it, slash commands use Claude subagents automatically.
-
-Add the `gemini` extra:
-
-```
-pipx inject graphifyy 'graphifyy[gemini]'
-```
-
-Then set the key via:
-
-- **Shell init** (recommended): `export GEMINI_API_KEY=<your-key>` in `~/.zshrc` or `~/.zshenv`.
-- **`.claude/secrets.env`** (project-scoped, gitignored): one `export KEY=value` per line; slash commands source this automatically.
-
-Both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are recognized.
-
 ### Clone and start
 
 ```
@@ -110,7 +79,7 @@ claude
 Then inside Claude:
 - `/bootstrap` - clone all upstream repos under `upstream/` and create the working directories. Run `/graphify-build` afterwards to build knowledge graphs.
 
-## Working a ticket
+### Working a ticket
 
 1. Create a folder under `tickets/` for the ticket:
    ```
@@ -214,9 +183,36 @@ Graphify enforces a 2,000,000-word hard cap and a 200-file soft warning. Repos o
 
 `scope: "subdirs"` runs the pipeline once per listed subdir, each producing its own graph, then merges them into `graphs/<repo>/graphify-out/graph.json`. Currently only `mattermost` is split.
 
-## Pre-graphify state
+## Graphify build cost and model choice
 
-The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) (the last state before the graphify integration) and are being re-curated incrementally, trimmed to what graphs and docs cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
+| Use case | Recommended | Notes |
+|---|---|---|
+| Full (re)build (`/graphify-build`) | Sonnet 4.6 auto mode, low effort; Gemini Flash (see below) | Labeling subagents don't need deep reasoning - low effort keeps cost down. Gemini Flash is faster and cheaper if you have an API key. |
+| AST update (`/graphify-update`) | Sonnet 4.6 auto mode, low effort; Gemini Flash (see below) | AST extract is free; cost comes from community re-labeling subagents. |
+| Working on files in this repo | Sonnet 4.6 (1M context) high effort; Opus 4.7 for deeper reasoning | Sonnet 1M handles complex notes and cross-file analysis well. |
+| Ticket troubleshooting | Opus 4.7 at high effort | Best for high-stakes reasoning across logs, code, and customer context. Sonnet is a reasonable fallback. |
+
+Two LLM cost phases:
+
+- **Semantic extraction** (doc/image files): only in `/graphify-build`. Cost scales with the number of non-code files. Code-only repos pay nothing here.
+- **Community labeling**: in both `/graphify-build` and `/graphify-update` after every re-cluster. Cost scales with graph size; large repos run labeling in parallel subagents and this dominates the cost of an incremental update.
+
+### Gemini API key (optional)
+
+Gemini Flash can replace Claude subagents for graph builds and updates, reducing cost and build time. Without it, slash commands use Claude subagents automatically.
+
+Add the `gemini` extra:
+
+```
+pipx inject graphifyy 'graphifyy[gemini]'
+```
+
+Then set the key via:
+
+- **Shell init** (recommended): `export GEMINI_API_KEY=<your-key>` in `~/.zshrc` or `~/.zshenv`.
+- **`.claude/secrets.env`** (project-scoped, gitignored): one `export KEY=value` per line; slash commands source this automatically.
+
+Both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are recognized.
 
 ## TODO
 
@@ -234,6 +230,10 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior 
   - [ ] `mattermost-plugin-playbooks` - 746K words / 1,055 files (under hard cap but large; consider scoping)
   - Everything else fits a full build; `desktop`, `mattermost-plugin-agents`, `mattermost-plugin-calls`, and `migration-assist` trip the 200-file soft warning but stay well under the word cap.
 - [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, let auto-select route to the right graph scope, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
+
+## Pre-graphify state
+
+The `claude-md/<repo>.md` files on this branch are header-only stubs. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) (the last state before the graphify integration) and are being re-curated incrementally, trimmed to what graphs and docs cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
 
 ## Active workarounds
 
