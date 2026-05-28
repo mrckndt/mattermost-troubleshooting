@@ -41,18 +41,6 @@ pipx install graphifyy && graphify install
 pip install graphifyy && graphify install
 ```
 
-Verify with `graphify --help`. To upgrade:
-
-```
-pipx upgrade graphifyy && graphify install
-```
-
-On Linux / Windows (without pipx):
-
-```
-pip install --upgrade graphifyy && graphify install
-```
-
 ### Optional CLI tools
 
 The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep` when available. Falls back to the standard tools if they are not installed.
@@ -65,6 +53,19 @@ brew install fd ripgrep
 **Linux (Debian/Ubuntu):**
 ```
 apt install fd-find ripgrep
+```
+
+### Upgrade graphify
+To upgrade graphify and its skill on macOS:
+
+```
+pipx upgrade graphifyy && graphify install
+```
+
+On Linux / Windows (without pipx):
+
+```
+pip install --upgrade graphifyy && graphify install
 ```
 
 ### Graphify build cost and model choice
