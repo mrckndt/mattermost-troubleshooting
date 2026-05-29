@@ -161,9 +161,7 @@ Prefer log/diff against refs over checking out:
 
 ### What's here
 
-Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_bundles/<name>/`. Scope layout (`full` or `subdirs`), repo keywords, and bundle definitions are in `graphs/config.json`. Graphs are built/refreshed by `/graphify-build` and `/graphify-update`; `/git-pull` and `/git-switch` do not touch graphs. `graphs/` is `.gitignore`d except `config.json`.
-
-**Code and docs are independent subgraphs.** AST extraction (code) and semantic extraction (docs) use separate ID namespaces with no cross-edges. The `docs` repo is not a bundle member but is a per-repo scope that Tier-2 auto-select routes to for broad-concept questions. Docs lookups follow a two-step pattern: Tier 1.5 grep on `upstream/docs/source/` for line-precise prose, then Tier 2 graphify on `graphs/docs/` for adjacent-concept discovery. See `notes/docs-repo-in-bundles-deferred.md` for the empirical comparison and conditions for re-adding docs to bundles.
+Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_bundles/<name>/`. Scope layout (`full` or `subdirs`), repo keywords, and bundle definitions are in `graphs/config.json`. Graphs are built/refreshed by `/graphify-build` and `/graphify-update`; `/git-pull` and `/git-switch` do not touch graphs. `graphs/` is `.gitignore`d except `config.json`. Code and docs are independent subgraphs (separate ID namespaces, no cross-edges); docs lookups follow a two-step pattern: Tier 1.5 grep on `upstream/docs/source/`, then Tier 2 on `graphs/docs/` for broad-concept questions. See `notes/docs-repo-in-bundles-deferred.md` for rationale.
 
 ### Workarounds (active)
 
@@ -176,87 +174,82 @@ Per-repo graphs: `graphs/<repo>/`. Bundle graphs (cross-repo merges): `graphs/_b
 
 ### Query order
 
-The chain runs end-to-end every time (Tier 1 → 1.5 → 2 → 3 → Re-validation). No stopping conditions - "I already have a plausible answer" is not a stopping condition. Skips are only legal when a knowledge source is structurally unavailable (scopes not built, or the allowlisted Tier 1.5 skip). Every non-skipped tier must produce a cited artefact; the conclusion forms only after Re-validation runs.
+The chain runs end-to-end every time (Tier 1 → 1.5 → 2 → 3 → Re-validation). No stopping conditions - "I already have a plausible answer" is not a stopping condition. Every non-skipped tier must produce a cited artefact; the conclusion forms only after Re-validation runs.
 
-For every turn that performs ticket triage, codebase exploration, or behavioural analysis, output a tier preamble at the start listing every tier with a one-line reason (queried/skipped + reason). At the END emit the closing summary line:
+Tiers run **sequentially**, one per Bash batch. The parallel-call heuristic ("batch independent calls") does NOT override tier ordering: a Tier-N and Tier-(N+1) call must not appear in the same Bash block, even without a data dependency. Before issuing any investigation call, the prior tier must have produced its artefact:
+
+- Tier 1: fragment filename + section cited
+- Tier 1.5: grep command + at least one `path:line`
+- Tier 2: god-nodes excerpt AND per-symbol `graphify explain` + `save-result`
+- Tier 3: `rg`/`Read` command + quoted line
+
+Issuing a Tier-3 `rg` in the same batch as a Tier-1.5 grep is treated as a silent skip of Tier 2.
+
+For every turn that performs ticket triage, codebase exploration, or behavioural analysis, output a tier preamble at the start listing every tier with a one-line reason (queried/skipped + reason). At the END emit:
 
 ```
 Tiers consulted: Tier 1 (<fragment or "no match">), Tier 1.5 (grep ...), Tier 2 (server bundle + ...), Tier 3 (rg ...), Re-validation (<command>).
 ```
 
-A tier in the opening preamble that is absent from the closing line is a fabrication. Every non-skipped tier must produce a cited artefact or it is treated as silently skipped (hard violation). Artefact requirements: Tier 1 - fragment filename + section; Tier 1.5 - grep command + at least one `path:line`; Tier 2 - god-nodes excerpt or `graphify explain` result fragment; Tier 3 - `rg`/`Read` command + quoted line; Re-validation - see subsection below.
+A tier in the preamble absent from the closing line is a fabrication. Format: `Tier <n>: <scope or fragment or reason>`. Skipping the preamble or stopping short of Re-validation is a hard violation.
 
-Format: `Tier <n>: <scope or fragment or reason>`. Skipping the preamble or stopping short of Re-validation is a hard violation.
+1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read all applicable fragments; cite any matching the ticket's symptom family (same cause-class, not the literal error string). Note when no fragment matches; continue to Tier 1.5 in all cases.
 
-1. **Tier 1 - `claude-md/<repo>.md` fragments.** Loaded via `@import` at the bottom of this file. Read all applicable fragments. Cite any that match the ticket's symptom family, even when the match is not exact.
+2. **Tier 1.5 - grep on `upstream/docs/source/`.** Always runs. Run `grep -rn "<term>" upstream/docs/source/`. No results is fine; the search still happened. When the question matches a keyword in `graphs/config.json#/repos/docs/keywords`, the docs scope is also queried via Tier 2 (no separate manual step).
 
-   "Symptom family" means the cause-class, not the literal error string. A fragment matches when it names the same underlying failure mechanism (e.g. unsupported backend, auth-data mismatch, cluster transport limit), even if the exact error text differs. When no fragment matches the family, note that explicitly and continue.
+3. **Tier 2 - graphify multi-scope.** Run graphify per "Scope selection" and "Tier 2 workflow" below. Every selected scope is queried to completion. Legal skip reasons (exhaustive): `no scope matched`; `<scope> not built / stale` (report build commands at end). All other skip reasons are hard violations, including "Tier 1 already answers this."
 
-   Fragments inform the analysis but do not stop the chain - continue to Tier 1.5 in all cases.
+4. **Tier 3 - Grep plus the Read tool on `upstream/<repo>/`.** Runs unconditionally. When Tier 2 scopes were missing or yielded nothing, Tier 3 is the primary code-investigation tool. State `Tier 3: <scope searched>`.
 
-2. **Tier 1.5 - grep on `upstream/docs/source/`.** For questions about config defaults, deployment posture, supported product surface area (database backends, OS, license tiers, supported versions), supported behavior, or admin-facing settings, run `grep -rn "<term>" upstream/docs/source/` before Tier 2. This is where documented defaults, env variable names, and System Console paths live. State `Tier 1.5: grep -rn "<term>" upstream/docs/source/` in the preamble. Skip only when the question is purely about code structure with no documented surface.
+### Tier 2 workflow
 
-   **Tier 1.5 also runs the docs graph for broad-concept questions.** When the question matches any keyword in `graphs/config.json#/repos/docs/keywords`, the docs scope is auto-routed via Tier 2 - no separate manual step. Order: grep first, then Tier 2 multi-scope (docs included when keywords match).
+**Log-error workflow (mandatory for every Tier 2 invocation, no skip):**
 
-3. **Tier 2 - graphify multi-scope.** Run graphify per "Scope selection" below. Every selected scope is queried to completion - no early stopping. Preamble must list scopes queried, e.g. `Tier 2: server bundle, <repo>, <bundle>`.
+1. **Extract symbols** and print them as a code block before the first `graphify explain`. Symbols: package-qualified types, RPC method names, plugin ids (`plugin_id=<name>`), error-wrapper strings, any identifier grep could pin to a file. When the log contains multiple independent failures, extract symbols only for the failure being triaged; note excluded chains with a one-line reason (e.g. `plugin_id=<other>: unrelated config error - independent`). When the question names symbols directly, emit the same block. Block form: `` ```\nSymbols extracted from log:\n- <symbol> (<type>)\n``` ``
 
-   **Log-error workflow (mandatory, no skip):**
+2. **Read god-nodes block** of `graphs/_bundles/server/graphify-out/GRAPH_REPORT.md` (~10 lines). Once per session; skip if already read. If any extracted symbol or plausible abstraction appears in the list, run `graphify explain <node>` on it. For broad-concept questions with no log and no named symbol, print `Symbols selected from god-node match: ...` and run `graphify explain` on the relevant nodes.
 
-   1. **Extract symbols** and print them as a code block before the first `graphify explain`. Symbols: package-qualified types, RPC method names, plugin ids (`plugin_id=<name>`), error-wrapper strings, any identifier grep could pin to a file. When the log contains multiple independent failures (different `plugin_id`, different error chains), extract symbols for the failure being triaged; note excluded chains with a one-line reason (e.g. `plugin_id=<other>: unrelated config error - independent`). When the question names symbols directly instead of providing a log, emit the same block from the question. Block form: `` ```\nSymbols extracted from log:\n- <symbol> (<type>)\n``` ``
+3. **Run `graphify explain <symbol>`** on the scope it likely belongs to (server bundle for RPC/driver symbols, per-repo for plugin-id-anchored). Run explain on every extracted symbol unconditionally. Tier 3 grep does not satisfy the explain obligation. When Tier 3 surfaces a function closer to the failure, add it and explain it before concluding.
 
-   2. **Read god-nodes block** of `graphs/_bundles/server/graphify-out/GRAPH_REPORT.md` (~10 lines). Unconditional first query per session; skip if already read this session. If any extracted symbol - or a plausible abstraction - appears in the list, run `graphify explain <node>` on it. For broad-concept questions with no log and no named symbol, after the god-nodes read print `Symbols selected from god-node match: ...` and run `graphify explain` on the relevant nodes.
+   After each successful `graphify explain`, run `graphify save-result --memory-dir <scope>/graphify-out/memory` (see Shell conventions "graphify CLI quirk"). Absence of `save-result` after a successful explain is a hard violation. Both must appear as visible Bash invocations.
 
-   3. **Run `graphify explain <symbol>`** on the scope it likely belongs to (server bundle for RPC/driver symbols, per-repo for plugin-id-anchored). Run explain on every extracted symbol unconditionally. Tier 3 grep does not satisfy the explain obligation. When Tier 3 surfaces a function closer to the failure than any extracted symbol, add it to the set and explain it before concluding.
+   Symbol-coverage table after all explain calls:
 
-      After each successful `graphify explain`, run `graphify save-result --memory-dir <scope>/graphify-out/memory` (see Shell conventions "graphify CLI quirk" for the exact form). Absence of a `save-result` after a successful `explain` is a hard violation. Both must appear as visible Bash invocations.
+   ```
+   Symbol coverage:
+   - <symbol>: explain run on <scope> (<degree or "no node">)
+   - <symbol>: skipped (no scope contains this symbol)
+   ```
 
-   3a. **Symbol-coverage table** after all explain calls:
+   One row per symbol; no collapsing. "Explain invoked, no node" is NOT a skip - record it as `explain run on <scope> (no matching node)`. `skipped (covered by sibling explain)` / `skipped (same package)` are NOT legal skip reasons.
 
-      ```
-      Symbol coverage:
-      - <symbol>: explain run on <scope> (<degree or "no node">)
-      - <symbol>: skipped (no scope contains this symbol)
-      ```
+4. **`graphify query`** - banned on raw log strings (noisy). For broad-concept questions where the user states "no specific symbol yet", `graphify query` with Step 0 vocab expansion (see "Skill compliance") is the required first traversal - routing through `explain`-only to avoid Step 0 is treated as a skipped Step 0. After any `graphify query`, run `graphify save-result`.
 
-      One row per symbol; no collapsing. "Explain invoked, no node" is NOT a skip - record it as `explain run on <scope> (no matching node)`. `skipped (covered by sibling explain)` / `skipped (same package)` are NOT legal skip reasons.
-
-   4. **`graphify query`** - banned on raw log strings (noisy). For broad-concept questions where the user states "no specific symbol yet", `graphify query` with Step 0 vocab expansion (see "Skill compliance") is the required first traversal - routing through `explain`-only to avoid Step 0 is treated as a skipped Step 0. After any `graphify query`, run `graphify save-result`.
-
-   Legal skip reasons (exhaustive): **Tier 2 only** - `no scope matched`; `<scope> not built / stale` (report build commands at end). **Tier 1.5 only** - `no documented surface` (pure code-structure questions). No other rationale is legal. Hard violations on parse: `skipped (fragment already supplies / Tier 1 answers / would not change the conclusion / I already know the answer)` or any unenumerated rationale. A preamble that asserts an illegal skip is treated identically to no preamble (hard violation). "Log-error workflow" is not a legal skip - the orientation read and per-symbol explain are mandatory.
-
-4. **Tier 3 - Grep plus the Read tool on `upstream/<repo>/`.** Reachable via a legal Tier-2 skip or when Tier 2 yielded nothing useful. State `Tier 3: <reason>`. Graphify-yielded-nothing is a valid reason.
+Hard violations: `skipped (fragment already supplies / Tier 1 answers / would not change the conclusion / I already know the answer)` or any unenumerated rationale. A preamble that asserts an illegal skip is treated identically to no preamble. "Log-error workflow" is not a legal skip - the orientation read and per-symbol explain are mandatory.
 
 ### Scope selection
 
-The scope list is computed once and queried in full. No scoring, no bundle-vs-repo trade-offs.
+The scope list is computed once and queried in full. No scoring, no early stopping.
 
-1. **Always query the server bundle** at `graphs/_bundles/server/graphify-out/graph.json`. It underlies almost every TSE ticket.
-2. **Plus every per-repo scope whose `keywords` array (in `graphs/config.json`) matches the question** (case-insensitive substring on question terms; tokenized repo name is a fallback - "github" hits `mattermost-plugin-github`). The `docs` repo's keywords are intentionally broad-concept-only (`high availability`, `scaling`, `disaster recovery`), so docs appears in the list only for conceptual-neighborhood lookups, not specific config-key questions.
-3. **Plus every non-server bundle that contains any matched per-repo scope as a member.** Membership is taken from `graphs/config.json#/bundles/<name>/repos`. Example: the keyword `rtcd` matches the `rtcd` per-repo scope; `rtcd` is a member of the `calls` bundle, so the `calls` bundle is added to the list too. A bundle with no matched members is not queried.
+1. **Always query the server bundle** at `graphs/_bundles/server/graphify-out/graph.json`.
+2. **Plus every per-repo scope** whose `keywords` array matches the question (case-insensitive substring; tokenized repo name is a fallback - "github" hits `mattermost-plugin-github`).
+3. **Plus every non-server bundle** containing any matched per-repo scope as a member (`graphs/config.json#/bundles/<name>/repos`). Bundles with no matched members are not queried.
 
-For purely conceptual questions with no per-repo keyword match, the server bundle alone is the expected scope. A scope list of just `server bundle` is not under-selection in that case - it is the algorithm's correct output.
+For purely conceptual questions with no per-repo keyword match, the server bundle alone is the correct scope - not under-selection.
 
-That is the full algorithm. Every selected scope is queried to completion; no early stopping. State the scopes actually queried, e.g. `Tier 2: server bundle, rtcd, calls bundle`.
+**Orientation:** before querying a scope for the first time this session, read its `GRAPH_REPORT.md` `## God Nodes` block (~10 lines). Skip if already read this session. Always pass an absolute `--graph` after the positional arg (see Shell conventions "graphify CLI quirk").
 
-After Tier 2 completes, re-emit the scope list reflecting what was actually queried:
+**Symbol-driven scope addition:** if symbol extraction yields a symbol pointing at a repo whose keywords didn't match, add that per-repo scope and re-apply step 3.
+
+After Tier 2 completes, re-emit the scope list:
 
 ```
 Tier 2 actually queried: <scope-list>.
 ```
 
-Any divergence from the opening-preamble scope list must be flagged inline as a deviation, with a reason. The opening preamble is a forecast; the closing reconciliation line is the audit trail. A response in which the opening preamble lists scopes that were never queried (even though `graphify explain` was run on the server bundle) is a fabrication and is treated as a hard violation distinct from a silent skip.
+Any divergence from the opening-preamble scope list must be flagged inline with a reason. The opening preamble is a forecast; the closing line is the audit trail.
 
-**Orientation:** before querying a scope for the first time this session, read its `GRAPH_REPORT.md` `## God Nodes` block (~10 lines). Skip if already read this session. Always pass an absolute `--graph` after the positional arg (see Shell conventions "graphify CLI quirk").
-
-**Symbol-driven scope addition:** during the log-error workflow, if symbol extraction yields a symbol that points at a repo whose keywords didn't match (e.g. a plugin id from a plugin not in the keyword hit list), add that per-repo scope to the list and re-apply step 3 (bundle-via-member cascade) over the augmented per-repo set.
-
-### Scope is not built or is stale
-
-If a scope's graph is missing (no `graphs/<repo>/graphify-out/graph.json` or `graphs/_bundles/<bundle>/graphify-out/graph.json`), skip it during Tier 2 and collect the missing scope. Do not interrupt mid-flow. At the end of the response, list missing scopes with exact build commands (`/graphify-build <repo>` for per-repo, `/graphify-build <bundle>` for a bundle).
-
-If `graphs/<repo>/.meta.json#ref` is older than `upstream/<repo>` HEAD, skip and flag the staleness alongside the build commands at the end.
-
-If Tier 2 ran but no scope yielded anything useful, fall through to Tier 3 and state that graphify did not deliver the answer.
+**Missing or stale scopes:** if a scope's graph is missing (no `graphs/<repo>/graphify-out/graph.json` or `graphs/_bundles/<bundle>/graphify-out/graph.json`), skip it and collect it. If `graphs/<repo>/.meta.json#ref` is older than `upstream/<repo>` HEAD, skip and flag staleness. Do not interrupt mid-flow. At the end of the response, list missing/stale scopes with exact build commands (`/graphify-build <repo>` for per-repo, `/graphify-build <bundle>` for a bundle). If Tier 2 ran but no scope yielded anything useful, note it and rely on Tier 3 as the primary source for this turn.
 
 ### Re-validation
 
@@ -279,15 +272,13 @@ A Re-validation line without a shell command and quoted output is treated as abs
 
 ### Skill compliance
 
-Defer to `~/.claude/skills/graphify/SKILL.md` for query-time mechanics. The project rules above govern WHEN and on WHICH scopes to run graphify; the skill governs HOW each invocation runs. Two skill requirements that the project rules above do not duplicate but DO inherit:
+Defer to `~/.claude/skills/graphify/SKILL.md` for query-time mechanics. The project rules above govern WHEN and on WHICH scopes to run graphify; the skill governs HOW each invocation runs. Two inherited requirements:
 
 1. **Step 0 - Constrained query expansion (required before `graphify query`).** Extract vocab from the target graph, pick ≤12 tokens that exist in vocab, print the selection, then build the expanded query string. Do not invent tokens. If no vocab tokens match, say so and skip the traversal for that scope. See `## For /graphify query` → `### Step 0` in SKILL.md. `graphify explain` does NOT require Step 0 and is preferred for symbol-anchored lookups from log-error workflows.
 
    Step 0 leaves an artefact: after a successful run, `graphs/<scope>/graphify-out/.vocab.txt` must exist on disk. An audit finding the file absent for a scope that received a `graphify query` is evidence Step 0 was skipped. In-memory vocab probing against a hardcoded candidate list does not satisfy this requirement.
 
-2. **`graphify save-result` after each explain/query/path.** Persists the Q&A back into the graph so the next `--update` adds it as a node. See the `save-result` invocation under each subcommand in SKILL.md. This is separate from `tickets/<ID>/analysis.md`; both should be written. For orientation-only god-node reads, save-result does not apply (no Q&A to save).
-
-   See "Tier 2 step 3" above for the inline per-tier obligation on `explain` calls (hard violation if missing). This subsection retains the save-result requirement for `graphify query` and `graphify path` invocations (same rule, applied wherever they appear).
+2. **`graphify save-result` after each explain/query/path.** Persists the Q&A back into the graph so the next `--update` adds it as a node. Not required for orientation-only god-node reads.
 
 ### Conclusion framing
 

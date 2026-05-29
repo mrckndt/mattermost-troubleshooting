@@ -77,7 +77,7 @@ claude
 ```
 
 Then inside Claude:
-- `/bootstrap` - clone all upstream repos under `upstream/` and create the working directories. Run `/graphify-build` afterwards to build knowledge graphs.
+- `/bootstrap` - clone all upstream repos under `upstream/` and create the working directories. Run `/graphify-build server` afterwards to build the server bundle knowledge graph.
 
 ### Working a ticket
 
