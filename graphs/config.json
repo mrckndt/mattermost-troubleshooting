@@ -109,6 +109,24 @@
         "source/integrations-guide"
       ]
     },
+    "mattermost-mobile": {
+      "scope": "subdirs",
+      "keywords": ["push notification", "react native", "iOS", "Android"],
+      "paths": [
+        "app/screens",
+        "app/components",
+        "app/products",
+        "app/database",
+        "app/client",
+        "app/actions",
+        "app/utils",
+        "app/hooks",
+        "libraries",
+        "types",
+        "ios",
+        "android"
+      ]
+    },
     "mattermost": {
       "scope": "subdirs",
       "keywords": ["system console", "config.json", "support packet", "MaxOpenConns", "MaxIdleConns", "WebSocket", "session", "channels api"],
