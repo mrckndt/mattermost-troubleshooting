@@ -26,8 +26,7 @@
       "Bash(pbcopy:*)",
       "Bash(clip.exe)",
       "Bash(clip.exe:*)",
-      "Bash(Set-Clipboard:*)",
-      "Bash(graphify query *)"
+      "Bash(Set-Clipboard:*)"
     ],
     "deny": [
       "Bash(git push:*)",

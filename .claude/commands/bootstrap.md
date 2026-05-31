@@ -12,7 +12,7 @@ Clone every repo listed below under `upstream/<name>/`. For each URL:
 
 Continue on errors; collect failures and surface them at the end.
 
-Ensure important working directories exist: `mkdir -p upstream tickets graphs graphs/_bundles`.
+Ensure important working directories exist: `mkdir -p upstream tickets`.
 
 Repos to bootstrap (alphabetical):
 
@@ -47,6 +47,5 @@ Report a Markdown table: `Repo | Result`, where `Result` is `already present`, `
 
 Notes:
 - Run each `git clone` as its own Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
-- This command does NOT pull or switch. Use `/git-pull` (pulls + cascades graph updates), `/git-switch <repo> <ref>` (pin to tag/branch), or `/graphify-update` (refresh graphs without touching git).
+- This command does NOT pull or switch. Use `/git-pull` or `/git-switch <repo> <ref>` (pin to tag/branch).
 - This file is the canonical repo list. `CLAUDE.md` and `README.md` reference it rather than duplicating URLs.
-- The graph build phase is independent of cloning; run `/graphify-build <selector>` to build graphs.
