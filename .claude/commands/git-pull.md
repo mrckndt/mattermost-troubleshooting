@@ -21,15 +21,6 @@ Report a Markdown table: `Repo | Branch | Pull`.
 
 After processing, mark each repo as fetched-this-session so the lazy-fetch policy in `CLAUDE.md` skips it later.
 
-If any row shows `Pull = updated <oldsha>..<newsha>`, print one final line listing the affected repos and the refresh options:
-
-```
-Graphs may now be stale for: <repo1>, <repo2>, ...
-- Run /graphify-update <repo> for a cheap code-only refresh (AST + re-label).
-- Run /graphify-build <repo> for a full rebuild if doc/non-code files changed.
-```
-
 Notes:
 - Run each git invocation as a separate Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
 - This command does NOT refresh tags. For new tags before `/git-switch`, run `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags` first.
-- This command does NOT touch graphs. Graph refresh is a deliberate user action via `/graphify-update` or `/graphify-build`.

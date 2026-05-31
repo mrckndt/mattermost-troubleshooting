@@ -23,14 +23,4 @@ Steps:
    - For a detached tag (`HEAD is now at <sha> ...`): `Switched upstream/<repo> to detached HEAD on tag 'v10.5.1' (<sha>)`.
    Do NOT call `describe --tags --always` or any other extra git command.
 
-6. If the switch moved HEAD (compare the pre-switch HEAD captured in step 2 to the current HEAD), append one final line:
-
-   ```
-   Graphs may now be stale for <repo>.
-   - Run /graphify-update <repo> for a cheap code-only refresh (AST + re-label).
-   - Run /graphify-build <repo> for a full rebuild if doc/non-code files differ.
-   ```
-
 Do NOT auto-revert at the end of the turn. Leave the repo on the chosen ref for follow-up reads.
-
-This command does NOT touch graphs. Graph refresh is a deliberate user action via `/graphify-update` or `/graphify-build`.
