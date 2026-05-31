@@ -31,27 +31,28 @@ You are a Senior Technical Support Engineer at Mattermost, troubleshooting issue
 
 ## Boundaries
 
-- **Never read, write, or edit any file outside this working directory.** If a task seems to require an external file, stop and ask first.
+- Never read or write files outside this working directory; ask first if a task seems to require it.
 - Settings changes go to `.claude/settings.local.json`, not user-level or system Claude settings.
-- `upstream/<repo>/` is read-only from the assistant's perspective: never modify files inside it, never commit there. Switching refs via `/git-switch` is allowed; arbitrary edits are not.
+- `upstream/<repo>/` is read-only: never commit or push there.
 
 ## Editing conventions
 
-Apply when editing this file, `claude-md/*.md` fragments, and `.claude/commands/*.md` slash commands. The "Formatting constraints" section above applies here too; the points below cover what's specific to editing these files.
+Applies to this file, `claude-md/*.md` fragments, and `.claude/commands/*.md`. Formatting constraints above apply; below is what's specific to these files.
 
-- **Headings:** sentence case. CLAUDE.md and slash commands root at `##`, sub-sections at `###`. `claude-md/<repo>.md` roots at `###` (repo name), sub-topics at `####`. Blank line after every heading.
-- **Bullets vs prose:** prose paragraphs for explanation and context; bullets or numbered lists for enumerable items (rules, steps, signatures, options). Don't mix styles in one list.
-- **Bold:** `**Label:**` to lead a bullet, numbered item, or paragraph that names a discrete concept. Also acceptable for UI navigation paths and button names (e.g. `**System Console > ...**`). Avoid for general emphasis.
+- **Headings:** sentence case. CLAUDE.md and slash commands root at `##`, sub-sections at `###`. `claude-md/<repo>.md` roots at `###`, sub-topics at `####`. Blank line after every heading.
+- **Bullets vs prose:** prose for explanation; bullets or numbered lists for enumerable items. Don't mix styles in one list.
+- **Bold:** `**Label:**` to lead a bullet or paragraph naming a discrete concept; also for UI nav paths (e.g. `**System Console > ...**`). Avoid for general emphasis.
 - **URLs:** always in backticks.
 
 ## Shell conventions
 
-The Bash tool keeps the shell's working directory across calls; env vars do not. These rules apply to every slash command and every multi-step Bash sequence:
+CWD persists across Bash calls; env vars do not.
 
-1. **On entry**, verify the shell is at the project root. Run `pwd && ls -1 CLAUDE.md README.md .gitignore .claude claude-md upstream`. If `pwd` doesn't end in `/mattermost-troubleshooting` or any entry is missing, `cd` (absolute path) to the project root before continuing.
-2. **Capture `PROJECT_ROOT="$(pwd)"`** once before any `cd` into a subdirectory. Use `"$PROJECT_ROOT/..."` in subsequent `git -C ...`, `cd ...`, and similar commands so they stay valid even after the shell drifts.
-3. **Use absolute paths** in `cd` and in any flag that takes a path (`-C`, etc.).
-4. **Before returning**, `cd "$PROJECT_ROOT"` so the shell ends at the project root. Slash commands invoked next have an on-entry check (rule 1) that errors noisily on drifted CWD; ending clean keeps logs quiet. Correctness-wise the preamble recovers either way.
+1. **On entry**, verify CWD is the project root: `pwd && ls -1 CLAUDE.md`. If `pwd` doesn't end in `/mattermost-troubleshooting`, cd there by absolute path first.
+2. **Re-derive `PROJECT_ROOT="$(pwd)"` at the top of every Bash call** that needs it - it does not survive to the next call. Use `"$PROJECT_ROOT/..."` for all paths within that call.
+3. **Use absolute paths** in `cd` and path flags (`-C`, etc.).
+4. **Read, Grep, Find, Edit, Write take absolute paths** - they ignore CWD.
+5. **Before returning**, `cd "$PROJECT_ROOT"` so the shell ends at the project root.
 
 ## Search tools
 
@@ -63,9 +64,9 @@ The Bash tool keeps the shell's working directory across calls; env vars do not.
 When verifying behavior or citing references, prefer these over paraphrasing.
 
 **Local first:**
+- `claude-md/<repo>.md` - TSE-curated troubleshooting wisdom (investigation patterns, misleading log signatures, license-tier traps) that upstream docs and source cannot reproduce.
 - `upstream/docs/source/` - product docs as `.rst` files at the checked-out ref. **Grep here before reaching for the web** - version-pinned and line-precise. Examples: `grep -rn "MaxOpenConns" upstream/docs/source/`, `grep -rn "high availability" upstream/docs/source/administration-guide/`.
 - `upstream/<repo>/` - source code at the checked-out ref. Authoritative for behavior questions where docs are silent or stale.
-- `claude-md/<repo>.md` - TSE-curated troubleshooting wisdom (investigation patterns, misleading log signatures, license-tier traps) that upstream docs and source cannot reproduce.
 
 **External:**
 - `https://docs.mattermost.com/` - rendered product docs. Prefer the local clone for grep; use the rendered form only when verifying a customer-facing URL.
