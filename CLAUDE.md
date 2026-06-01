@@ -54,8 +54,7 @@ CWD persists across Bash calls; env vars do not.
 
 ## Search tools
 
-- Prefer `fd` over `find` for path searches; fall back to `find` only when `fd` is unavailable or for predicates it does not support.
-- Prefer `rg` over `grep` for content searches; fall back to `grep` only when `rg` is unavailable or for predicates it does not support.
+Prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
 
 ## Authoritative sources
 
@@ -153,21 +152,21 @@ At every tier, use the Grep, Read, and Find tools, plus `rg`/`grep`/`fd`/`find` 
 Run in order on every troubleshooting turn. No early stopping; each tier produces a cited `path:line` (or "no matches") before the next runs.
 
 1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read every applicable fragment; cite any that match the ticket's symptom family (same cause-class, not the literal error string). Note when no fragment matches and continue.
-2. **Tier 2 - product and developer docs.** Search `upstream/docs/source/` (product docs, customer-facing) AND `upstream/mattermost-developer-documentation/site/content/` (developer docs, internal architecture and contributor guides). Both run unconditionally. Examples: `grep -rn "MaxOpenConns" upstream/docs/source/`, `rg "plugin manifest" upstream/mattermost-developer-documentation/site/content/`. No results is fine; the search still happened.
+2. **Tier 2 - product and developer docs.** Search `upstream/docs/source/` (product docs, customer-facing) AND `upstream/mattermost-developer-documentation/site/content/` (developer docs, internal architecture and contributor guides). Both run unconditionally. Examples: `grep -rn "MaxOpenConns" upstream/docs/source/`, `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`. No results is fine; the search still happened.
 3. **Tier 3 - source code.** Search the relevant `upstream/<repo>/`. When Tier 2 was silent, Tier 3 is the primary source.
 
 ### Re-validation
 
 Before forming a conclusion, run at least one query designed to **disprove** the leading hypothesis. If the hypothesis points to a missing/buggy code path, search for the expected fix in the customer's version: absent confirms, present refutes. Empty results are a signal to widen scope, not to conclude.
 
-Re-validation must produce a visible artefact: a real shell command (`rg`, `grep`, `git`) or Grep/Read/Find tool call plus at least one quoted output line (or "no matches"). Required format:
+Re-validation must produce a visible artefact: a real shell command (`rg`, `fd`, `grep`, `find`, `git`) or Grep/Read/Find tool call plus at least one quoted output line (or "no matches"). Required format:
 
 ```
 Re-validation: <hypothesis>; disproved by <command>:
   <quoted output or "no matches">.
 ```
 
-For code-location questions, use the "disprove absence of alternatives" form: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg -n '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits require disambiguation (e.g. struct vs interface).
+For code-location questions, use the "disprove absence of alternatives" form: `Re-validation: "no alternative definition of <X> exists"; disproved by \`grep -rn '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits require disambiguation (e.g. struct vs interface).
 
 ### Conclusion framing
 
