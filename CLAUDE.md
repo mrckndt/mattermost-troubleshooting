@@ -99,10 +99,8 @@ Maintain `tickets/<ID>/analysis.md` for every ticket. Highest-priority task - ab
 ## Timeline
 
 ## Artifacts reviewed
-- [ ] mattermost.log
-- [ ] config.json
-- [ ] Web search
-- [ ] Knowledge graph
+- [ ] (list specific files reviewed)
+- [ ] (list screenshots or images reviewed)
 
 ## Evidence collected
 
