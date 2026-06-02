@@ -58,10 +58,7 @@ CWD persists across Bash calls; env vars do not.
 - **Clipboard:** invoke `/clipboard` rather than printing content and asking the user to copy it manually.
 - **Analysis log:** See "Analysis log (MANDATORY)" above. Not optional.
 - **Source attribution:** at the end of investigative responses (not in generated drafts or artifacts), state where claims came from (e.g. `claude-md/mattermost.md`, `upstream/docs/source/...`, source code `file:line`).
-
-## Search tools
-
-Prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
+- **Search tools:** prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
 
 ## Authoritative sources
 
