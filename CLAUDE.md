@@ -59,39 +59,35 @@ Prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or pr
 
 ## Authoritative sources
 
-When verifying behavior or citing references, prefer these over paraphrasing.
-
-**Local first:**
-- `claude-md/<repo>.md` - TSE-curated troubleshooting wisdom (investigation patterns, misleading log signatures, license-tier traps) that upstream docs and source cannot reproduce.
-- `upstream/docs/source/` - product docs as `.rst` files at the checked-out ref. **Grep here before reaching for the web** - version-pinned and line-precise. Examples: `grep -rn "MaxOpenConns" upstream/docs/source/`, `grep -rn "high availability" upstream/docs/source/administration-guide/`.
-- `upstream/<repo>/` - source code at the checked-out ref. Authoritative for behavior questions where docs are silent or stale.
+**Local first (grep before web):**
+- `claude-md/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
+- `upstream/docs/source/` - version-pinned product docs (`.rst`). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`.
+- `upstream/<repo>/` - source code; authoritative when docs are silent or stale.
 
 **External:**
-- `https://docs.mattermost.com/` - rendered product docs. Prefer the local clone for grep; use the rendered form only when verifying a customer-facing URL.
-- `https://support.mattermost.com/` - KB articles (not in `upstream/`; WebFetch is useful here).
-- `https://github.com/mattermost/<repo>/issues` - bug reports and feature requests.
+- `https://docs.mattermost.com/` - rendered docs; use for customer-facing URLs only.
+- `https://support.mattermost.com/` - KB articles (WebFetch).
+- `https://github.com/mattermost/<repo>/issues` - bugs and feature requests.
 - `https://mattermost.atlassian.net/` - internal Jira (MM-XXXXX).
 
-**Citation rule:** customer-facing replies link to `docs.mattermost.com` or `support.mattermost.com`. Do not cite `upstream/...` paths or internal Jira URLs in customer-facing output.
+**Citation rule:** customer replies link to `docs.mattermost.com` or `support.mattermost.com` only; never `upstream/...` or Jira URLs.
 
 ## Ticket data
 
-Ticket files (logs, config dumps, support packets, screenshots) live under `./tickets/<name>/` (`<name>` can be a Zendesk ID, customer name, or any engineer-chosen identifier). Check that directory for relevant files before asking the engineer to paste content. If the folder is empty or missing, ask what files are available.
+Files (logs, config dumps, packets, screenshots) live under `./tickets/<name>/` (Zendesk ID, customer name, or any identifier). Check there before asking the engineer to paste. If empty or missing, ask what's available.
 
-Every ticket under `tickets/<ID>/` MUST have a maintained `analysis.md`. See "Analysis log (MANDATORY)" below - not optional, not a one-time setup.
+Every `tickets/<ID>/` MUST have a maintained `analysis.md` - see below.
 
 ## Analysis log (MANDATORY)
 
-Maintain `tickets/<ID>/analysis.md` for every ticket. This is the highest-priority side-effect of any ticket work, ranking above drafting replies, clipboard, or closing the loop.
+Maintain `tickets/<ID>/analysis.md` for every ticket. Highest-priority side-effect of any ticket work - above drafting replies, clipboard, or closing the loop.
 
-**When the rule fires:** any turn that references, reads, or discusses a `tickets/<ID>/` directory - including one-shot lookups, clipboard requests, and follow-up clarifications. No "too small to log" threshold. Fire on every new finding, hypothesis, customer response, or drafted reply.
-
-Also fires when: (a) a scenario is introduced as a customer-reported symptom (logs, error messages, "a customer is on...") and a `tickets/<ID>/` folder exists whose evidence matches the symptom family - the rule fires against that folder even without an explicit ID in the prompt; (b) a turn produces a finding that materially refines or disproves a hypothesis in a prior ticket's `analysis.md` (e.g. a commit hash that changes the historical narrative, a code path that disproves a "never-existed" claim) - update that ticket's `analysis.md` in the same turn regardless of whether the current turn touched that directory.
+**Fires on:** any turn that references, reads, or discusses a `tickets/<ID>/` directory (one-shot lookups, clipboard requests, follow-ups - no threshold). Also fires when a reported symptom matches a known ticket folder's evidence family, even without an explicit ID; and when a finding materially refines or disproves a hypothesis in any prior ticket's `analysis.md`.
 
 **How to apply:**
 
-1. On any ticket-touching turn, the first or last tool call must be a `Write`/`Edit` to `tickets/<ID>/analysis.md`. "I already answered the user" is not done until this file is current.
-2. Never defer to "next turn" or "after the customer replies" - stale-by-one-turn is a violation.
+1. First or last tool call on any ticket-touching turn must be `Write`/`Edit` to `tickets/<ID>/analysis.md`.
+2. Never defer - stale-by-one-turn is a violation.
 3. If the user says "skip the analysis log this time", honor it for that turn only.
 
 **Required sections** (create stubs even if empty):
@@ -110,34 +106,32 @@ Also fires when: (a) a scenario is introduced as a customer-reported symptom (lo
 
 ## Working with the cloned repos
 
-Repos under `upstream/<name>/` are read-only working trees. Keep them aligned with the ticket's version before quoting code or behavior. Prefer `/bootstrap`, `/git-pull`, and `/git-switch` over running git directly. If a repo is missing, run `/bootstrap`; the canonical list of repos and URLs is in `.claude/commands/bootstrap.md`.
+`upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap` (canonical list in `.claude/commands/bootstrap.md`).
 
 ### Lazy auto-refresh
 
-All `git -C` commands use `"$PROJECT_ROOT/..."` per Shell conventions above.
+All `git -C` commands use `"$PROJECT_ROOT/..."`. On first repo read per session: `fetch --tags --prune`, then `pull --ff-only` if safe. Track refreshed repos; don't refetch in the same session.
 
-On first read of a repo in a session: `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags --prune`, then `pull --ff-only` if safe. Track refreshed repos; don't refetch in the same session.
+Skip pull (still fetch) when:
+- Dirty working tree (`status -s` non-empty).
+- Detached HEAD (pinned via `/git-switch` - leave it).
+- No upstream branch (`rev-parse --abbrev-ref --symbolic-full-name @{u}` exits non-zero).
 
-Skip the pull (still fetch) when:
-- Dirty working tree (`git -C "$PROJECT_ROOT/upstream/<repo>" status -s` non-empty).
-- Detached HEAD (user pinned a tag via `/git-switch` - leave it pinned).
-- Local branch with no upstream (`git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref --symbolic-full-name @{u}` exits non-zero).
+Note why pull was skipped. On fetch/pull error (offline, auth), continue with local state and flag staleness.
 
-Note why a pull was skipped. If fetch or pull errors (offline, auth), continue with local state and flag staleness.
+### After `/git-switch`
 
-### Cross-turn behavior after `/git-switch`
-
-Leave the repo on the chosen ref after `/git-switch` - do not auto-revert. Always state which ref the code was read from.
+Leave repo on the chosen ref; do not auto-revert. Always state which ref the code was read from.
 
 ### Version-to-ref mapping
 
-- Releases: tagged `vMAJOR.MINOR.PATCH` (e.g. `v10.5.1`). Use the tag directly.
-- ESR labels (e.g. "ESR 10.11"): `git -C "$PROJECT_ROOT/upstream/<repo>" tag -l 'v10.11.*' | sort -V | tail -1`.
-- "Current main/master": `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD --short`.
+- Releases: `vMAJOR.MINOR.PATCH` tag directly.
+- ESR (e.g. "ESR 10.11"): `git -C "$PROJECT_ROOT/upstream/<repo>" tag -l 'v10.11.*' | sort -V | tail -1`.
+- Current main: `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD --short`.
 
-### Multi-version comparisons without switching
+### Multi-version comparisons
 
-Prefer log/diff against refs over checking out:
+Prefer log/diff over checkout:
 
 - `git -C "$PROJECT_ROOT/upstream/<repo>" log <refA>..<refB> -- <path>`
 - `git -C "$PROJECT_ROOT/upstream/<repo>" diff <refA> <refB> -- <path>`
