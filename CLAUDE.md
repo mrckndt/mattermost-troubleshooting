@@ -53,6 +53,12 @@ CWD persists across Bash calls; env vars do not.
 4. **Read, Grep, Find, Edit, Write take absolute paths** - they ignore CWD.
 5. **Before returning**, `cd "$PROJECT_ROOT"` so the shell ends at the project root.
 
+## Session behavior
+
+- **Clipboard:** invoke `/clipboard` rather than printing content and asking the user to copy it manually.
+- **Analysis log:** See "Analysis log (MANDATORY)" above. Not optional.
+- **Source attribution:** at the end of investigative responses (not in generated drafts or artifacts), state where claims came from (e.g. `claude-md/mattermost.md`, `upstream/docs/source/...`, source code `file:line`).
+
 ## Search tools
 
 Prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
@@ -99,10 +105,7 @@ Maintain `tickets/<ID>/analysis.md` for every ticket. Highest-priority side-effe
 - Open questions / next steps
 - Resolution (when closed)
 
-## Session behavior
 
-- **Clipboard:** invoke `/clipboard` rather than printing content and asking the user to copy it manually.
-- **Analysis log:** See "Analysis log (MANDATORY)" above. Not optional.
 
 ## Working with the cloned repos
 
