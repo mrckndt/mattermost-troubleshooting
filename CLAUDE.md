@@ -96,16 +96,45 @@ Maintain `tickets/<ID>/analysis.md` for every ticket. Highest-priority side-effe
 2. Never defer - stale-by-one-turn is a violation.
 3. If the user says "skip the analysis log this time", honor it for that turn only.
 
-**Required sections** (create stubs even if empty):
+**Template** (stubs if empty):
 
-- Issue summary and environment
-- Evidence collected
-- Hypotheses (ranked, with supporting evidence)
-- Steps taken and outcomes
-- Open questions / next steps
-- Resolution (when closed)
+```markdown
+# Ticket <ID> — Analysis
 
+## Deployment
+- Version:
+- Type: single-node | HA (<n> nodes)
+- Database:
+- Deployment method: (Docker / K8s / bare metal / unknown)
 
+## Timeline
+
+## Artifacts reviewed
+- [ ] mattermost.log
+- [ ] config.json
+- [ ] Web search
+- [ ] Knowledge graph
+
+## Evidence collected
+
+## Reported symptom
+
+## Correlation
+
+## Current hypothesis
+
+## Steps and outcomes
+
+## Ruled out
+
+## Open questions
+
+## Next steps
+
+## Resolution
+```
+
+Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-DD` before new findings.
 
 ## Working with the cloned repos
 
