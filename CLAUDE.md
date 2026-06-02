@@ -41,7 +41,7 @@ Applies to this file, `claude-md/*.md` fragments, and `.claude/commands/*.md`. F
 - **Bullets vs prose:** prose for explanation; bullets or numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead a bullet or paragraph naming a discrete concept; also for UI nav paths (e.g. `**System Console > ...**`). Avoid for general emphasis.
 - **URLs:** always in backticks.
-- **Density:** lines under 200 characters; drop articles and filler words.
+- **Density:** lines under 200 characters; cut redundancy, filler, and excess words; preserve meaning and structure.
 
 ## Shell conventions
 
