@@ -38,7 +38,7 @@ Applies to this file, `claude-md/*.md` fragments, and `.claude/commands/*.md`. F
 
 ## Shell conventions
 
-CWD persists across Bash calls; env vars do not. Always use absolute paths.
+CWD persists across Bash calls; env vars do not. Always use absolute paths. All `git -C` commands use `"$PROJECT_ROOT/..."`.
 
 1. **On entry:** verify CWD is project root (`pwd && ls -1 CLAUDE.md`); if not, cd there by absolute path.
 2. **Re-derive `PROJECT_ROOT="$(pwd)"` at top of every Bash call** that needs it (does not survive between calls). Use `"$PROJECT_ROOT/..."` for all paths within that call.
