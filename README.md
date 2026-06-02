@@ -15,6 +15,13 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
     └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
 ```
 
+## Recommended model and effort
+
+| Task | Model | Effort / thinking | Context |
+|---|---|---|---|
+| Working on project files (CLAUDE.md, fragments, commands) | Sonnet | >= high | standard, 1M if needed |
+| Ticket investigation | Opus | >= high | 1M |
+
 ## Setup
 
 ### Optional CLI tools
