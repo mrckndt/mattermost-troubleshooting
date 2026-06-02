@@ -167,10 +167,6 @@ Prefer log/diff over checkout:
 
 ## Investigation pipeline
 
-### Available tools
-
-At every tier, use the Grep, Read, and Find tools, plus `rg`/`grep`/`fd`/`find` via Bash. Pick whichever fits the question.
-
 ### Query order
 
 Run in order on every troubleshooting turn. No early stopping.
