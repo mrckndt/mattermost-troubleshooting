@@ -173,11 +173,20 @@ At every tier, use the Grep, Read, and Find tools, plus `rg`/`grep`/`fd`/`find` 
 
 ### Query order
 
-Run in order on every troubleshooting turn. No early stopping; each tier produces a cited `path:line` (or "no matches") before the next runs.
+Run in order on every troubleshooting turn. No early stopping.
 
-1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read every applicable fragment; cite any that match the ticket's symptom family (same cause-class, not the literal error string). Note when no fragment matches and continue.
-2. **Tier 2 - product and developer docs.** Search `upstream/docs/source/` (product docs, customer-facing) AND `upstream/mattermost-developer-documentation/site/content/` (developer docs, internal architecture and contributor guides). Both run unconditionally. Examples: `grep -rn "MaxOpenConns" upstream/docs/source/`, `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`. No results is fine; the search still happened.
-3. **Tier 3 - source code.** Search the relevant `upstream/<repo>/`. When Tier 2 was silent, Tier 3 is the primary source.
+1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read every applicable fragment.
+2. **Tier 2 - source code.**
+
+   **AppError → i18n key lookup.** Complete before interpreting; do not hypothesize from `<Where>` alone. `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the key, which is the precise call-site target.
+   1. Identify the server language from the log; check `ls upstream/mattermost/server/i18n/` and select the correct `<lang>.json`.
+   2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
+   3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for that key to find the exact call site.
+   - Zero matches: finding (likely plugin, Enterprise, or version drift); widen to those repos before forming hypotheses.
+
+   **General source search.** When no AppError log lines are present, search `upstream/<repo>/` directly - by config key, function name, feature area, or symptom keyword - using `rg`/`grep`/`fd`/Read/Find.
+
+3. **Tier 3 - product and developer docs.** Search `upstream/docs/source/` (product docs, customer-facing) AND `upstream/mattermost-developer-documentation/site/content/` (developer docs, internal architecture and contributor guides). Both run unconditionally. Examples: `grep -rn "MaxOpenConns" upstream/docs/source/`, `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`. No results is fine; the search still happened.
 
 ### Re-validation
 
