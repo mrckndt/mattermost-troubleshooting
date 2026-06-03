@@ -22,11 +22,11 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 | Working on project files (CLAUDE.md, fragments, commands) | Sonnet | >= high | standard, 1M if needed |
 | Ticket investigation | Opus | >= high | 1M |
 
-## Setup
+## Getting started
 
 ### Optional CLI tools
 
-The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep` when available. Falls back to the standard tools if they are not installed.
+The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Optional - if not installed, `find` and `grep` are used instead.
 
 **macOS:**
 ```
@@ -38,7 +38,26 @@ brew install fd ripgrep
 apt install fd-find ripgrep
 ```
 
-### Clone and start
+**Linux (Red Hat/Fedora):**
+```
+dnf install fd-find ripgrep
+```
+
+**Windows:**
+```
+winget install sharkdp.fd BurntSushi.ripgrep.MSVC
+```
+
+### GitHub SSH and enterprise repo access
+
+The `enterprise` repo is private. To access it:
+
+1. Add an SSH key to your GitHub account: [Adding a new SSH key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
+2. Authorize the key for SSO: [Authorizing an SSH key for use with SAML SSO](https://docs.github.com/en/enterprise-cloud@latest/authentication/authenticating-with-single-sign-on/authorizing-an-ssh-key-for-use-with-single-sign-on).
+
+`/bootstrap` will then clone `git@github.com:mattermost/enterprise` alongside the public repos. If SSH auth fails, it reports the error and continues.
+
+### First-time setup
 
 ```
 git clone git@github.com:mrckndt/mattermost-troubleshooting.git
@@ -47,7 +66,11 @@ claude
 ```
 
 Then inside Claude:
-- `/bootstrap` - clone all upstream repos under `upstream/` and create the working directories.
+```
+/bootstrap
+```
+
+This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
 
 ### Working a ticket
 
@@ -60,12 +83,12 @@ Then inside Claude:
    cp ~/Downloads/mattermost.log tickets/12345/
    cp ~/Downloads/support_packet.zip tickets/12345/ && unzip -d tickets/12345/ tickets/12345/support_packet.zip
    ```
-3. Open Claude Code from the **repo root**:
+3. Open Claude Code from the repo root:
    ```
    cd /path/to/mattermost-troubleshooting
    claude
    ```
-4. Pin the repo to the customer's version if needed: `/git-switch mattermost v10.5.1`.
+4. Pin repos to the customer's version if needed: `/git-switch mattermost v10.5.1`.
 5. Describe the issue or reference ticket files directly (`@tickets/12345/mattermost.log`). The agent checks `./tickets/` by default.
 6. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
@@ -100,6 +123,7 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs for most re
 ## TODO
 
 - [ ] Backfill `claude-md/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
-- [ ] Figure out the proper way to include private repos like `enterprise` (clone-time auth, agent visibility, what to commit vs. keep local).
 - [ ] Tune `.claude/settings.local.json` so it auto-allows the commands needed for normal workflows here but denies questionable ones - especially relevant in auto mode.
+- [ ] Migrate to provider-neutral layout: `CLAUDE.md` → `AGENTS.md`, `.claude/commands/<cmd>.md` → `.agents/skills/<cmd>/SKILL.md` (with `user-invocable: true`), `claude-md/` → `agents-md/` (or similar).
+- [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
 - [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
