@@ -16,6 +16,7 @@ Ensure important working directories exist: `mkdir -p upstream tickets`.
 
 Repos to bootstrap (alphabetical):
 
+- `git@github.com:mattermost/enterprise`
 - `https://github.com/mattermost/calls-offloader`
 - `https://github.com/mattermost/calls-recorder`
 - `https://github.com/mattermost/calls-transcriber`
