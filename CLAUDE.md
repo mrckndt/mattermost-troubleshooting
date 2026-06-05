@@ -157,20 +157,48 @@ Prefer log/diff over checkout:
 
 ## Investigation pipeline
 
+### Scope inference
+
+Before any tier, identify all repos and fragments relevant to the ticket. Judgment comes first (anything explicitly mentioned or implied by symptoms is in scope); the table below is a catch-up pass for non-obvious signal-to-repo mappings. This order is intentional: judgment-first prevents anchoring to the table and missing repos not listed.
+
+| Signal in ticket / logs | Repos / fragments |
+|---|---|
+| mobile, push notification, iOS, Android | `mattermost-mobile` |
+| desktop, Electron | `desktop` |
+| calls, RTCD, video, audio, meeting | `mattermost-plugin-calls`, `rtcd`, `calls-offloader`, `calls-recorder`, `calls-transcriber` |
+| Helm, Kubernetes, K8s | `mattermost-helm`, `mattermost-operator` |
+| Docker, Compose | `docker` |
+| Jira | `mattermost-plugin-jira` |
+| GitHub | `mattermost-plugin-github` |
+| GitLab | `mattermost-plugin-gitlab` |
+| MS Teams, Teams | `mattermost-plugin-msteams`, `mattermost-plugin-msteams-meetings` |
+| Zoom | `mattermost-plugin-zoom` |
+| Confluence | `mattermost-plugin-confluence` |
+| Playbooks | `mattermost-plugin-playbooks` |
+| Boards | `mattermost-plugin-boards` |
+| AI, Agents, Copilot | `mattermost-plugin-agents` |
+| Google Calendar | `mattermost-plugin-google-calendar` |
+| MS Calendar, Outlook | `mattermost-plugin-mscalendar` |
+| migration, migrate | `migration-assist` |
+| channel automation | `mattermost-plugin-channel-automation` |
+
 ### Query order
 
-Run in order on every turn. No early stopping.
+Run in order on every turn. No early stopping. Do not interpret or form hypotheses until all tiers are complete.
 
-1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read every applicable fragment.
+1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read fragments for all inferred repos.
 2. **Tier 2 - source code.**
 
-   **AppError → i18n key lookup.** Complete before interpreting; do not hypothesize from `<Where>` alone. `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the precise call-site key.
+   **Phase 1: AppError → i18n key lookup.** `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the precise call-site key.
+
    1. Identify server language from log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
    2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
    3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for the call site.
-   - Zero matches: finding (likely plugin, Enterprise, or version drift); widen before forming hypotheses.
 
-   **General source search.** When no AppError log lines are present, search `upstream/<repo>/` by config key, function name, feature area, or symptom keyword using `rg`/`grep`/`fd`/Read/Find.
+   **Phase 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
+   AppError i18n matches provide a direct, reliable call-site path; full source search gives the complete picture regardless.
+
+   4. Search all inferred repos by config key, function name, feature area, or symptom keyword using `rg`/`grep`/`fd`/Read/Find.
 
 3. **Tier 3 - product and developer docs.** Search both unconditionally:
    - `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
