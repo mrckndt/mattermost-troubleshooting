@@ -159,7 +159,7 @@ Prefer log/diff over checkout:
 
 ### Scope inference
 
-Before any tier, identify all repos and fragments relevant to the ticket. Judgment comes first (anything explicitly mentioned or implied by symptoms is in scope); the table below is a catch-up pass for non-obvious signal-to-repo mappings. This order is intentional: judgment-first prevents anchoring to the table and missing repos not listed.
+Before any tier, identify in-scope repos and fragments by judgment first (anything mentioned or implied by symptoms); the table below is a backstop for keywords and multi-repo families. Don't anchor to it - unlisted repos must still surface.
 
 | Signal in ticket / logs | Repos / fragments |
 |---|---|
