@@ -163,24 +163,29 @@ Before any tier, identify all repos and fragments relevant to the ticket. Judgme
 
 | Signal in ticket / logs | Repos / fragments |
 |---|---|
-| mobile, push notification, iOS, Android | `mattermost-mobile` |
-| desktop, Electron | `desktop` |
-| calls, RTCD, video, audio, meeting | `mattermost-plugin-calls`, `rtcd`, `calls-offloader`, `calls-recorder`, `calls-transcriber` |
-| Helm, Kubernetes, K8s | `mattermost-helm`, `mattermost-operator` |
-| Docker, Compose | `docker` |
-| Jira | `mattermost-plugin-jira` |
-| GitHub | `mattermost-plugin-github` |
-| GitLab | `mattermost-plugin-gitlab` |
-| MS Teams, Teams | `mattermost-plugin-msteams`, `mattermost-plugin-msteams-meetings` |
-| Zoom | `mattermost-plugin-zoom` |
+| mobile, push notification, iOS, Android, React Native, push proxy, TestFlight, self-signed certificate | `mattermost-mobile` |
+| desktop, Electron, macOS, Windows, server tab, multiple servers, deep link | `desktop` |
+| calls, voice call, video call, screen share, WebRTC, ICE, STUN, TURN, SFU, ice_port, ice_host_override, RTCD | `mattermost-plugin-calls`, `rtcd` |
+| call recording, recorder | `calls-recorder`, `calls-offloader` |
+| call transcription, transcriber, live captions | `calls-transcriber`, `calls-offloader` |
+| job_service_url, offloader, port 4545, air-gapped | `calls-offloader` |
+| Helm, Helm chart, ingress | `mattermost-helm`, `mattermost-operator` |
+| Kubernetes, K8s, operator, CRD, ClusterInstallation | `mattermost-operator`, `mattermost-helm` |
+| Docker, docker-compose, Compose | `docker` |
+| Jira, /jira, JiraBot, Application Link | `mattermost-plugin-jira` |
+| GitHub, /github, pull request, GitHub webhook | `mattermost-plugin-github` |
+| GitLab, /gitlab, merge request, MR, pipeline | `mattermost-plugin-gitlab` |
+| MS Teams, Teams sync, Teams notifications | `mattermost-plugin-msteams` |
+| Teams meeting, video call | `mattermost-plugin-msteams-meetings` |
+| Zoom, Zoom meeting | `mattermost-plugin-zoom` |
 | Confluence | `mattermost-plugin-confluence` |
-| Playbooks | `mattermost-plugin-playbooks` |
-| Boards | `mattermost-plugin-boards` |
-| AI, Agents, Copilot | `mattermost-plugin-agents` |
-| Google Calendar | `mattermost-plugin-google-calendar` |
-| MS Calendar, Outlook | `mattermost-plugin-mscalendar` |
-| migration, migrate | `migration-assist` |
-| channel automation | `mattermost-plugin-channel-automation` |
+| Playbooks, incident, runbook, /playbook | `mattermost-plugin-playbooks` |
+| Boards, Focalboard, kanban | `mattermost-plugin-boards` |
+| AI, Agents, Copilot, LLM, OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, Ollama, MCP, pgvector | `mattermost-plugin-agents` |
+| Google Calendar, GCal, event reminder, /agenda | `mattermost-plugin-google-calendar` |
+| MS Calendar, Outlook, Outlook Calendar | `mattermost-plugin-mscalendar` |
+| migration, migrate, MySQL to PostgreSQL, pgLoader | `migration-assist` |
+| channel automation, automation workflow, trigger, scheduled automation | `mattermost-plugin-channel-automation` |
 
 ### Query order
 
