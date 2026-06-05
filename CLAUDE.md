@@ -163,29 +163,25 @@ Before any tier, identify all repos and fragments relevant to the ticket. Judgme
 
 | Signal in ticket / logs | Repos / fragments |
 |---|---|
-| mobile, push notification, iOS, Android, React Native, push proxy, TestFlight, self-signed certificate | `mattermost-mobile` |
-| desktop, Electron, macOS, Windows, server tab, multiple servers, deep link | `desktop` |
-| calls, voice call, video call, screen share, WebRTC, ICE, STUN, TURN, SFU, ice_port, ice_host_override, RTCD | `mattermost-plugin-calls`, `rtcd` |
-| call recording, recorder | `calls-recorder`, `calls-offloader` |
-| call transcription, transcriber, live captions | `calls-transcriber`, `calls-offloader` |
-| job_service_url, offloader, port 4545, air-gapped | `calls-offloader` |
-| Helm, Helm chart, ingress | `mattermost-helm`, `mattermost-operator` |
-| Kubernetes, K8s, operator, CRD, ClusterInstallation | `mattermost-operator`, `mattermost-helm` |
-| Docker, docker-compose, Compose | `docker` |
-| Jira, /jira, JiraBot, Application Link | `mattermost-plugin-jira` |
-| GitHub, /github, pull request, GitHub webhook | `mattermost-plugin-github` |
-| GitLab, /gitlab, merge request, MR, pipeline | `mattermost-plugin-gitlab` |
-| MS Teams, Teams sync, Teams notifications | `mattermost-plugin-msteams` |
-| Teams meeting, video call | `mattermost-plugin-msteams-meetings` |
-| Zoom, Zoom meeting | `mattermost-plugin-zoom` |
-| Confluence | `mattermost-plugin-confluence` |
-| Playbooks, incident, runbook, /playbook | `mattermost-plugin-playbooks` |
-| Boards, Focalboard, kanban | `mattermost-plugin-boards` |
-| AI, Agents, Copilot, LLM, OpenAI, Anthropic, Azure OpenAI, AWS Bedrock, Ollama, MCP, pgvector | `mattermost-plugin-agents` |
-| Google Calendar, GCal, event reminder, /agenda | `mattermost-plugin-google-calendar` |
-| MS Calendar, Outlook, Outlook Calendar | `mattermost-plugin-mscalendar` |
-| migration, migrate, MySQL to PostgreSQL, pgLoader | `migration-assist` |
-| channel automation, automation workflow, trigger, scheduled automation | `mattermost-plugin-channel-automation` |
+| desktop, Electron, macOS, Windows, Linux, server tab, deep link, GPO, MDM, Group Policy | `desktop` |
+| Docker, docker-compose | `docker` |
+| mobile, push notification, iOS, Android, React Native, push proxy, TestFlight, certificate pinning, WatermelonDB, MPNS | `mattermost-mobile` |
+| Helm, opertator, ingress, MinIO, Kubernetes, K8s, EKS, CRD, Cluster | `mattermost-operator`, `mattermost-helm` |
+| AI, Agents, Copilot, LLM, OpenAI, Anthropic, AWS Bedrock, Google Gemini, Ollama, MCP, pgvector, semantic search, RAG | `mattermost-plugin-agents` |
+| Boards, Focalboard, kanban, tasks | `mattermost-plugin-boards` |
+| calls, meeting, voice calling, screen sharing, WebRTC, ICE, STUN, TURN, SFU, NAT, TURN credentials, IPv6, packet loss, RTCD, recording, transcription, transcript, job service, recording job, transcribing job, ffmpeg, Chromium, Xvfb | `mattermost-plugin-calls`, `rtcd`, `calls-offloader`, `calls-recorder`, `calls-transcriber` |
+| channel automation, flow, workflow, trigger, schedule | `mattermost-plugin-channel-automation` |
+| Confluence, wiki, pages | `mattermost-plugin-confluence` |
+| GitHub, notifications, repo subscription | `mattermost-plugin-github` |
+| GitLab, notifications | `mattermost-plugin-gitlab` |
+| Google Calendar, GCal, event reminder | `mattermost-plugin-google-calendar` |
+| Jira, channel subscription, webhook, notifications | `mattermost-plugin-jira` |
+| MS Calendar, Outlook, event reminder | `mattermost-plugin-mscalendar` |
+| MS Teams, Teams sync  | `mattermost-plugin-msteams` |
+| Teams, meeting, video calls, screen sharing | `mattermost-plugin-msteams-meetings` |
+| Playbooks, incident, runs, retrospective, workflow | `mattermost-plugin-playbooks` |
+| Zoom, meeting, video calls, screen sharing | `mattermost-plugin-zoom` |
+| migration, MySQL to PostgreSQL, pgLoader, tsvector | `migration-assist` |
 
 ### Query order
 
