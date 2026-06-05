@@ -222,6 +222,7 @@ Imported here so they load automatically and stay outside repo folders; covers w
 @claude-md/mattermost-plugin-agents.md
 @claude-md/mattermost-plugin-boards.md
 @claude-md/mattermost-plugin-channel-automation.md
+@claude-md/mattermost-plugin-confluence.md
 @claude-md/mattermost-plugin-github.md
 @claude-md/mattermost-plugin-gitlab.md
 @claude-md/mattermost-plugin-google-calendar.md

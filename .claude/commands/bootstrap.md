@@ -32,6 +32,7 @@ Repos to bootstrap (alphabetical):
 - `https://github.com/mattermost/mattermost-plugin-boards`
 - `https://github.com/mattermost/mattermost-plugin-calls`
 - `https://github.com/mattermost/mattermost-plugin-channel-automation`
+- `https://github.com/mattermost/mattermost-plugin-confluence`
 - `https://github.com/mattermost/mattermost-plugin-github`
 - `https://github.com/mattermost/mattermost-plugin-gitlab`
 - `https://github.com/mattermost/mattermost-plugin-google-calendar`
