@@ -92,7 +92,7 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 
 | Task | Model | Effort / thinking | Context |
 |---|---|---|---|
-| Working on project files (CLAUDE.md, fragments, commands) | Sonnet | >= high | standard, 1M if needed |
+| Working on project files (CLAUDE.md, fragments, commands) | Sonnet | high | standard, 1M if needed |
 | Ticket investigation | Opus | >= high | 1M |
 
 ## Slash commands
