@@ -127,3 +127,4 @@ The `claude-md/<repo>.md` files on this branch are header-only stubs for most re
 - [ ] Migrate to provider-neutral layout: `CLAUDE.md` → `AGENTS.md`, `.claude/commands/<cmd>.md` → `.agents/skills/<cmd>/SKILL.md` (with `user-invocable: true`), `claude-md/` → `agents-md/` (or similar).
 - [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
 - [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
+- [ ] Update `/feature-request` slash command from the upstream `techsupport-agent` version.
