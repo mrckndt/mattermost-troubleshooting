@@ -138,27 +138,6 @@ Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-D
 
 `upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap`.
 
-### Lazy auto-refresh
-
-On first repo read per session: `fetch --tags --prune`, then `pull --ff-only` if safe. Track refreshed repos; don't refetch in the same session.
-
-Skip pull (still fetch) when:
-- Dirty working tree (`status -s` non-empty)
-- Detached HEAD (pinned via `/git-switch`; leave it)
-- No upstream branch (`rev-parse --abbrev-ref --symbolic-full-name @{u}` exits non-zero)
-
-Note why pull was skipped. On fetch/pull error (offline, auth), continue with local state and flag staleness.
-
-### After `/git-switch`
-
-Leave repo on the chosen ref. Always state which ref code was read from.
-
-### Version-to-ref mapping
-
-- Releases: `vMAJOR.MINOR.PATCH` tag
-- ESR (e.g. "ESR 10.11"): `git -C "$PROJECT_ROOT/upstream/<repo>" tag -l 'v10.11.*' | sort -V | tail -1`
-- Current main: `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD --short`
-
 ### Multi-version comparisons
 
 Prefer log/diff over checkout:
@@ -212,13 +191,20 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 - `tickets/<ID>/mattermost.log` - `"Installing extracted plugin"` line per `plugin_id`
 
 **Align repos:**
+
+For `mattermost` and `enterprise`: release branches are `release-X.Y`; patch tags are `vX.Y.Z`. Ref resolution:
+- Exact version known: `vX.Y.Z` tag
+- Minor version only: `release-X.Y` branch; a pulled branch reflects the latest patch
+- Current main: `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD --short`
+
 1. For each in-scope repo, check current ref:
    ```
    git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || \
      git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD
    ```
-2. If the ref does not match the customer's version tag, run `/git-switch <repo> <tag>` before proceeding to Tier 2. After the investigation completes, state which version(s) the analysis was run against (mirroring the unknown-version footer).
-3. If already on the correct ref, no action needed.
+2. If the ref does not match the customer's version, run `/git-switch <repo> <ref>`.
+3. Run `/git-pull` if on a branch; skip if on a tag (detached HEAD - tags are immutable).
+4. After the investigation completes, state which version(s) the analysis was run against (mirroring the unknown-version footer).
 
 **Unknown version:** stay on the current ref and proceed. After the investigation completes, state: "Server version unknown; analysis run against `<current-ref>`." Ask whether to re-run against a specific version or `main`. Apply the same note for any plugin repos in scope.
 
