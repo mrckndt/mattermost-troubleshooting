@@ -75,17 +75,30 @@ Every `tickets/<ID>/` MUST have a maintained `analysis.md`.
 
 ## Analysis log (MANDATORY)
 
-Maintain `tickets/<ID>/analysis.md` for every ticket. Highest-priority task - above drafting replies, clipboard, or closing the loop.
+Maintain two files per ticket. Highest-priority task - above drafting replies, clipboard, or closing the loop.
 
-**Fires on:** any turn that references, reads, or discusses a `tickets/<ID>/` directory (lookups, clipboard, follow-ups); when a symptom matches a known ticket folder's evidence family; or when a finding refines or disproves a hypothesis in any prior ticket's `analysis.md`.
+- `tickets/<ID>/analysis.md` - live current-state view; key sections always reflect the latest understanding.
+- `tickets/<ID>/analysis-full.md` - append-only chronological record; never overwrite.
+
+**Fires on:** any turn that references, reads, or discusses a `tickets/<ID>/` directory (lookups, clipboard, follow-ups); when a symptom matches a known ticket folder's evidence family; or when a finding refines or disproves a hypothesis in any prior ticket's analysis files.
 
 **How to apply:**
 
-1. First or last tool call on any ticket-touching turn must be `Write`/`Edit` to `tickets/<ID>/analysis.md`.
+1. First or last tool calls on any ticket-touching turn must be `Write`/`Edit` to both files.
 2. Never defer - stale-by-one-turn is a violation.
 3. Honor "skip the analysis log this time" for that turn only.
 
-**Template** (stubs if empty):
+**`analysis.md` maintenance (live view):**
+
+- **Replace in place:** Current hypothesis (move superseded entries to Ruled out with a brief reason), Correlation, Open questions (remove answered; add new), Next steps (replace; don't accumulate stale items).
+- **Never delete:** Ruled out entries; only add.
+- **Append:** Artifacts reviewed, Evidence collected, Steps and outcomes, Deployment facts as they are confirmed.
+
+**`analysis-full.md` maintenance (chronological log):**
+
+Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-DD` before new findings.
+
+**Template** (stubs if empty; use for both files on creation):
 
 ```markdown
 # Ticket <ID> — Analysis
@@ -120,8 +133,6 @@ Maintain `tickets/<ID>/analysis.md` for every ticket. Highest-priority task - ab
 
 ## Resolution
 ```
-
-Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-DD` before new findings.
 
 ## Working with the cloned repos
 
