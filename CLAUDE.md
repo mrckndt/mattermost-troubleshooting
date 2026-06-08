@@ -194,6 +194,34 @@ Before any tier, identify in-scope repos and fragments by judgment first (anythi
 | Zoom, meeting, video calls, screen sharing | `mattermost-plugin-zoom` |
 | migration, MySQL to PostgreSQL, pgLoader, tsvector | `migration-assist` |
 
+### Version alignment
+
+Before Tier 2 source reads, verify each in-scope repo is on the customer's version.
+
+When reading `mattermost.log`, always use the bottom-most matching entry; the log is append-only and upgrades and node restarts produce multiple identical-looking startup lines.
+
+**Detect server version** (check in order; stop at first hit):
+1. `tickets/<ID>/diagnostics.yaml` - `server.version` field
+2. `tickets/<ID>/metadata.yml` - `server_version` field
+3. `tickets/<ID>/mattermost.log` - line matching `"Current version is X.Y.Z"`
+4. `tickets/<ID>/analysis.md` - `## Deployment` section
+5. Conversation context or other ticket files
+
+**Detect plugin versions** (when plugins are in scope):
+- `tickets/<ID>/plugins.json` - `version` field per plugin entry
+- `tickets/<ID>/mattermost.log` - `"Installing extracted plugin"` line per `plugin_id`
+
+**Align repos:**
+1. For each in-scope repo, check current ref:
+   ```
+   git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || \
+     git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD
+   ```
+2. If the ref does not match the customer's version tag, run `/git-switch <repo> <tag>` before proceeding to Tier 2. After the investigation completes, state which version(s) the analysis was run against (mirroring the unknown-version footer).
+3. If already on the correct ref, no action needed.
+
+**Unknown version:** stay on the current ref and proceed. After the investigation completes, state: "Server version unknown; analysis run against `<current-ref>`." Ask whether to re-run against a specific version or `main`. Apply the same note for any plugin repos in scope.
+
 ### Query order
 
 Run in order on every turn. No early stopping. Do not interpret or form hypotheses until all tiers are complete.
