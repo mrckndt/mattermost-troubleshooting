@@ -34,7 +34,7 @@ Applies to this file, `claude-md/*.md` fragments, and `.claude/commands/*.md`. F
 - **Headings:** sentence case; CLAUDE.md and slash commands at `##`, sub-sections at `###`; `claude-md/<repo>.md` at `###`, sub-topics at `####`; blank line after each.
 - **Bullets vs prose:** prose for explanation; bullets/numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead bullets/paragraphs naming concepts or UI paths (e.g. `**System Console > ...**`); avoid general emphasis.
-- **Density:** lines under 200 characters; cut redundancy, filler, and excess words; preserve meaning and structure.
+- **Density:** lines under 160 characters; cut redundancy, filler, and excess words. If a sentence grows long, break it into bullets instead.
 
 ## Shell conventions
 
