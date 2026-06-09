@@ -36,9 +36,9 @@ apt install fd-find ripgrep
 dnf install fd-find ripgrep
 ```
 
-**Windows:**
+**Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
 ```
-winget install sharkdp.fd BurntSushi.ripgrep.MSVC
+winget install Microsoft.WSL
 ```
 
 ### GitHub SSH and enterprise repo access
