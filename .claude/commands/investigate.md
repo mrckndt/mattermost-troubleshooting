@@ -9,6 +9,9 @@ Args: $ARGUMENTS
 
 **Complete each phase in order. Do not skip ahead, form hypotheses, or run source searches until the phase explicitly permits it.**
 
+- No hypotheses until Phase 1's inventory output (severity table, distinct-msg sweep, error-families list) is in the conversation.
+- After any Tier 2 hit, re-check the error-families list for unexplained entries before narrowing.
+
 ## Phase 0 - Setup and argument resolution
 
 Determine mode:
@@ -33,6 +36,20 @@ ls -lh tickets/<ID>/
 - Files 500 KB and above: read head (first 500 lines) + tail (last 500 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
 Do not begin scope inference until all files have been inventoried this way.
+
+### Inventory output (required)
+
+For every log file in `tickets/<ID>/`, emit a fenced block containing:
+
+- **Path and size**
+- **Severity counts** (one row per pattern; use `rg -c -e <pattern>` so zero counts still print):
+  - `error`, `warn`, `fatal`, `crash`, `panic`, `exception`, `failed`, `timeout`, `denied`, `disabled`, `unauthorized`, `invalid`
+- **Distinct messages:** `rg -o '"msg":"[^"]+"' <file> | sort -u | head -50`. Non-JSON logs: swap for `level=<level> msg="<text>"`.
+- **First/last error window:** timestamps of the first and last `level=error` line.
+
+After the per-file blocks, emit a combined **error families** list: distinct error-level `msg` values across all log files, deduped.
+
+**Rule:** Phase 2 cannot start until this inventory output is in the conversation. No in-scope repos or hypotheses before that point.
 
 Complete this phase before proceeding.
 
@@ -79,7 +96,8 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 
 **Detect plugin versions** (when plugins are in scope):
 - `tickets/<ID>/plugins.json` - `version` field per plugin entry
-- `tickets/<ID>/mattermost.log` - `"Installing extracted plugin"` line per `plugin_id`
+- `tickets/<ID>/mattermost.log` - bottom-most `"Installing extracted plugin"` line per `plugin_id`. Earlier installs were superseded by upgrades or rollbacks.
+- Example: `rg "Installing extracted plugin" mattermost.log | rg <plugin_id> | tail -1`
 
 **Align repos:**
 
@@ -129,19 +147,31 @@ AppError i18n matches provide a direct, reliable call-site path; full source sea
 
 Complete this tier before proceeding.
 
-### Tier 3 - product and developer docs
+### Tier 3 - product docs, developer docs, upstream issues
 
-Search both unconditionally:
+Search all three unconditionally:
 - `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
 - `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
+- `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`. Emit the search URL and top result titles + numbers.
+
+If the issues search cannot run (offline, WebFetch fails), state `upstream issues check skipped: <reason>` in the conclusion. Do not omit silently.
 
 Complete this tier before proceeding.
 
 ## Phase 5 - Re-validation
 
-Before concluding, run a query to **disprove** the leading hypothesis. If it points to a missing/buggy code path, search for the expected fix in the customer's version: absent confirms, present refutes.
+Phase 6 is blocked until the leading hypothesis **and at least two named alternatives** each have a visible disprove artefact.
 
-Re-validation must produce a visible artefact: a shell command (`rg`, `fd`, `grep`, `find`, `git`) or Grep/Read/Find tool call plus at least one quoted output line (or "no matches"):
+**Leading hypothesis.** Run a query to disprove it.
+
+- For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
+
+**Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.
+
+- Examples: permissions, license tier, a separate config flag, a different code path.
+- No strawmen.
+
+Each hypothesis produces an artefact: shell command (`rg`, `fd`, `grep`, `find`, `git`) or Grep/Read/Find call plus a quoted output line (or `no matches`):
 
 ```
 Re-validation: <hypothesis>; disproved by <command>:
@@ -158,6 +188,13 @@ When a customer config issue intersects an upstream defect, state BOTH:
 - **Upstream bug surface:** code-level defect with `file:line` and conditions under which it affects other deployments.
 
 Config-only answer when a defect was found is a framing violation. If no defect found, state: "No upstream defect identified - configuration is out of contract."
+
+**Fragment opportunity (mandatory check).** For each in-scope repo, check whether `claude-md/<repo>.md` exists.
+
+- **Missing fragment:** state `Fragment opportunity: claude-md/<repo>.md`.
+  - List 1-3 reusable patterns from this ticket that belong in it; each with `file:line` or a quoted log line.
+  - Offer to create in a follow-up turn; do not auto-create.
+- **Fragment exists, pattern not yet captured:** state `Fragment update opportunity: claude-md/<repo>.md - <section>` with supporting evidence.
 
 ## Phase 7 - Analysis log (MANDATORY)
 
