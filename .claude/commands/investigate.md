@@ -29,8 +29,8 @@ Before scope inference, list every file in `tickets/<ID>/` with sizes, then read
 ls -lh tickets/<ID>/
 ```
 
-- Files under 50 KB: read in full.
-- Files 50 KB and above: read head (first 100 lines) + tail (last 100 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
+- Files under 500 KB: read in full.
+- Files 500 KB and above: read head (first 500 lines) + tail (last 500 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
 Do not begin scope inference until all files have been inventoried this way.
 
