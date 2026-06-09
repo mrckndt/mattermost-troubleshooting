@@ -1,5 +1,5 @@
 ---
-description: Copy content to the OS clipboard via the platform-appropriate CLI (pbcopy / Set-Clipboard / wl-copy).
+description: Copy content to the OS clipboard via the platform-appropriate CLI (pbcopy / Set-Clipboard / clip.exe / wl-copy).
 argument-hint: [content or description of what to copy]
 ---
 
@@ -28,11 +28,16 @@ Copy content to the user's clipboard via the OS-appropriate CLI rather than prin
    EOF
    ```
 
-   **Linux** (`uname -s` = `Linux`) - same shell syntax as macOS but pipe into `wl-copy` (from the `wl-clipboard` package). Prefer `wl-copy` over `xclip`/`xsel` even when both are installed.
+   **Linux** (`uname -s` = `Linux`) - check for WSL first (`grep -qi microsoft /proc/version 2>/dev/null`).
 
-   ```
-   printf '%s' "<content>" | wl-copy
-   ```
+   - **WSL:** use `clip.exe` (always available; copies to the Windows clipboard).
+     ```
+     printf '%s' "<content>" | clip.exe
+     ```
+   - **Native Linux:** prefer `wl-copy` (Wayland); fall back to `xclip` or `xsel` if `wl-copy` is unavailable or the session is X11.
+     ```
+     printf '%s' "<content>" | wl-copy
+     ```
 
    **Windows** (`OS` = `Windows_NT`) - use PowerShell, not POSIX shell. `printf` and `<<'EOF'` heredocs are not available. For single-line content:
 
