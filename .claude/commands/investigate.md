@@ -164,7 +164,7 @@ Config-only answer when a defect was found is a framing violation. If no defect 
 Maintain two files per ticket. Highest-priority task - above drafting replies, clipboard, or closing the loop.
 
 - `tickets/<ID>/analysis.md` - live current-state view; key sections always reflect the latest understanding.
-- `tickets/<ID>/analysis-full.md` - append-only chronological record; never overwrite.
+- `tickets/<ID>/analysis-full.md` - append-driven current-state view; same content as analysis.md, but sections are kept current by appending, not editing in place.
 
 **Fires on:** any turn that references, reads, or discusses a `tickets/<ID>/` directory (lookups, clipboard, follow-ups); when a symptom matches a known ticket folder's evidence family; or when a finding refines or disproves a hypothesis in any prior ticket's analysis files.
 
@@ -181,7 +181,8 @@ Maintain two files per ticket. Highest-priority task - above drafting replies, c
 
 **`analysis-full.md` maintenance (chronological log):**
 
-Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-DD`, then append only the sections that changed or gained new content that session using the same template section names.
+Session 1 (creation): both files start identical - same template, same content.
+Subsequent sessions: add `---` and `## Session YYYY-MM-DD`, then re-append each section that changed with its full current content (same section names as the template). The bottom-most instance of any section is always the authoritative current state. Never edit earlier entries.
 
 ---
 
