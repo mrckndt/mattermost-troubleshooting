@@ -11,7 +11,7 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 ├── upstream/                # Local clones, one directory per upstream repo
 ├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 └── .claude/
-    ├── commands/            # /bootstrap, /git-pull, /git-switch, /draft-reply, /kb-article, /feature-request, /clipboard
+    ├── commands/            # /investigate, /bootstrap, /git-pull, /git-switch, /draft-reply, /kb-article, /feature-request, /clipboard
     └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
 ```
 
@@ -82,7 +82,7 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
    claude
    ```
 4. Pin repos to the customer's version if needed: `/git-switch mattermost v10.5.1`.
-5. Describe the issue or reference ticket files directly (`@tickets/12345/mattermost.log`). The agent checks `./tickets/` by default.
+5. Run the investigation pipeline: `/investigate 12345`. This reads all ticket files, infers scope, aligns repos to the customer's version, searches fragments/source/docs in order, re-validates the hypothesis, and maintains `tickets/12345/analysis.md`.
 6. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
@@ -96,6 +96,10 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 | Ticket investigation | Opus | >= high | 1M |
 
 ## Slash commands
+
+### Investigation
+
+- **`/investigate <ticket-ID>`** - run the full investigation pipeline: file inventory, scope inference, version alignment, tiered search (fragments → source → docs), re-validation, conclusion framing, and analysis log maintenance. Also accepts a free-text problem description instead of a ticket ID.
 
 ### Repo management
 
