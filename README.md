@@ -21,19 +21,21 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Optional - if not installed, `find` and `grep` are used instead.
 
+`gh` (GitHub CLI) is also used by Claude Code for GitHub operations (PRs, issues, checks). Optional.
+
 **macOS:**
 ```
-brew install fd ripgrep
+brew install fd ripgrep gh
 ```
 
 **Linux (Debian/Ubuntu):**
 ```
-apt install fd-find ripgrep
+apt install fd-find ripgrep gh
 ```
 
 **Linux (Red Hat/Fedora):**
 ```
-dnf install fd-find ripgrep
+dnf install fd-find ripgrep gh
 ```
 
 **Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
@@ -64,6 +66,8 @@ Then inside Claude:
 ```
 
 This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
+
+> `/bootstrap` and `/git-pull` are mechanical shell operations - prefer Sonnet with minimal thinking to save cost and time.
 
 ### Working a ticket
 
