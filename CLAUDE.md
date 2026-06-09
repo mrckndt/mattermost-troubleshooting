@@ -225,9 +225,12 @@ Run in order on every turn. No early stopping. Do not interpret or form hypothes
 1. **Tier 1 - `claude-md/<repo>.md` fragments.** Read fragments for all inferred repos.
 2. **Tier 2 - source code.**
 
-   **Phase 1: AppError → i18n key lookup.** `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the precise call-site key.
+   **Phase 1: AppError → i18n key lookup.**
+   - Applies only to Mattermost server logs; skip if none present.
+   - Identify server logs by filename (`mattermost.log`, `*mattermost*.log`, `*mattermost*.txt`) or by content (lines matching `level=(error|warn|info|debug).*msg=`).
+   - `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the precise call-site key.
 
-   1. Identify server language from log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
+   1. Identify server language from the server log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
    2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
    3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for the call site.
 
