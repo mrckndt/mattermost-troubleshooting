@@ -138,18 +138,28 @@ Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-D
 
 `upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap`.
 
-### Multi-version comparisons
-
-Prefer log/diff over checkout:
-
+Prefer log/diff over checkout for multi-version comparisons:
 - `git -C "$PROJECT_ROOT/upstream/<repo>" log <refA>..<refB> -- <path>`
 - `git -C "$PROJECT_ROOT/upstream/<repo>" diff <refA> <refB> -- <path>`
 
 ## Investigation pipeline
 
+### Ticket file inventory
+
+Before scope inference, list every file in `tickets/<ID>/` with sizes, then read each one before forming any hypothesis:
+
+```
+ls -lh tickets/<ID>/
+```
+
+- Files under 50 KB: read in full.
+- Files 50 KB and above: read head (first 100 lines) + tail (last 100 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
+
+Do not begin scope inference until all files have been inventoried this way.
+
 ### Scope inference
 
-Before any tier, identify in-scope repos and fragments by judgment first (anything mentioned or implied by symptoms); the table below is a backstop for keywords and multi-repo families. Don't anchor to it - unlisted repos must still surface.
+After the file inventory, identify in-scope repos and fragments by judgment first (anything mentioned or implied by symptoms); the table below is a backstop for keywords and multi-repo families. Don't anchor to it - unlisted repos must still surface.
 
 | Signal in ticket / logs | Repos / fragments |
 |---|---|
