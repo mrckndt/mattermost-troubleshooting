@@ -96,7 +96,7 @@ Maintain two files per ticket. Highest-priority task - above drafting replies, c
 
 **`analysis-full.md` maintenance (chronological log):**
 
-Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-DD` before new findings.
+Always append; never overwrite. New session: add `---` and `## Session YYYY-MM-DD`, then append only the sections that changed or gained new content that session using the same template section names.
 
 **Template** (stubs if empty; use for both files on creation):
 
