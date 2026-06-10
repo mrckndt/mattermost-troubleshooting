@@ -1,5 +1,5 @@
 ---
-description: Run the full investigation pipeline for a ticket or problem description. Enforces tiered query order (fragments → source → docs), scope inference, version alignment, re-validation, and analysis log maintenance.
+description: Run the full investigation pipeline for a ticket or problem description. Enforces tiered query order (fragments + upgrade notes → source → docs), scope inference, version alignment, re-validation, and analysis log maintenance.
 argument-hint: <ticket-ID> | "<problem description>"
 ---
 
@@ -32,8 +32,8 @@ Before scope inference, list every file in `tickets/<ID>/` with sizes, then read
 ls -lh tickets/<ID>/
 ```
 
-- Files under 500 KB: read in full.
-- Files 500 KB and above: read head (first 500 lines) + tail (last 500 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
+- Files under 1 MB: read in full.
+- Files 1 MB and above: read head (first 500 lines) + tail (last 500 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
 Do not begin scope inference until all files have been inventoried this way.
 
@@ -78,6 +78,7 @@ After the file inventory, identify in-scope repos and fragments by judgment firs
 | Playbooks, incident, runs, retrospective, workflow | `mattermost-plugin-playbooks` |
 | Zoom, meeting, video calls, screen sharing | `mattermost-plugin-zoom` |
 | migration, MySQL to PostgreSQL, pgLoader, tsvector | `migration-assist` |
+| Grafana, Prometheus, metrics, dashboard, performance monitoring | `mattermost-performance-assets` |
 
 Complete this phase before proceeding.
 
@@ -123,9 +124,17 @@ Complete this phase before proceeding.
 
 Run in order on every turn. No early stopping. Do not interpret or form hypotheses until all tiers are complete.
 
-### Tier 1 - `claude-md/<repo>.md` fragments
+### Tier 1 - `claude-md/<repo>.md` fragments and upgrade notes
 
 Read fragments for all inferred repos.
+
+Then search the important upgrade notes for the customer's version range:
+
+```
+grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/upgrade/important-upgrade-notes.rst"
+```
+
+Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
 
 Complete this tier before proceeding.
 
