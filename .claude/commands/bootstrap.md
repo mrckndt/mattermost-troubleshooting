@@ -28,6 +28,7 @@ Repos to bootstrap (alphabetical):
 - `https://github.com/mattermost/mattermost-helm`
 - `https://github.com/mattermost/mattermost-mobile`
 - `https://github.com/mattermost/mattermost-operator`
+- `https://github.com/mattermost/mattermost-performance-assets`
 - `https://github.com/mattermost/mattermost-plugin-agents`
 - `https://github.com/mattermost/mattermost-plugin-boards`
 - `https://github.com/mattermost/mattermost-plugin-calls`
