@@ -1,5 +1,5 @@
 ---
-description: Run the full investigation pipeline for a ticket or problem description. Enforces tiered query order (fragments + upgrade notes → source → docs), scope inference, version alignment, re-validation, and analysis log maintenance.
+description: Run the full investigation pipeline for a ticket or problem description. Enforces phase order (fragments + upgrade notes → source → docs → re-validation → conclusion), scope inference, version alignment, and analysis log maintenance.
 argument-hint: <ticket-ID> | "<problem description>"
 ---
 
@@ -10,7 +10,8 @@ Args: $ARGUMENTS
 **Complete each phase in order. Do not skip ahead, form hypotheses, or run source searches until the phase explicitly permits it.**
 
 - No hypotheses until Phase 1's inventory output (severity table, distinct-msg sweep, error-families list) is in the conversation.
-- After any Tier 2 hit, re-check the error-families list for unexplained entries before narrowing.
+- Phases 4-6 must all complete before forming hypotheses or drawing conclusions. No early stopping.
+- After any Phase 5 source hit, re-check the error-families list for unexplained entries before narrowing.
 
 ## Phase 0 - Setup and argument resolution
 
@@ -120,11 +121,7 @@ For `mattermost` and `enterprise`: release branches are `release-X.Y`; patch tag
 
 Complete this phase before proceeding.
 
-## Phase 4 - Query order
-
-Run in order on every turn. No early stopping. Do not interpret or form hypotheses until all tiers are complete.
-
-### Tier 1 - `claude-md/<repo>.md` fragments and upgrade notes
+## Phase 4 - Fragment and Upgrade Notes Search
 
 Read fragments for all inferred repos.
 
@@ -136,11 +133,11 @@ grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/up
 
 Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
 
-Complete this tier before proceeding.
+Complete this phase before proceeding.
 
-### Tier 2 - source code
+## Phase 5 - Source Code Search
 
-**Phase 1: AppError → i18n key lookup.**
+**Step 1: AppError → i18n key lookup.**
 - Applies only to Mattermost server logs; skip if none present.
 - Identify server logs by filename (`mattermost.log`, `*mattermost*.log`, `*mattermost*.txt`) or by content (lines matching `level=(error|warn|info|debug).*msg=`).
 - `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the precise call-site key.
@@ -149,14 +146,14 @@ Complete this tier before proceeding.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
 3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for the call site.
 
-**Phase 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
+**Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 AppError i18n matches provide a direct, reliable call-site path; full source search gives the complete picture regardless.
 
 4. Search all inferred repos by config key, function name, feature area, or symptom keyword using `rg`/`grep`/`fd`/Read/Find.
 
-Complete this tier before proceeding.
+Complete this phase before proceeding.
 
-### Tier 3 - product docs, developer docs, upstream issues
+## Phase 6 - Docs and Issues Search
 
 Search all three unconditionally:
 - `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
@@ -165,11 +162,11 @@ Search all three unconditionally:
 
 If the issues search cannot run (offline, WebFetch fails), state `upstream issues check skipped: <reason>` in the conclusion. Do not omit silently.
 
-Complete this tier before proceeding.
+Complete this phase before proceeding.
 
-## Phase 5 - Re-validation
+## Phase 7 - Re-validation
 
-Phase 6 is blocked until the leading hypothesis **and at least two named alternatives** each have a visible disprove artefact.
+Phase 8 is blocked until the leading hypothesis **and at least two named alternatives** each have a visible disprove artefact.
 
 **Leading hypothesis.** Run a query to disprove it.
 
@@ -189,7 +186,9 @@ Re-validation: <hypothesis>; disproved by <command>:
 
 For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`grep -rn '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
 
-## Phase 6 - Conclusion framing
+Complete this phase before proceeding.
+
+## Phase 8 - Conclusion framing
 
 When a customer config issue intersects an upstream defect, state BOTH:
 
@@ -205,7 +204,9 @@ Config-only answer when a defect was found is a framing violation. If no defect 
   - Offer to create in a follow-up turn; do not auto-create.
 - **Fragment exists, pattern not yet captured:** state `Fragment update opportunity: claude-md/<repo>.md - <section>` with supporting evidence.
 
-## Phase 7 - Analysis log (MANDATORY)
+Complete this phase before proceeding.
+
+## Phase 9 - Analysis log (MANDATORY)
 
 Maintain two files per ticket. Highest-priority task - above drafting replies, clipboard, or closing the loop.
 
