@@ -22,6 +22,11 @@
 # Track only specific .claude paths
 !.claude/
 !.claude/settings.local.json
+!.claude/commands/
+!.claude/commands/**
+
+# Track Claude Code entry point
+!CLAUDE.md
 
 # macOS
 .DS_Store
