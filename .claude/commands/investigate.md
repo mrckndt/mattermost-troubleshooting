@@ -33,24 +33,26 @@ Before scope inference, list every file in `tickets/<ID>/` with sizes, then read
 ls -lh tickets/<ID>/
 ```
 
-- Files under 1 MB: read in full.
-- Files 1 MB and above: read head (first 500 lines) + tail (last 500 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
+- Files under 100 KB: read in full.
+- Files 100 KB to 1 MB: read head (first 200 lines) + tail (last 200 lines).
+- Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
 Do not begin scope inference until all files have been inventoried this way.
 
 ### Inventory output (required)
 
-For every log file in `tickets/<ID>/`, emit a fenced block containing:
+Once all ticket files are read, emit a single fenced block containing:
 
-- **Path and size**
-- **Severity counts** (one row per pattern; use `rg -c -e <pattern>` so zero counts still print):
-  - `error`, `warn`, `fatal`, `crash`, `panic`, `exception`, `failed`, `timeout`, `denied`, `disabled`, `unauthorized`, `invalid`
-- **Distinct messages:** `rg -o '"msg":"[^"]+"' <file> | sort -u | head -50`. Non-JSON logs: swap for `level=<level> msg="<text>"`.
-- **First/last error window:** timestamps of the first and last `level=error` line.
+1. A bulleted list with one item per file. Lead with path and size; follow with a one-line
+   characterization. **Bold any anomaly, misconfiguration, or error count that warrants attention**:
 
-After the per-file blocks, emit a combined **error families** list: distinct error-level `msg` values across all log files, deduped.
+   - **`<path>`** (`<size>`) - `<characterization with **key findings bolded**>`
 
-**Rule:** Phase 2 cannot start until this inventory output is in the conversation. No in-scope repos or hypotheses before that point.
+2. A freeform **error-families list**: distinct error-level messages across all files, deduped.
+
+This block is the gate. Phase 2 cannot start, no `claude-md/` fragment may be opened, and no hypothesis may be stated
+until this block is present in the conversation. Partial inline greps do not satisfy the gate; it must appear as one contiguous artifact.
+If you have already read source or stated a hypothesis without this block, stop and emit it now.
 
 Complete this phase before proceeding.
 
@@ -64,10 +66,10 @@ After the file inventory, identify in-scope repos and fragments by judgment firs
 | Docker, docker-compose | `docker` |
 | mobile, push notification, iOS, Android, React Native, push proxy, TestFlight, certificate pinning, WatermelonDB, MPNS | `mattermost-mobile` |
 | Helm, operator, ingress, MinIO, Kubernetes, K8s, EKS, CRD, Cluster | `mattermost-operator`, `mattermost-helm` |
-| AI, Agents, Copilot, LLM, OpenAI, Anthropic, AWS Bedrock, Google Gemini, Ollama, MCP, pgvector, semantic search, RAG | `mattermost-plugin-agents` |
+| mattermost-ai, AI, Agents, Copilot, LLM, OpenAI, Anthropic, AWS Bedrock, Google Gemini, Ollama, MCP, pgvector, semantic search, RAG | `mattermost-plugin-agents` |
 | Boards, Focalboard, kanban, tasks | `mattermost-plugin-boards` |
 | calls, meeting, voice calling, screen sharing, WebRTC, ICE, STUN, TURN, SFU, NAT, TURN credentials, IPv6, packet loss, RTCD, recording, transcription, transcript, job service, recording job, transcribing job, ffmpeg, Chromium, Xvfb | `mattermost-plugin-calls`, `rtcd`, `calls-offloader`, `calls-recorder`, `calls-transcriber` |
-| channel automation, flow, workflow, trigger, schedule | `mattermost-plugin-channel-automation` |
+| channel automations, flow, workflow, trigger, schedule | `mattermost-plugin-channel-automation` |
 | Confluence, wiki, pages | `mattermost-plugin-confluence` |
 | GitHub, notifications, repo subscription | `mattermost-plugin-github` |
 | GitLab, notifications | `mattermost-plugin-gitlab` |
@@ -125,7 +127,8 @@ Complete this phase before proceeding.
 
 ## Phase 4 - Fragment and Upgrade Notes Search
 
-Read fragments for all inferred repos.
+For each in-scope repo, check whether `claude-md/<repo>.md` exists and Read it.
+`mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
 Then search the important upgrade notes for the customer's version range:
 
