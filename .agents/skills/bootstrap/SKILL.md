@@ -1,8 +1,10 @@
 ---
+name: bootstrap
 description: Clone any missing Mattermost repos into upstream/. Idempotent.
+user-invocable: true
 ---
 
-Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
+Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
 Clone every repo listed below under `upstream/<name>/`. For each URL:
 
@@ -51,4 +53,4 @@ Report a Markdown table: `Repo | Result`, where `Result` is `already present`, `
 Notes:
 - Run each `git clone` as its own Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
 - This command does NOT pull or switch. Use `/git-pull` or `/git-switch <repo> <ref>` (pin to tag/branch).
-- This file is the canonical repo list. `CLAUDE.md` and `README.md` reference it rather than duplicating URLs.
+- This file is the canonical repo list. `AGENTS.md` and `README.md` reference it rather than duplicating URLs.

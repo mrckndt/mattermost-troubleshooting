@@ -1,9 +1,10 @@
 ---
+name: git-pull
 description: Run git pull --ff-only on the current branch of one repo (arg) or every repo under upstream/ (no arg)
-argument-hint: [<repo>]
+user-invocable: true
 ---
 
-Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
+Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
 Args: optionally a single `<repo>` name matching a directory under `upstream/`.
 
@@ -19,7 +20,7 @@ For each repo:
 Report a Markdown table: `Repo | Branch | Pull`.
 - `Pull`: `up to date`, `updated <oldsha>..<newsha>`, or the git error.
 
-After processing, mark each repo as fetched-this-session so the lazy-fetch policy in `CLAUDE.md` skips it later.
+After processing, mark each repo as fetched-this-session so the lazy-fetch policy in `AGENTS.md` skips it later.
 
 Notes:
 - Run each git invocation as a separate Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.

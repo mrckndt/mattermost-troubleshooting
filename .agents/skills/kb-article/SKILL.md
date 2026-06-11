@@ -1,6 +1,7 @@
 ---
+name: kb-article
 description: Generate a KB article from the current troubleshooting context. Optional arg: problem/solution description to factor in.
-argument-hint: [problem or solution description]
+user-invocable: true
 ---
 
 Args: $ARGUMENTS
@@ -89,4 +90,3 @@ For more information, see:
 
 [Link Label](https://url)
 </article_template>
-

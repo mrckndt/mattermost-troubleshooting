@@ -1,6 +1,7 @@
 ---
+name: feature-request
 description: Generate a structured feature-request post from the current troubleshooting context. Optional arg: feature description or short title.
-argument-hint: [feature description or short title]
+user-invocable: true
 ---
 
 Args: $ARGUMENTS

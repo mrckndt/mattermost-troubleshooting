@@ -1,9 +1,10 @@
 ---
+name: investigate
 description: Run the full investigation pipeline for a ticket or problem description. Enforces phase order (fragments + upgrade notes → source → docs → re-validation → conclusion), scope inference, version alignment, and analysis log maintenance.
-argument-hint: <ticket-ID> | "<problem description>"
+user-invocable: true
 ---
 
-Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
+Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
 Args: $ARGUMENTS
 
@@ -37,6 +38,11 @@ ls -lh tickets/<ID>/
 - Files 100 KB to 1 MB: read head (first 200 lines) + tail (last 200 lines).
 - Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
+For JSON files (`*.json`): use `jq` for all field extraction. Treat a parse error as non-fatal: note "malformed JSON" in the inventory entry and continue. Example:
+```
+jq '.PluginSettings.Plugins."mattermost-ai"' tickets/<ID>/sanitized_config.json
+```
+
 Do not begin scope inference until all files have been inventoried this way.
 
 ### Inventory output (required)
@@ -50,7 +56,7 @@ Once all ticket files are read, emit a single fenced block containing:
 
 2. A freeform **error-families list**: distinct error-level messages across all files, deduped.
 
-This block is the gate. Phase 2 cannot start, no `claude-md/` fragment may be opened, and no hypothesis may be stated
+This block is the gate. Phase 2 cannot start, no `fragments/` fragment may be opened, and no hypothesis may be stated
 until this block is present in the conversation. Partial inline greps do not satisfy the gate; it must appear as one contiguous artifact.
 If you have already read source or stated a hypothesis without this block, stop and emit it now.
 
@@ -127,7 +133,7 @@ Complete this phase before proceeding.
 
 ## Phase 4 - Fragment and Upgrade Notes Search
 
-For each in-scope repo, check whether `claude-md/<repo>.md` exists and Read it.
+For each in-scope repo, check whether `fragments/<repo>.md` exists and Read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
 Then search the important upgrade notes for the customer's version range:
@@ -202,12 +208,12 @@ When a customer config issue intersects an upstream defect, state BOTH:
 
 Config-only answer when a defect was found is a framing violation. If no defect found, state: "No upstream defect identified - configuration is out of contract."
 
-**Fragment opportunity (mandatory check).** For each in-scope repo, check whether `claude-md/<repo>.md` exists.
+**Fragment opportunity (mandatory check).** For each in-scope repo, check whether `fragments/<repo>.md` exists.
 
-- **Missing fragment:** state `Fragment opportunity: claude-md/<repo>.md`.
+- **Missing fragment:** state `Fragment opportunity: fragments/<repo>.md`.
   - List 1-3 reusable patterns from this ticket that belong in it; each with `file:line` or a quoted log line.
   - Offer to create in a follow-up turn; do not auto-create.
-- **Fragment exists, pattern not yet captured:** state `Fragment update opportunity: claude-md/<repo>.md - <section>` with supporting evidence.
+- **Fragment exists, pattern not yet captured:** state `Fragment update opportunity: fragments/<repo>.md - <section>` with supporting evidence.
 
 Complete this phase before proceeding.
 
