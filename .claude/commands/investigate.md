@@ -103,6 +103,8 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 
 **Align repos:**
 
+`mattermost` and `enterprise` are tightly coupled and must always be on the same ref. Switch both together; never leave them on different versions.
+
 For `mattermost` and `enterprise`: release branches are `release-X.Y`; patch tags are `vX.Y.Z`. Ref resolution:
 - Exact version known: `vX.Y.Z` tag
 - Minor version only: `release-X.Y` branch; a pulled branch reflects the latest patch
