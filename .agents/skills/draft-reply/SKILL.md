@@ -1,6 +1,7 @@
 ---
+name: draft-reply
 description: Draft a customer reply (email, Zendesk, hub thread) based on the current troubleshooting context. Optional arg: problem/solution description to factor in.
-argument-hint: [problem or solution description]
+user-invocable: true
 ---
 
 Args: $ARGUMENTS

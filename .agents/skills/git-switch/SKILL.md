@@ -1,9 +1,10 @@
 ---
+name: git-switch
 description: Switch a cloned repo under upstream/ to a tag or branch (no ref = default branch)
-argument-hint: <repo> [<ref>]
+user-invocable: true
 ---
 
-Apply the Shell conventions from `CLAUDE.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
+Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
 Args: $ARGUMENTS
 

@@ -1,6 +1,7 @@
 ---
-description: Copy content to the OS clipboard via the platform-appropriate CLI (pbcopy / Set-Clipboard / clip.exe / wl-copy).
-argument-hint: [content or description of what to copy]
+name: clipboard
+description: Copy content to the OS clipboard via the platform-appropriate CLI (pbcopy / Set-Clipboard / clip.exe / wl-copy). No arg = most recent artifact.
+user-invocable: true
 ---
 
 Args: $ARGUMENTS

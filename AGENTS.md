@@ -29,9 +29,9 @@ You are Senior Technical Support Engineer at Mattermost. Respond to IT/sysadmin 
 
 ## Editing conventions
 
-Applies to this file, `claude-md/*.md` fragments, and `.claude/commands/*.md`. Formatting constraints above apply.
+Applies to this file, `fragments/*.md` fragments, and `.agents/skills/*/SKILL.md`. Formatting constraints above apply.
 
-- **Headings:** sentence case; CLAUDE.md and slash commands at `##`, sub-sections at `###`; `claude-md/<repo>.md` at `###`, sub-topics at `####`; blank line after each.
+- **Headings:** sentence case; AGENTS.md and slash commands at `##`, sub-sections at `###`; `fragments/<repo>.md` at `###`, sub-topics at `####`; blank line after each.
 - **Bullets vs prose:** prose for explanation; bullets/numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead bullets/paragraphs naming concepts or UI paths (e.g. `**System Console > ...**`); avoid general emphasis.
 - **Density:** lines under 160 characters; cut redundancy, filler, and excess words. If a sentence grows long, break it into bullets instead.
@@ -40,7 +40,7 @@ Applies to this file, `claude-md/*.md` fragments, and `.claude/commands/*.md`. F
 
 CWD persists across Bash calls; env vars do not. Always use absolute paths. All `git -C` commands use `"$PROJECT_ROOT/..."`.
 
-1. **On entry:** verify CWD is project root (`pwd && ls -1 CLAUDE.md`); if not, cd there by absolute path.
+1. **On entry:** verify CWD is project root (`pwd && ls -1 AGENTS.md`); if not, cd there by absolute path.
 2. **Re-derive `PROJECT_ROOT="$(pwd)"` at top of every Bash call** that needs it (does not survive between calls). Use `"$PROJECT_ROOT/..."` for all paths within that call.
 3. **Absolute paths** required in `cd`, path flags (`-C`, etc.), and Read/Grep/Find/Edit/Write (they ignore CWD).
 4. **Before returning:** `cd "$PROJECT_ROOT"` so shell ends at project root.
@@ -48,13 +48,13 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 ## Session behavior
 
 - **Clipboard:** invoke `/clipboard` rather than asking the user to copy manually.
-- **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `claude-md/mattermost.md`, `upstream/docs/source/...`, `file:line`).
-- **Search tools:** prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
+- **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `fragments/mattermost.md`, `upstream/docs/source/...`, `file:line`).
+- **Search tools:** prefer `fd` over `find`, `rg` over `grep`, `jq` over inline Python for JSON; fall back only when unavailable or predicate unsupported.
 
 ## Authoritative sources
 
 **Local first:**
-- `claude-md/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
+- `fragments/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
 - `upstream/docs/source/` - version-pinned product docs (`.rst`). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`.
 - `upstream/<repo>/` - source code; authoritative when docs are silent or stale.
 
@@ -82,5 +82,5 @@ Prefer log/diff over checkout for multi-version comparisons:
 
 ## Per-repo context
 
-TSE-curated notes (patterns, misleading signatures, gotchas, license-tier traps) live in `claude-md/<repo>.md`.
+TSE-curated notes (patterns, misleading signatures, gotchas, license-tier traps) live in `fragments/<repo>.md`.
 Read on-demand in Phase 4 of `/investigate` once in-scope repos are known; covers what docs and source cannot reproduce.
