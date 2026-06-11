@@ -49,7 +49,7 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 
 - **Clipboard:** invoke `/clipboard` rather than asking the user to copy manually.
 - **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `fragments/mattermost.md`, `upstream/docs/source/...`, `file:line`).
-- **Search tools:** prefer `fd` over `find`, `rg` over `grep`, `jq` over inline Python for JSON; fall back only when unavailable or predicate unsupported.
+- **Search tools:** prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
 
 ## Authoritative sources
 

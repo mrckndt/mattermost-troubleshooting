@@ -38,10 +38,8 @@ ls -lh tickets/<ID>/
 - Files 100 KB to 1 MB: read head (first 200 lines) + tail (last 200 lines).
 - Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
-For JSON files (`*.json`): use `jq` for all field extraction. Treat a parse error as non-fatal: note "malformed JSON" in the inventory entry and continue. Example:
-```
-jq '.PluginSettings.Plugins."mattermost-ai"' tickets/<ID>/sanitized_config.json
-```
+For extracting specific fields or sections from any file (including JSON and YAML config files), use `rg` or `grep`.
+
 
 Do not begin scope inference until all files have been inventoried this way.
 

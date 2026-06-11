@@ -26,23 +26,23 @@ The repo uses a provider-neutral layout so it works with any agent framework: `A
 
 ### Optional CLI tools
 
-The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`, and `jq` for JSON field extraction. Optional - if not installed, `find`, `grep`, and inline Python are used instead.
+The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Optional - if not installed, `find` and `grep` are used instead.
 
 `gh` (GitHub CLI) is also used by Claude Code for GitHub operations (PRs, issues, checks). Optional.
 
 **macOS:**
 ```
-brew install fd ripgrep jq gh
+brew install fd ripgrep gh
 ```
 
 **Linux (Debian/Ubuntu):**
 ```
-apt install fd-find ripgrep jq gh
+apt install fd-find ripgrep gh
 ```
 
 **Linux (Red Hat/Fedora):**
 ```
-dnf install fd-find ripgrep jq gh
+dnf install fd-find ripgrep gh
 ```
 
 **Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
