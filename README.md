@@ -6,36 +6,43 @@ Workspace for the Claude-Code-driven Mattermost Technical Support Engineer agent
 
 ```
 .
-├── CLAUDE.md                # Top-level agent instructions
-├── claude-md/               # Per-upstream-repo CLAUDE.md fragments (imported by CLAUDE.md)
+├── AGENTS.md                # Top-level agent instructions
+├── CLAUDE.md                # Claude Code entry point: @-imports AGENTS.md
+├── fragments/               # Per-upstream-repo knowledge fragments
 ├── upstream/                # Local clones, one directory per upstream repo
 ├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
+├── .agents/
+│   └── skills/              # Canonical skill definitions (SKILL.md per skill)
 └── .claude/
-    ├── commands/            # /investigate, /bootstrap, /git-pull, /git-switch, /draft-reply, /kb-article, /feature-request, /clipboard
-    └── settings.local.json  # Project-level Claude Code settings file, mainly containing allowed tools
+    ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
+    └── settings.local.json  # Claude Code-specific: allowed tools and project-level settings
 ```
+
+### Provider-neutral layout and Claude Code compatibility
+
+The repo uses a provider-neutral layout so it works with any agent framework: `AGENTS.md` for instructions, `.agents/skills/` for skill definitions. Claude Code has its own specific conventions: it auto-loads `CLAUDE.md` (not `AGENTS.md`) and discovers slash commands only from `.claude/commands/`. Skill files carry `user-invocable: true` in their frontmatter, but Claude Code ignores that property unless the file is discoverable under `.claude/commands/`. To bridge the gap without duplicating files, `CLAUDE.md` simply `@`-imports `AGENTS.md`, and `.claude/commands/` contains symlinks pointing to the canonical skill files under `.agents/skills/`.
 
 ## Getting started
 
 ### Optional CLI tools
 
-The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Optional - if not installed, `find` and `grep` are used instead.
+The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`, and `jq` for JSON field extraction. Optional - if not installed, `find`, `grep`, and inline Python are used instead.
 
 `gh` (GitHub CLI) is also used by Claude Code for GitHub operations (PRs, issues, checks). Optional.
 
 **macOS:**
 ```
-brew install fd ripgrep gh
+brew install fd ripgrep jq gh
 ```
 
 **Linux (Debian/Ubuntu):**
 ```
-apt install fd-find ripgrep gh
+apt install fd-find ripgrep jq gh
 ```
 
 **Linux (Red Hat/Fedora):**
 ```
-dnf install fd-find ripgrep gh
+dnf install fd-find ripgrep jq gh
 ```
 
 **Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
@@ -126,13 +133,13 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 
 ## TSE notes backfill
 
-The `claude-md/<repo>.md` files on this branch are header-only stubs for most repos. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) and are being re-curated incrementally, trimmed to what upstream docs and source cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
+The `fragments/<repo>.md` files on this branch are header-only stubs for most repos. The prior TSE notes live at commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe) and are being re-curated incrementally, trimmed to what upstream docs and source cannot reproduce: misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas.
 
 ## TODO
 
 - [ ] Backfill `claude-md/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
 - [ ] Tune `.claude/settings.local.json` so it auto-allows the commands needed for normal workflows here but denies questionable ones - especially relevant in auto mode.
-- [ ] Migrate to provider-neutral layout: `CLAUDE.md` → `AGENTS.md`, `.claude/commands/<cmd>.md` → `.agents/skills/<cmd>/SKILL.md` (with `user-invocable: true`), `claude-md/` → `agents-md/` (or similar).
+- [x] Migrate to provider-neutral layout: `CLAUDE.md` → `AGENTS.md`, `.claude/commands/<cmd>.md` → `.agents/skills/<cmd>/SKILL.md` (with `user-invocable: true`), `claude-md/` → `fragments/`.
 - [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
 - [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
 - [ ] Update `/feature-request` slash command from the upstream `techsupport-agent` version.
