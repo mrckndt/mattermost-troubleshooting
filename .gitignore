@@ -5,20 +5,22 @@
 !.gitignore
 
 # Track top-level docs
-!CLAUDE.md
+!AGENTS.md
 !README.md
 
 # Track upstream folder
 !upstream/
 
-# Track curated per-repo notes
-!claude-md/
-!claude-md/**
+# Track curated per-repo notes (knowledge fragments)
+!fragments/
+!fragments/**
+
+# Track provider-neutral agent skills
+!.agents/
+!.agents/**
 
 # Track only specific .claude paths
 !.claude/
-!.claude/commands/
-!.claude/commands/**
 !.claude/settings.local.json
 
 # macOS
