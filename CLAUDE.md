@@ -83,8 +83,4 @@ Prefer log/diff over checkout for multi-version comparisons:
 ## Per-repo context
 
 TSE-curated notes (patterns, misleading signatures, gotchas, license-tier traps) live in `claude-md/<repo>.md`.
-Imported here so they load automatically and stay outside repo folders; covers what docs and source cannot reproduce.
-
-@claude-md/mattermost.md
-@claude-md/enterprise.md
-@claude-md/mattermost-plugin-github.md
+Read on-demand in Phase 4 of `/investigate` once in-scope repos are known; covers what docs and source cannot reproduce.
