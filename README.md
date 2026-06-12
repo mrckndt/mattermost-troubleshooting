@@ -141,7 +141,5 @@ The `fragments/<repo>.md` files on this branch are header-only stubs for most re
 
 - [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom.
 - [ ] Tune `.claude/settings.local.json` so it auto-allows the commands needed for normal workflows here but denies questionable ones - especially relevant in auto mode.
-- [x] Migrate to provider-neutral layout: `CLAUDE.md` → `AGENTS.md`, `.claude/commands/<cmd>.md` → `.agents/skills/<cmd>/SKILL.md` (with `user-invocable: true`), `claude-md/` → `fragments/`.
 - [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
-- [ ] Implement an end-to-end ticket-troubleshooting flow the agent runs on request (e.g. a `/triage <ticket-id>` skill): extract the support packet, read the logs / config, query for likely causes, save running findings to `tickets/<id>/analysis.md`, and stage the customer artifact via `/draft-reply` or `/kb-article` when the user is ready.
 - [ ] Update `/feature-request` slash command from the upstream `techsupport-agent` version.

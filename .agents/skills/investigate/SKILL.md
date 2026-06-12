@@ -28,7 +28,16 @@ Complete this phase before proceeding.
 
 ## Phase 1 - Ticket file inventory
 
-Before scope inference, list every file in `tickets/<ID>/` with sizes, then read each one before forming any hypothesis:
+Before listing files, unarchive any archives in `tickets/<ID>/` in place:
+
+```
+for f in tickets/<ID>/*.zip; do unzip -n "$f" -d "tickets/<ID>/$(basename "$f" .zip)"; done
+for f in tickets/<ID>/*.tar.gz tickets/<ID>/*.tgz; do tar -xzf "$f" -C "tickets/<ID>/"; done
+```
+
+Skip silently if no archives are present. Do not delete the original archives.
+
+Then list every file in `tickets/<ID>/` with sizes, then read each one before forming any hypothesis:
 
 ```
 ls -lh tickets/<ID>/
