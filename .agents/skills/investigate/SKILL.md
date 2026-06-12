@@ -134,10 +134,11 @@ Complete this phase before proceeding.
 For each in-scope repo, check whether `fragments/<repo>.md` exists and Read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
-Then search the important upgrade notes for the customer's version range:
+Then search both of the following for the customer's version range:
 
 ```
 grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/upgrade/important-upgrade-notes.rst"
+grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/product-overview/mattermost-v11-changelog.md"
 ```
 
 Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
