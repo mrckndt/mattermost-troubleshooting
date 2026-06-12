@@ -102,10 +102,10 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 4. `tickets/<ID>/analysis.md` - `## Deployment` section
 5. Conversation context or other ticket files
 
-**Detect plugin versions** (when plugins are in scope):
-- `tickets/<ID>/plugins.json` - `version` field per plugin entry
-- `tickets/<ID>/mattermost.log` - bottom-most `"Installing extracted plugin"` line per `plugin_id`. Earlier installs were superseded by upgrades or rollbacks.
-- Example: `rg "Installing extracted plugin" mattermost.log | rg <plugin_id> | tail -1`
+**Detect plugin versions** (when plugins are in scope) - check both sources:
+1. `tickets/<ID>/plugins.json` - `version` field per plugin entry
+2. `tickets/<ID>/mattermost.log` - bottom-most `"Installing extracted plugin"` line per `plugin_id`. Earlier installs were superseded by upgrades or rollbacks.
+   Example: `rg "Installing extracted plugin" mattermost.log | rg <plugin_id> | tail -1`
 
 **Align repos:**
 
@@ -134,10 +134,14 @@ Complete this phase before proceeding.
 For each in-scope repo, check whether `fragments/<repo>.md` exists and Read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
-Then search both of the following for the customer's version range:
+Then search both files for the customer's version range - both are required, not alternatives:
 
+1. Important upgrade notes:
 ```
 grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/upgrade/important-upgrade-notes.rst"
+```
+2. v11 changelog:
+```
 grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/product-overview/mattermost-v11-changelog.md"
 ```
 
@@ -159,16 +163,16 @@ Complete this phase before proceeding.
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 AppError i18n matches provide a direct, reliable call-site path; full source search gives the complete picture regardless.
 
-4. Search all inferred repos by config key, function name, feature area, or symptom keyword using `rg`/`grep`/`fd`/Read/Find.
+1. Search all inferred repos by config key, function name, feature area, or symptom keyword using `rg`/`grep`/`fd`/Read/Find.
 
 Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
-Search all three unconditionally:
-- `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
-- `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
-- `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`. Emit the search URL and top result titles + numbers.
+Search all three unconditionally - all are required:
+1. `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
+2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
+3. `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`; one search per in-scope repo, all repos required. Emit the search URL and top result titles + numbers.
 
 If the issues search cannot run (offline, WebFetch fails), state `upstream issues check skipped: <reason>` in the conclusion. Do not omit silently.
 
