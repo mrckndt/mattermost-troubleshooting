@@ -1,6 +1,6 @@
 # mattermost-troubleshooting
 
-Workspace for the Mattermost Technical Support Engineer agent. Provider-neutral layout (`AGENTS.md`, `.agents/skills/`) with Claude Code as the primary runtime. Local clones of upstream Mattermost repos and curated per-repo knowledge fragments.
+Workspace for the Mattermost Technical Support Engineer agent. Local clones of upstream Mattermost repos and curated per-repo knowledge fragments.
 
 ## Layout
 
