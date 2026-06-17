@@ -126,6 +126,12 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
   - No ref: returns to the default branch.
   - `<ref>`: switches to a tag (e.g. `v10.5.1`), branch, or commit.
 
+### Ticket management
+
+- **`/resume <ticket-ID>`** - reconstruct context from `analysis.md`, identify the last completed phase, and continue from there.
+- **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
+- **`/fragment-update`** - draft and write fragment updates from the current ticket's Phase 8 findings; presents a diff for approval before writing.
+
 ### Output
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
@@ -139,3 +145,4 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - [ ] Tune `.claude/settings.local.json` so it auto-allows the commands needed for normal workflows here but denies questionable ones - especially relevant in auto mode.
 - [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
 - [ ] Update `/feature-request` slash command from the upstream `techsupport-agent` version.
+- [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
