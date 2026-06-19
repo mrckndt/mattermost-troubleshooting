@@ -169,21 +169,26 @@ Complete this phase before proceeding.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
 3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for the call site.
 
-**Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
-AppError i18n matches provide a direct, reliable call-site path; full source search gives the complete picture regardless.
+**Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos. All five angles below are required; use `rg`/`grep`/`fd`/Read/Find for each; note `no matches` explicitly if a search returns nothing.
 
-1. Search all inferred repos by config key, function name, feature area, or symptom keyword using `rg`/`grep`/`fd`/Read/Find.
+1. Exact error strings from the Phase 1 error-families list.
+2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`.
+3. Function/method names from stack traces.
+4. Feature flag or setting key names.
+5. Symptom keyword (free-form, drawn from the reported symptom).
 
 Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
-Search all three unconditionally - all are required:
+Search all five unconditionally - all are required:
 1. `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
-3. `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`; one search per in-scope repo, all repos required. Emit the search URL and top result titles + numbers.
+3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings. Emit each query and matching post summaries. If unavailable, state `Mattermost Hub search skipped: <reason>`.
+4. `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`; one search per in-scope repo, all repos required. Emit the search URL and top result titles + numbers.
+5. For each in-scope plugin repo: if `upstream/<repo>/CHANGELOG.md` exists, `grep` it for the customer's version range and symptom keywords. Otherwise fetch `https://github.com/mattermost/<repo>/releases` via `WebFetch` and scan release titles and bodies. One search per in-scope plugin repo; all required.
 
-If the issues search cannot run (offline, WebFetch fails), state `upstream issues check skipped: <reason>` in the conclusion. Do not omit silently.
+If searches 3, 4, or 5 cannot run (offline, WebFetch fails, MCP unavailable), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
 Complete this phase before proceeding.
 
@@ -226,6 +231,8 @@ Config-only answer when a defect was found is a framing violation. If no defect 
   - List 1-3 reusable patterns from this ticket that belong in it; each with `file:line` or a quoted log line.
   - Offer to create in a follow-up turn; do not auto-create.
 - **Fragment exists, pattern not yet captured:** state `Fragment update opportunity: fragments/<repo>.md - <section>` with supporting evidence.
+
+To action any fragment opportunity, run `/fragment-update`.
 
 Complete this phase before proceeding.
 
