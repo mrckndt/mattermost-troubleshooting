@@ -1,1 +1,0 @@
-../../.agents/skills/feature-request/SKILL.md
