@@ -262,6 +262,14 @@ Maintain two files per ticket. Highest-priority task - above drafting replies, c
 
 **Fires on:** any turn that references, reads, or discusses a `tickets/<ID>/` directory (lookups, clipboard, follow-ups); when a symptom matches a known ticket folder's evidence family; or when a finding refines or disproves a hypothesis in any prior ticket's analysis files.
 
+**Lightweight update (reply/draft turns):** when the turn's only action is `/draft-reply`, `/kb-article`,
+or `/pde-intake` and no new diagnostic findings were made:
+- Append one line to `## Steps and outcomes` (e.g. "Drafted reply - [topic]").
+- Update `## Next steps` only if they changed.
+- Skip all other sections.
+
+Full maintenance rules apply on any turn that reads ticket files or changes the hypothesis.
+
 **How to apply:**
 
 1. First or last tool calls on any ticket-touching turn must be `Write`/`Edit` to both files.
