@@ -218,6 +218,10 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 - Examples: permissions, license tier, a separate config flag, a different code path.
 - No strawmen.
 
+After the leading hypothesis survives re-validation, scan the Phase 6 Hub and GitHub results already in
+context for the confirmed bug, error string, or fix commit. If a match exists, note it: known issue,
+existing workaround, or fix version. No new tool calls required; results are already in context.
+
 Each hypothesis produces an artefact: shell command (`rg`, `fd`, `grep`, `find`, `git`) or Grep/Read/Find call plus a quoted output line (or `no matches`):
 
 ```
