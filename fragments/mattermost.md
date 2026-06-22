@@ -46,3 +46,17 @@ check the manual that corresponds to your MariaDB server version for the right s
 ```
 
 **Cause:** MariaDB's JSON function syntax differs from MySQL's, breaking the Sessions query for `Props.last_removed_device_id` and preventing notifications from delivering. Other JSON-heavy or MySQL-only features will break similarly. **Migration reference:** `https://blogs.oracle.com/mysql/post/how-to-migrate-from-mariadb-to-mysql-80`.
+
+#### Pin/unpin blocked by PostEditTimeLimit (v11.7.0+)
+
+**Symptom:** users cannot pin/unpin a post older than `ServiceSettings.PostEditTimeLimit` (e.g. 172800 = 2 days); newer posts pin fine. Debug log on `/pin` or `/unpin`:
+
+```
+"msg":"Post edit is only allowed for 172800 seconds...","err_where":"saveIsPinnedPost","path":"/api/v4/posts/<id>/pin","http_code":400
+```
+
+**Cause:** v11.7.0 (PR #35638, commit `a19cc4b909`) extended the edit time limit from message-text-only to any post mutation, including `IsPinned`. `saveIsPinnedPost` now calls `postEditTimeLimitExpired` (`server/channels/api4/post.go:1349`); before 11.7.0 the pin/unpin endpoints had no time-limit check. Still present on `master`. Re-pinning an already-pinned post is exempt (`post.go:1343`).
+
+- **Not permissions/license:** failure is the time-limit `AppError` (HTTP 400), not a 403. The pin path checks read-channel permission plus the time limit only; it ignores `AllowEditPost`/`edit_post`, so changing edit permissions does not help.
+
+**Fix:** raise `ServiceSettings.PostEditTimeLimit` in `config.json` to a window that covers expected pinning, or set `-1` for unlimited. Read live via the config watcher; no restart. config.json-only (System Console control deprecated). Tradeoff: the same setting governs message editing, so raising it also widens the edit window.
