@@ -20,8 +20,6 @@ For each repo:
 Report a Markdown table: `Repo | Branch | Pull`.
 - `Pull`: `up to date`, `updated <oldsha>..<newsha>`, or the git error.
 
-After processing, mark each repo as fetched-this-session so the lazy-fetch policy in `AGENTS.md` skips it later.
-
 Notes:
 - Run each git invocation as a separate Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
 - This command does NOT refresh tags. For new tags before `/git-switch`, run `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags` first.
