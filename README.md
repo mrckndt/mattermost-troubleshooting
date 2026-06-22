@@ -75,6 +75,8 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 
 ### Working a ticket
 
+Run all commands from the repo root (`mattermost-troubleshooting/`).
+
 1. Create a folder under `tickets/` for the ticket:
    ```
    mkdir -p tickets/12345
@@ -84,9 +86,8 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
    cp ~/Downloads/mattermost.log tickets/12345/
    cp ~/Downloads/support_packet.zip tickets/12345/
    ```
-3. Open Claude Code from the repo root:
+3. Open Claude Code:
    ```
-   cd /path/to/mattermost-troubleshooting
    claude
    ```
    Set the model to an **Opus-like model** (Opus 4.8 or later) with **1M context** and **>= high thinking effort**. Auto-mode is fine once the investigation starts - the skill enforces phase order and search completeness.
