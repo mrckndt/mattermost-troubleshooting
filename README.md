@@ -77,7 +77,7 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 6. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
-   - `/feature-request` - file a PM-facing request.
+   - `/pde-intake` - file a PM-facing feature request, bug report, or security issue.
 
 ## Recommended model and effort
 
@@ -136,7 +136,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
 - **`/kb-article [description]`** - generate a KB article (Markdown + HTML).
-- **`/feature-request [title]`** - generate a structured PM-facing feature-request post.
+- **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ## TODO
