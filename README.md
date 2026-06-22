@@ -91,26 +91,6 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 | Working on project files (AGENTS.md, fragments, skills) | Sonnet | high | standard, 1M if needed |
 | Ticket investigation | Opus | >= high | 1M |
 
-## Layout
-
-```
-.
-├── AGENTS.md                # Top-level agent instructions
-├── CLAUDE.md                # Claude Code entry point: @-imports AGENTS.md
-├── fragments/               # Per-upstream-repo knowledge fragments
-├── upstream/                # Local clones, one directory per upstream repo
-├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
-├── .agents/
-│   └── skills/              # Canonical skill definitions (SKILL.md per skill)
-└── .claude/
-    ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
-    └── settings.local.json  # Claude Code-specific: allowed tools and project-level settings
-```
-
-## Provider-neutral layout and Claude Code compatibility
-
-The repo uses a provider-neutral layout so it works with any agent framework: `AGENTS.md` for instructions, `.agents/skills/` for skill definitions. Claude Code auto-loads `CLAUDE.md` (not `AGENTS.md`) and discovers slash commands only from `.claude/commands/`. To bridge the gap without duplicating files, `CLAUDE.md` simply `@`-imports `AGENTS.md`, and `.claude/commands/` contains symlinks pointing to the canonical skill files under `.agents/skills/`.
-
 ## Skills / slash commands
 
 Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude Code slash commands via the symlinks in `.claude/commands/`.
@@ -143,6 +123,26 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/kb-article [description]`** - generate a KB article (Markdown + HTML).
 - **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
+
+## Layout
+
+```
+.
+├── AGENTS.md                # Top-level agent instructions
+├── CLAUDE.md                # Claude Code entry point: @-imports AGENTS.md
+├── fragments/               # Per-upstream-repo knowledge fragments
+├── upstream/                # Local clones, one directory per upstream repo
+├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
+├── .agents/
+│   └── skills/              # Canonical skill definitions (SKILL.md per skill)
+└── .claude/
+    ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
+    └── settings.local.json  # Claude Code-specific: allowed tools and project-level settings
+```
+
+## Provider-neutral layout and Claude Code compatibility
+
+The repo uses a provider-neutral layout so it works with any agent framework: `AGENTS.md` for instructions, `.agents/skills/` for skill definitions. Claude Code auto-loads `CLAUDE.md` (not `AGENTS.md`) and discovers slash commands only from `.claude/commands/`. To bridge the gap without duplicating files, `CLAUDE.md` simply `@`-imports `AGENTS.md`, and `.claude/commands/` contains symlinks pointing to the canonical skill files under `.agents/skills/`.
 
 ## TODO
 
