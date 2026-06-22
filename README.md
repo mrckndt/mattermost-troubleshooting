@@ -4,30 +4,47 @@ Workspace for the Mattermost Technical Support Engineer agent. Provider-neutral 
 
 ## Getting started
 
-### Optional CLI tools
+### Recommended CLI tools
 
-The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Optional - if not installed, `find` and `grep` are used instead.
-
-`gh` (GitHub CLI) is also used by Claude Code for GitHub operations (PRs, issues, checks). Optional.
+The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Falls back gracefully if not installed, but these tools are strongly recommended.
 
 **macOS:**
 ```
-brew install fd ripgrep gh
+brew install fd ripgrep
 ```
 
 **Linux (Debian/Ubuntu):**
 ```
-apt install fd-find ripgrep gh
+apt install fd-find ripgrep
 ```
 
 **Linux (Red Hat/Fedora):**
 ```
-dnf install fd-find ripgrep gh
+dnf install fd-find ripgrep
 ```
 
 **Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
 ```
 winget install Microsoft.WSL
+```
+
+### Optional CLI tools
+
+`gh` (GitHub CLI) is purely optional - used only for GitHub operations (opening PRs, viewing issues, checks) outside the investigation workflow.
+
+**macOS:**
+```
+brew install gh
+```
+
+**Linux (Debian/Ubuntu):**
+```
+apt install gh
+```
+
+**Linux (Red Hat/Fedora):**
+```
+dnf install gh
 ```
 
 ### GitHub SSH and enterprise repo access
