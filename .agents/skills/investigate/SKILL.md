@@ -56,6 +56,8 @@ Do not begin scope inference until all files have been inventoried this way.
 
 Once all ticket files are read, emit a single fenced block containing:
 
+0. `Files: N listed, N read` - counts must match; if they differ, the gate is not satisfied.
+
 1. A bulleted list with one item per file. Lead with path and size; follow with a one-line
    characterization. **Bold any anomaly, misconfiguration, or error count that warrants attention**:
 
