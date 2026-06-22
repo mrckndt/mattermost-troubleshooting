@@ -1,6 +1,6 @@
 # mattermost-troubleshooting
 
-Workspace for the Mattermost Technical Support Engineer agent. Provider-neutral layout (`AGENTS.md`, `.agents/skills/`) with Claude Code as the primary runtime. Local clones of upstream Mattermost repos and curated per-repo knowledge fragments.
+AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, the investigation pipeline pins upstream source to the customer's exact version, searches code, docs, and curated knowledge fragments exhaustively, and produces a root-cause finding with evidence. Output skills generate customer replies, KB articles, and PDE intake posts from the same session.
 
 ## Getting started
 
