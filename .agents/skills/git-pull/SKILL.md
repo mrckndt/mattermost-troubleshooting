@@ -1,6 +1,6 @@
 ---
 name: git-pull
-description: Run git pull --ff-only on the current branch of one repo (arg) or every repo under upstream/ (no arg)
+description: Fetch tags and run git pull --ff-only on the current branch of one repo (arg) or every repo under upstream/ (no arg)
 user-invocable: true
 ---
 
@@ -13,13 +13,14 @@ Args: optionally a single `<repo>` name matching a directory under `upstream/`.
 
 For each repo:
 
-1. `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only`. Report whatever git says; do not pre-check or guard.
-2. `git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD` to capture the branch (`HEAD` = detached, report as `(detached)`).
-3. Continue on error.
+1. `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags`. Refreshes all tags so a later `/git-switch <tag>` cannot resolve to a stale tag. Runs regardless of branch or detached HEAD.
+2. `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only`. Report whatever git says; do not pre-check or guard.
+3. `git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD` to capture the branch (`HEAD` = detached, report as `(detached)`).
+4. Continue on error.
 
 Report a Markdown table: `Repo | Branch | Pull`.
 - `Pull`: `up to date`, `updated <oldsha>..<newsha>`, or the git error.
 
 Notes:
 - Run each git invocation as a separate Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
-- This command does NOT refresh tags. For new tags before `/git-switch`, run `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags` first.
+- Tags are refreshed as step 1, so `/git-switch <tag>` always sees the latest tags. A detached-HEAD repo still fetches tags even though its `pull --ff-only` reports no upstream branch.
