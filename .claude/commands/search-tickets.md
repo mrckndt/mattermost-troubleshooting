@@ -1,0 +1,1 @@
+../../.agents/skills/search-tickets/SKILL.md
