@@ -37,13 +37,13 @@ Emit a structured session briefing:
 Determine the last completed phase by reading the analysis log:
 - If "Next steps" names a specific phase (e.g. "run Phase 6 docs search"), resume from that phase.
 - If "Resolution" is populated, the ticket is closed - confirm with the engineer before continuing.
-- If unclear, default to Phase 5 and state the assumption.
+- If unclear: default to Phase 7 if "Evidence collected" or "Current hypothesis" is non-empty in `analysis.md` (phases 5-6 are likely done); otherwise default to Phase 5. State the assumption either way.
 
 State: "Resuming from Phase <N> - <phase name>."
 
 ## Phase 3 - Continue investigation
 
-Proceed with the identified phase from `/investigate`, applying all its rules. Append a new session entry to `analysis-full.md`:
+Follow the rules for the identified phase as defined in `/investigate` inline - do not re-invoke the skill from Phase 0. Append a new session entry to `analysis-full.md`:
 
 ```
 ---
