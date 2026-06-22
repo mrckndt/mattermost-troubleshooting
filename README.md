@@ -111,6 +111,13 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 - **`/investigate <ticket-ID|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
+### Output
+
+- **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
+- **`/kb-article [description]`** - generate a KB article (Markdown + HTML).
+- **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
+- **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
+
 ### Repo management
 
 - **`/bootstrap`** - clone missing upstream repos and create working directories. Idempotent.
@@ -128,13 +135,6 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/resume <ticket-ID>`** - reconstruct context from `analysis.md`, identify the last completed phase, and continue from there.
 - **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
 - **`/fragment-update`** - draft and write fragment updates from the current ticket's Phase 8 findings; presents a diff for approval before writing.
-
-### Output
-
-- **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
-- **`/kb-article [description]`** - generate a KB article (Markdown + HTML).
-- **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
-- **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ## Layout
 
