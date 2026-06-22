@@ -89,6 +89,8 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
    cd /path/to/mattermost-troubleshooting
    claude
    ```
+   Set the model to an **Opus-like model** (Opus 4.8 or later) with **1M context** and **>= high thinking effort**. Auto-mode is fine once the investigation starts - the skill enforces phase order and search completeness.
+
 4. Run the investigation pipeline: `/investigate 12345`.
    
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
@@ -100,13 +102,6 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
    - `/pde-intake` - file a PM-facing feature request, bug report, or security issue.
-
-## Recommended model and effort
-
-| Task | Model | Effort / thinking | Context |
-|---|---|---|---|
-| Working on project files (AGENTS.md, fragments, skills) | Sonnet | high | standard, 1M if needed |
-| Ticket investigation | Opus | >= high | 1M |
 
 ## Skills / slash commands
 
