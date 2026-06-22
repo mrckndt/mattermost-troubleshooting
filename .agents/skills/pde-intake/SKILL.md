@@ -54,7 +54,7 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 **Tier:** Professional / Enterprise / Enterprise Advanced
 **Persona:** [affected role]
 **Frequency:** [how often it comes up]
-**Problem:** [current behavior → desired behavior]
 **Scope:** [UI / API / admin policy / other]
 **Urgency / Severity:** [deal/renewal tie-in, bug severity, or none]
+**Problem:** [current behavior → desired behavior]
 ```
