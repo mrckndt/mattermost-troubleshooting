@@ -124,7 +124,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 - **`/bootstrap`** - clone missing upstream repos and create working directories. Idempotent.
 
-- **`/git-pull [<repo>]`** - `git pull --ff-only`.
+- **`/git-pull [<repo>]`** - `git fetch --tags` then `git pull --ff-only`.
   - No argument: pulls all repos.
   - `<repo>`: pulls one repo.
 
