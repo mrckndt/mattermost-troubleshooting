@@ -136,7 +136,18 @@ For `mattermost` and `enterprise`: release branches are `release-X.Y`; patch tag
 3. Run `/git-pull` if on a branch; skip if on a tag (detached HEAD - tags are immutable).
 4. After the investigation completes, state which version(s) the analysis was run against (mirroring the unknown-version footer).
 
-**Unknown version:** stay on the current ref and proceed. After the investigation completes, state: "Server version unknown; analysis run against `<current-ref>`." Ask whether to re-run against a specific version or `main`. Apply the same note for any plugin repos in scope.
+**Unknown version:** look up the current ESR patch dynamically:
+
+```
+grep -m1 "Extended Support Release (ESR)" "$PROJECT_ROOT/upstream/docs/source/product-overview/version-archive.rst" | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*'
+```
+
+Fallbacks if that file has no match: `common-esr-support-rst.rst`, then `release-policy.md` (same directory).
+
+- Switch `mattermost` and `enterprise` to the resolved tag via `/git-switch`; do not ask the engineer.
+- After the investigation completes, state: "Version unknown; analysis run against `<esr-tag>` (current ESR,
+  `version-archive.rst`). Re-run `/git-switch mattermost <version>` if customer version is known."
+- Apply the same note for any plugin repos in scope.
 
 Complete this phase before proceeding.
 
