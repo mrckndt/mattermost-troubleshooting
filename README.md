@@ -90,10 +90,11 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    ```
    claude
    ```
-   Set the model to an **Opus-like model** (Opus 4.8 or later) with **1M context** and **>= high thinking effort**. Auto-mode is fine once the investigation starts - the skill enforces phase order and search completeness.
+
+   > Set the model to an **Opus-like model** (Opus 4.8 or later) with **1M context** and **>= high thinking effort**. Auto-mode is fine once the investigation starts - the skill enforces phase order and search completeness.
 
 4. Run the investigation pipeline: `/investigate 12345`.
-   
+
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
    - Searches source code at four angles (exact error strings, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
    - Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
