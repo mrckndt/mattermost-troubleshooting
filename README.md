@@ -112,7 +112,13 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
-- **`/investigate <ticket-ID>`** - run the full investigation pipeline: file inventory, scope inference, version alignment, tiered search (fragments → source → docs), re-validation, conclusion framing, and analysis log maintenance. Also accepts a free-text problem description instead of a ticket ID.
+**`/investigate <ticket-ID|description>`** is the core skill. Give it a ticket ID or a free-text problem description.
+
+- Reads every ticket file and pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version before searching any source code.
+- Searches source code across all pinned repos at four angles (exact error strings, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
+- Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
+- Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
+- Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and a persistent `analysis.md` that survives handoffs and session breaks.
 
 ### Repo management
 
