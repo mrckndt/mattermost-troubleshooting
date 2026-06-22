@@ -199,9 +199,8 @@ Search all five unconditionally - all are required:
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings. Emit each query and matching post summaries. If unavailable, state `Mattermost Hub search skipped: <reason>`.
 4. `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`; one search per in-scope repo, all repos required. Emit the search URL and top result titles + numbers.
-5. For each in-scope plugin repo: if `upstream/<repo>/CHANGELOG.md` exists, `grep` it for the customer's version range and symptom keywords. Otherwise fetch `https://github.com/mattermost/<repo>/releases` via `WebFetch` and scan release titles and bodies. One search per in-scope plugin repo; all required.
 
-If searches 3, 4, or 5 cannot run (offline, WebFetch fails, MCP unavailable), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
+If searches 3 or 4 cannot run (offline, WebFetch fails, MCP unavailable), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
 Complete this phase before proceeding.
 
