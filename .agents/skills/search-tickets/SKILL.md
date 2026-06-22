@@ -16,7 +16,7 @@ Run the following searches in parallel:
 
 1. Analysis logs:
 ```
-rg -l "$ARGUMENTS" "$PROJECT_ROOT/tickets/" --include="analysis*.md"
+rg -l "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"
 ```
 2. Raw ticket files:
 ```
