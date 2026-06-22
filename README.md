@@ -100,8 +100,8 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
    - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and maintains `tickets/12345/analysis.md` for handoffs and session breaks.
 5. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
-   - `/kb-article` - publish a KB article.
-   - `/pde-intake` - file a PM-facing feature request, bug report, or security issue.
+   - `/kb-article` - generate a KB article.
+   - `/pde-intake` - create a feature request, bug report, or security issue for sharing with PDE Intake Agent.
 
 ## Skills / slash commands
 
