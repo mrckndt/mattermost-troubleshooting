@@ -72,15 +72,14 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
    cd /path/to/mattermost-troubleshooting
    claude
    ```
-4. Pin repos to the customer's version if needed: `/git-switch mattermost v10.5.1`.
-5. Run the investigation pipeline: `/investigate 12345`.
+4. Run the investigation pipeline: `/investigate 12345`.
    
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
    - Searches source code at four angles (exact error strings, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
    - Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
    - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and maintains `tickets/12345/analysis.md` for handoffs and session breaks.
-6. When you have a conclusion, generate the customer-facing output:
+5. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - publish a KB article.
    - `/pde-intake` - file a PM-facing feature request, bug report, or security issue.
