@@ -47,6 +47,16 @@ apt install gh
 dnf install gh
 ```
 
+### Optional MCP integrations
+
+The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
+
+- **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
+
+Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+
+
+
 ### GitHub SSH and enterprise repo access
 
 The `enterprise` repo is private. To access it:

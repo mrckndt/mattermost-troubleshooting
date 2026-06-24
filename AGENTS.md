@@ -67,7 +67,11 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 - `https://docs.mattermost.com/` - rendered docs; customer-facing links only.
 - `https://support.mattermost.com/` - KB articles (WebFetch).
 - `https://github.com/mattermost/<repo>/issues` - bugs and feature requests.
-- `https://mattermost.atlassian.net/` - internal Jira (MM-XXXXX).
+
+**MCP integrations (optional, use if present):**
+- Use MCP-backed sources when the runtime exposes their tools; skip with a noted reason when it does not. Never block an investigation on a missing MCP; fall back to local data.
+- **Mattermost Hub:** `mcp__claude_ai_Mattermost_Hub__*` (enterprise Claude connector).
+- **Skip convention:** when a source's tools are absent, state `<source> search skipped: <reason>` in the relevant phase output. Do not omit silently.
 
 **Citation rule:** customer replies link to `docs.mattermost.com` or `support.mattermost.com` only.
 
