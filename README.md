@@ -4,6 +4,11 @@ AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, t
 
 ## Getting started
 
+Setup at a glance:
+1. Install CLI tools (`fd`, `rg`; `gh` optional).
+2. Clone the repo and run `/bootstrap`.
+3. (Optional) Enable integrations: enterprise repo access.
+
 ### Recommended CLI tools
 
 The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Falls back gracefully if not installed, but these tools are strongly recommended.
@@ -47,16 +52,6 @@ apt install gh
 dnf install gh
 ```
 
-### Optional MCP integrations
-
-The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
-
-- **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
-
-Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
-
-
-
 ### GitHub SSH and enterprise repo access
 
 The `enterprise` repo is private. To access it:
@@ -82,6 +77,16 @@ Then inside Claude:
 This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
 
 > `/bootstrap` and `/git-pull` are mechanical shell operations - prefer Sonnet with minimal thinking to save cost and time.
+
+### Optional MCP integrations
+
+Set these up after the repo is cloned. The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
+
+- **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
+
+Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+
+
 
 ### Working a ticket
 
