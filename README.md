@@ -4,6 +4,11 @@ AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, t
 
 ## Getting started
 
+Setup at a glance:
+1. Install CLI tools (`fd`, `rg`; `gh` optional).
+2. Clone the repo and run `/bootstrap`.
+3. (Optional) Enable integrations: enterprise repo access, Jira MCP.
+
 ### Recommended CLI tools
 
 The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Falls back gracefully if not installed, but these tools are strongly recommended.
@@ -47,42 +52,6 @@ apt install gh
 dnf install gh
 ```
 
-### Optional MCP integrations
-
-The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
-
-- **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
-- **Internal Jira** - `mattermost.atlassian.net` (`MM-XXXXX`) via [`sooperset/mcp-atlassian`](https://github.com/sooperset/mcp-atlassian), run locally.
-
-Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
-
-Each MCP server lives in its own folder under `mcp/` (e.g. `mcp/atlassian/`), so its compose project, container, and `.env` stay isolated as more servers are added.
-
-#### Jira MCP setup
-
-The server runs as a long-lived docker-compose service over SSE transport, so it is persistent (`restart: unless-stopped`) and updatable (re-pull the image). It is a stateless proxy to the Atlassian REST API - no data volume to mount.
-
-1. Create an API token at `https://id.atlassian.com/manage-profile/security/api-tokens`. Use **Create API token** (the plain, unscoped token). Read-only access is enforced at the server via `READ_ONLY_MODE=true` (step 3), not via token scopes.
-
-2. Create your credentials file from the template (it is gitignored - never commit real tokens):
-   ```
-   cp mcp/atlassian/.env.example mcp/atlassian/.env
-   ```
-   Edit `mcp/atlassian/.env`: set `JIRA_USERNAME` to your Mattermost email and `JIRA_API_TOKEN` to the token from step 1. `JIRA_URL` is already set to `https://mattermost.atlassian.net`.
-
-3. Start the service (defaults to `READ_ONLY_MODE=true` and `JIRA_PROJECTS_FILTER=MM` for investigation use):
-   ```
-   docker compose -f mcp/atlassian/docker-compose.yml up -d
-   ```
-
-4. Register it with Claude Code as an SSE endpoint. Use the name `atlassian_local` exactly - the pipeline looks for the `mcp__atlassian_local__*` tool prefix, which is derived from this name (and keeps it distinct from the remote `claude.ai Atlassian` connector). A different name will not be found.
-   ```
-   claude mcp add --transport sse atlassian_local http://localhost:8000/sse
-   ```
-   Verify with `claude mcp list` (should show `atlassian_local: http://localhost:8000/sse (SSE) - Connected`). Restart Claude Code so the session loads the server's `jira_*` tools.
-
-To update later: `docker compose -f mcp/atlassian/docker-compose.yml pull && docker compose -f mcp/atlassian/docker-compose.yml up -d`.
-
 ### GitHub SSH and enterprise repo access
 
 The `enterprise` repo is private. To access it:
@@ -108,6 +77,40 @@ Then inside Claude:
 This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
 
 > `/bootstrap` and `/git-pull` are mechanical shell operations - prefer Sonnet with minimal thinking to save cost and time.
+
+### Optional MCP integrations
+
+Set these up after the repo is cloned (the Jira steps reference files under `mcp/`). The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
+
+- **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
+- **Internal Jira** - `mattermost.atlassian.net` (`MM-XXXXX`) via [`sooperset/mcp-atlassian`](https://github.com/sooperset/mcp-atlassian), run locally.
+
+Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+
+Each MCP server lives in its own folder under `mcp/` (e.g. `mcp/atlassian/`), so its compose project, container, and `.env` stay isolated as more servers are added.
+
+#### Jira MCP setup
+
+A long-lived docker-compose service (SSE, port `7080`).
+
+1. Create an API token at `https://id.atlassian.com/manage-profile/security/api-tokens` - use **Create API token** (the plain, unscoped one). Read-only is enforced via `READ_ONLY_MODE` in `.env`, not token scopes.
+
+2. Copy the template and fill in credentials (`.env` is gitignored - never commit tokens):
+   ```
+   cp mcp/atlassian/.env.example mcp/atlassian/.env
+   ```
+   Set `JIRA_USERNAME` (your email) and `JIRA_API_TOKEN`. `JIRA_URL`, `READ_ONLY_MODE`, and `JIRA_PROJECTS_FILTER` are preset.
+
+3. Start it (re-run after `... pull` to update):
+   ```
+   docker compose -f mcp/atlassian/docker-compose.yml up -d
+   ```
+
+4. Register with Claude Code - the name must be `atlassian_local` exactly (the pipeline looks for the `mcp__atlassian_local__*` prefix, distinct from the remote `claude.ai Atlassian` connector):
+   ```
+   claude mcp add --transport sse atlassian_local http://localhost:7080/sse
+   ```
+   Restart Claude Code so the session loads the `jira_*` tools; verify with `claude mcp list`.
 
 ### Working a ticket
 
