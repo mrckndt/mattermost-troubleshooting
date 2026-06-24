@@ -19,6 +19,12 @@
 !.agents/
 !.agents/**
 
+# Track optional MCP server config (no secrets); each server's .env stays ignored
+!mcp/
+!mcp/*/
+!mcp/*/docker-compose.yml
+!mcp/*/.env.example
+
 # Track only specific .claude paths
 !.claude/
 !.claude/settings.local.json

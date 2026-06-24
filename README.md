@@ -47,6 +47,42 @@ apt install gh
 dnf install gh
 ```
 
+### Optional MCP integrations
+
+The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
+
+- **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
+- **Internal Jira** - `mattermost.atlassian.net` (`MM-XXXXX`) via [`sooperset/mcp-atlassian`](https://github.com/sooperset/mcp-atlassian), run locally.
+
+Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+
+Each MCP server lives in its own folder under `mcp/` (e.g. `mcp/atlassian/`), so its compose project, container, and `.env` stay isolated as more servers are added.
+
+#### Jira MCP setup
+
+The server runs as a long-lived docker-compose service over SSE transport, so it is persistent (`restart: unless-stopped`) and updatable (re-pull the image). It is a stateless proxy to the Atlassian REST API - no data volume to mount.
+
+1. Create an API token at `https://id.atlassian.com/manage-profile/security/api-tokens`. Use **Create API token** (the plain, unscoped token). Read-only access is enforced at the server via `READ_ONLY_MODE=true` (step 3), not via token scopes.
+
+2. Create your credentials file from the template (it is gitignored - never commit real tokens):
+   ```
+   cp mcp/atlassian/.env.example mcp/atlassian/.env
+   ```
+   Edit `mcp/atlassian/.env`: set `JIRA_USERNAME` to your Mattermost email and `JIRA_API_TOKEN` to the token from step 1. `JIRA_URL` is already set to `https://mattermost.atlassian.net`.
+
+3. Start the service (defaults to `READ_ONLY_MODE=true` and `JIRA_PROJECTS_FILTER=MM` for investigation use):
+   ```
+   docker compose -f mcp/atlassian/docker-compose.yml up -d
+   ```
+
+4. Register it with Claude Code as an SSE endpoint. Use the name `atlassian_local` exactly - the pipeline looks for the `mcp__atlassian_local__*` tool prefix, which is derived from this name (and keeps it distinct from the remote `claude.ai Atlassian` connector). A different name will not be found.
+   ```
+   claude mcp add --transport sse atlassian_local http://localhost:8000/sse
+   ```
+   Verify with `claude mcp list` (should show `atlassian_local: http://localhost:8000/sse (SSE) - Connected`). Restart Claude Code so the session loads the server's `jira_*` tools.
+
+To update later: `docker compose -f mcp/atlassian/docker-compose.yml pull && docker compose -f mcp/atlassian/docker-compose.yml up -d`.
+
 ### GitHub SSH and enterprise repo access
 
 The `enterprise` repo is private. To access it:
@@ -97,7 +133,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
 
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
    - Searches source code at four angles (exact error strings, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
-   - Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
+   - Searches important upgrade notes, the v11 changelog, product docs, developer docs, internal Jira, Mattermost Hub, and GitHub issues per repo - all required.
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
    - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and maintains `tickets/12345/analysis.md` for handoffs and session breaks.
 5. When you have a conclusion, generate the customer-facing output:
@@ -145,6 +181,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 ├── AGENTS.md                # Top-level agent instructions
 ├── CLAUDE.md                # Claude Code entry point: @-imports AGENTS.md
 ├── fragments/               # Per-upstream-repo knowledge fragments
+├── mcp/                     # Optional MCP server config, one folder per server (e.g. mcp/atlassian/); .env files gitignored
 ├── upstream/                # Local clones, one directory per upstream repo
 ├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
 ├── .agents/
@@ -162,4 +199,5 @@ The repo uses a provider-neutral layout so it works with any agent framework: `A
 
 - [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
 - [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
+- [ ] Figure out how scoped Atlassian API tokens work with the Jira MCP. Scoped tokens currently fail basic auth against the Jira REST endpoints `mcp-atlassian` uses (every query returns empty / `total: -1`), so setup requires an unscoped token. A working scoped-token path would allow least-privilege, per-app credentials.
 - [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas).

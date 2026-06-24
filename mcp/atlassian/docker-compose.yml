@@ -1,0 +1,25 @@
+# Optional MCP server for the investigation pipeline: internal Jira.
+# sooperset/mcp-atlassian, run as a long-lived SSE service.
+# Secrets live in mcp/atlassian/.env (gitignored); operational settings are inline.
+# Start:   docker compose -f mcp/atlassian/docker-compose.yml up -d
+# Update:  docker compose -f mcp/atlassian/docker-compose.yml pull && docker compose -f mcp/atlassian/docker-compose.yml up -d
+services:
+  mcp-atlassian:
+    image: ghcr.io/sooperset/mcp-atlassian:latest
+    container_name: mcp-atlassian
+    env_file: .env
+    ports:
+      - "8000:8000"
+    environment:
+      - TRANSPORT=sse
+      - PORT=8000
+      - HOST=0.0.0.0
+      # Investigation is read-only; scope to internal Jira (MM) project keys.
+      - READ_ONLY_MODE=true
+      - JIRA_PROJECTS_FILTER=MM
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
