@@ -5,7 +5,7 @@ AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, t
 ## Getting started
 
 Setup at a glance:
-1. Install CLI tools (`fd`, `rg`; `gh` optional).
+1. Install CLI tools (`fd`, `rg`).
 2. Clone the repo and run `/bootstrap`.
 3. (Optional) Enable integrations: enterprise repo access.
 
@@ -31,25 +31,6 @@ dnf install fd-find ripgrep
 **Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
 ```
 winget install Microsoft.WSL
-```
-
-### Optional CLI tools
-
-`gh` (GitHub CLI) is purely optional - used only for GitHub operations (opening PRs, viewing issues, checks) outside the investigation workflow.
-
-**macOS:**
-```
-brew install gh
-```
-
-**Linux (Debian/Ubuntu):**
-```
-apt install gh
-```
-
-**Linux (Red Hat/Fedora):**
-```
-dnf install gh
 ```
 
 ### GitHub SSH and enterprise repo access
@@ -178,3 +159,4 @@ The repo uses a provider-neutral layout so it works with any agent framework: `A
 - [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
 - [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
 - [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas).
+- [ ] Replace GitHub WebFetch/WebSearch in Phase 6 with the GitHub MCP once it is set up (analogous to the Jira MCP).
