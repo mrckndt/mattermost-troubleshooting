@@ -65,10 +65,33 @@ Set these up after the repo is cloned (the Jira steps reference files under `mcp
 
 - **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
 - **Internal Jira** - `mattermost.atlassian.net` (`MM-XXXXX`) via [`sooperset/mcp-atlassian`](https://github.com/sooperset/mcp-atlassian), run locally.
+- **GitHub issues/PRs** - `github.com/mattermost/*` via [`github/github-mcp-server`](https://github.com/github/github-mcp-server), run locally.
 
 Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
 
 Each MCP server lives in its own folder under `mcp/` (e.g. `mcp/atlassian/`), so its compose project, container, and `.env` stay isolated as more servers are added.
+
+#### GitHub MCP setup
+
+A long-lived docker-compose service (streamable HTTP, port `7081`).
+
+1. Create a classic PAT at `https://github.com/settings/tokens` with scopes: `repo`, `read:org`, `read:user`.
+
+2. Copy the template and fill in the token (`.env` is gitignored - never commit tokens):
+   ```
+   cp mcp/github/.env.example mcp/github/.env
+   ```
+
+3. Start it (re-run after `... pull` to update):
+   ```
+   docker compose -f mcp/github/docker-compose.yml up -d
+   ```
+
+4. Register with Claude Code - the name must be `github_local` exactly (the pipeline looks for the `mcp__github_local__*` prefix, distinct from the remote `claude.ai GitHub MCP` connector):
+   ```
+   claude mcp add --transport http github_local http://localhost:7081/
+   ```
+   Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
 
 #### Jira MCP setup
 
@@ -185,4 +208,3 @@ The repo uses a provider-neutral layout so it works with any agent framework: `A
 - [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
 - [ ] Figure out how scoped Atlassian API tokens work with the Jira MCP. Scoped tokens currently fail basic auth against the Jira REST endpoints `mcp-atlassian` uses (every query returns empty / `total: -1`), so setup requires an unscoped token. A working scoped-token path would allow least-privilege, per-app credentials.
 - [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas).
-- [ ] Replace GitHub WebFetch/WebSearch in Phase 6 with the GitHub MCP once it is set up (analogous to the Jira MCP).

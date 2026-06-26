@@ -73,6 +73,7 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 - Use MCP-backed sources when the runtime exposes their tools; skip with a noted reason when it does not. Never block an investigation on a missing MCP; fall back to local data.
 - **Mattermost Hub:** `mcp__claude_ai_Mattermost_Hub__*` (enterprise Claude connector).
 - **Internal Jira:** the local Jira MCP `mcp__atlassian_local__*`, pointed at `https://mattermost.atlassian.net/`. Setup is in README.
+- **GitHub issues/PRs:** the local GitHub MCP `mcp__github_local__*`, pointed at `github.com/mattermost/*`. Setup is in README.
 - **Skip convention:** when a source's tools are absent, state `<source> search skipped: <reason>` in the relevant phase output. Do not omit silently.
 
 **Citation rule:** customer replies link to `docs.mattermost.com` or `support.mattermost.com` only.
