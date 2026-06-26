@@ -43,7 +43,7 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 ## Template
 
 ```
-# [Issue Type]: [Customer] - [Short, Descriptive Title]
+### [Issue Type]: [Customer] - [Short, Descriptive Title]
 
 **Customer:** [Company Name]
 **Contact:** [First Surname][, Title][, email]
