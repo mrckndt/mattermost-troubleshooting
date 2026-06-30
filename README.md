@@ -75,7 +75,7 @@ Each MCP server lives in its own folder under `mcp/` (e.g. `mcp/atlassian/`), so
 
 A long-lived docker-compose service (streamable HTTP, port `7081`).
 
-1. Create a classic PAT at GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic) > Generate new token (classic). Select scopes: `public_repo` (under `repo`), `read:org` (under `admin:org`), `read:user` (under `user`).
+1. Create a classic PAT at `https://github.com/settings/tokens` (GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic) > Generate new token (classic)). Select scopes: `public_repo` (under `repo`), `read:org` (under `admin:org`), `read:user` (under `user`).
 
    **SAML SSO:** After saving, the token list shows a "Configure SSO" button. You must authorize the token for the `mattermost` org - the org enforces SAML at the API level for all repos, including public ones. Click "Configure SSO" > "Authorize" next to `mattermost`. With `public_repo` scope the token is limited to public repos; use the full `repo` scope instead if you also need private repo access (e.g. `mattermost/enterprise`).
 
