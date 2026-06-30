@@ -199,7 +199,10 @@ Search all five unconditionally - all are required:
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings. Emit each query and matching post summaries. If unavailable, state `Mattermost Hub search skipped: <reason>`.
 4. Internal Jira (`MM-XXXXX`): the local Jira MCP `mcp__atlassian_local__*` for symptom keywords, Phase 1 error strings, and any `MM-XXXXX` keys surfaced in earlier phases. Emit each query (JQL or tool call) and matching issue keys + summaries. If `mcp__atlassian_local__*` is absent, state `Jira search skipped: <reason>`; do not substitute another Atlassian connector or start an OAuth flow.
-5. `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`; one search per in-scope repo, all repos required. Emit the search URL and top result titles + numbers.
+5. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
+   - **Preferred:** `mcp__github_local__search_issues` and `mcp__github_local__search_pull_requests` with symptom keywords and Phase 1 error strings. Emit each query and matching issue/PR titles + numbers.
+   - **Fallback (MCP absent or SAML-blocked):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
+   - If `mcp__github_local__*` is absent, state `GitHub MCP skipped: <reason>` and use the WebFetch fallback. Do not substitute the remote `claude.ai GitHub MCP` connector.
 
 If searches 3, 4, or 5 cannot run (offline, WebFetch fails, MCP unavailable), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
