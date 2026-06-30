@@ -75,7 +75,9 @@ Each MCP server lives in its own folder under `mcp/` (e.g. `mcp/atlassian/`), so
 
 A long-lived docker-compose service (streamable HTTP, port `7081`).
 
-1. Create a classic PAT at `https://github.com/settings/tokens` with scopes: `repo`, `read:org`, `read:user`.
+1. Create a classic PAT at GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic) > Generate new token (classic). Select scopes: `public_repo` (under `repo`), `read:org` (under `admin:org`), `read:user` (under `user`).
+
+   **SAML SSO:** After saving, the token list shows a "Configure SSO" button. You must authorize the token for the `mattermost` org - the org enforces SAML at the API level for all repos, including public ones. Click "Configure SSO" > "Authorize" next to `mattermost`. With `public_repo` scope the token is limited to public repos; use the full `repo` scope instead if you also need private repo access (e.g. `mattermost/enterprise`).
 
 2. Copy the template and fill in the token (`.env` is gitignored - never commit tokens):
    ```
@@ -87,11 +89,11 @@ A long-lived docker-compose service (streamable HTTP, port `7081`).
    docker compose -f mcp/github/docker-compose.yml up -d
    ```
 
-4. Register with Claude Code - the name must be `github_local` exactly (the pipeline looks for the `mcp__github_local__*` prefix, distinct from the remote `claude.ai GitHub MCP` connector):
+4. Register with Claude Code - the name must be `github_local` exactly (the pipeline looks for the `mcp__github_local__*` prefix, distinct from the remote `claude.ai GitHub MCP` connector). Pass the PAT as a Bearer header (`--header` must come after the positional arguments):
    ```
-   claude mcp add --transport http github_local http://localhost:7081/
+   claude mcp add --transport http github_local http://localhost:7081/ --header "Authorization: Bearer <PAT>"
    ```
-   Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
+   Replace `<PAT>` with the token value from `mcp/github/.env`. Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
 
 #### Jira MCP setup
 
@@ -154,7 +156,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
-- **`/investigate <ticket-ID|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
+- **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
 ### Output
 
