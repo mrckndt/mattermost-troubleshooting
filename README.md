@@ -79,10 +79,11 @@ A long-lived docker-compose service (streamable HTTP, port `7081`).
 
    **SAML SSO:** After saving, the token list shows a "Configure SSO" button. You must authorize the token for the `mattermost` org - the org enforces SAML at the API level for all repos, including public ones. Click "Configure SSO" > "Authorize" next to `mattermost`. With `public_repo` scope the token is limited to public repos; use the full `repo` scope instead if you also need private repo access (e.g. `mattermost/enterprise`).
 
-2. Copy the template and fill in the token (`.env` is gitignored - never commit tokens):
+2. Copy the template and fill in credentials (`.env` is gitignored - never commit tokens):
    ```
    cp mcp/github/.env.example mcp/github/.env
    ```
+   Set `GITHUB_PERSONAL_ACCESS_TOKEN` to the token value. `GITHUB_READ_ONLY` is preset to `true`.
 
 3. Start it (re-run after `... pull` to update):
    ```
