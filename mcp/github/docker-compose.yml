@@ -1,0 +1,11 @@
+services:
+  mcp-github:
+    image: ghcr.io/github/github-mcp-server
+    container_name: mcp-github
+    command: http
+    env_file: .env
+    ports:
+      - "7081:7081"
+    environment:
+      - GITHUB_PORT=7081
+    restart: unless-stopped
