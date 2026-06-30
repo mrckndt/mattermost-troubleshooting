@@ -198,7 +198,8 @@ Search all four unconditionally - all are required:
 1. `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings. Emit each query and matching post summaries. If unavailable, state `Mattermost Hub search skipped: <reason>`.
-5. `https://github.com/mattermost/<repo>/issues` per in-scope repo via `WebFetch`/`WebSearch`; one search per in-scope repo, all repos required. Emit the search URL and top result titles + numbers.
+5. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
+   - **Fallback (MCP absent or SAML-blocked):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
 
 If searches 3 or 4 cannot run (offline, WebFetch fails, MCP unavailable), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
