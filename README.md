@@ -107,7 +107,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
-- **`/investigate <ticket-ID|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
+- **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
 ### Output
 
