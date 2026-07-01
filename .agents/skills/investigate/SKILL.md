@@ -282,7 +282,7 @@ Full maintenance rules apply on any turn that reads ticket files or changes the 
 
 - **Replace in place:** Current hypothesis (move superseded entries to Ruled out with a brief reason), Correlation, Open questions (remove answered; add new), Next steps (replace; don't accumulate stale items).
 - **Never delete:** Ruled out entries; only add.
-- **Append:** Artifacts reviewed, Evidence collected, Steps and outcomes, Deployment facts as they are confirmed.
+- **Append:** Artifacts reviewed, Evidence collected, Steps and outcomes, Deployment facts as they are confirmed. **Investigated with:** set once; update only if it changes mid-ticket.
 
 **`analysis-full.md` maintenance (chronological log):**
 
@@ -297,6 +297,8 @@ Stubs if empty; use for both files on creation:
 
 ```markdown
 # Ticket <ID> - Analysis
+
+- Investigated with: (model / effort-thinking level, e.g. "Claude Opus 4.8, high"; "Claude Sonnet 5, xhigh". Record model name; effort/thinking level if known or if the operator states it.)
 
 ## Deployment
 - Version:

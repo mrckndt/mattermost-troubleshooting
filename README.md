@@ -57,7 +57,7 @@ Then inside Claude:
 
 This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
 
-> `/bootstrap` and `/git-pull` are mechanical shell operations - prefer Sonnet with minimal thinking to save cost and time.
+> `/bootstrap` and `/git-pull` are mechanical shell operations - a mid-tier model at its default effort/thinking (e.g. **Claude Sonnet 5**) is right for these; no need to manually drop it lower.
 
 ### Optional MCP integrations
 
@@ -137,7 +137,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    claude
    ```
 
-   > Set the model to an **Opus-like model** (Opus 4.8 or later) with **1M context** and **>= high thinking effort**. Auto-mode is fine once the investigation starts - the skill enforces phase order and search completeness.
+   > Default: a **flagship-tier model** (e.g. **Claude Opus 4.8** or an equivalent model) with **1M context** and **high or xhigh effort/thinking** (xhigh sits one step below Claude's "max" tier, reserved for genuinely stuck sessions, not routine use). A **mid-tier model** (e.g. **Claude Sonnet 5**) at high or xhigh effort/thinking is also worth evaluating for `/investigate` itself - not just a cost fallback, potentially faster or a differently-useful result profile. Auto-mode is recommended once the investigation starts - the skill enforces phase order and search completeness regardless of model.
 
 4. Run the investigation pipeline: `/investigate 12345`.
 
