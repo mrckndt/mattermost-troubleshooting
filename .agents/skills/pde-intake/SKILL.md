@@ -26,7 +26,7 @@ Required (ask once, batched, if any are missing):
 - How often it comes up.
 - Deployment type: Cloud / On-premises / Air-gapped.
 - Product tier: Professional / Enterprise / Enterprise Advanced.
-- Urgency / Severity: deal/renewal tie-in, bug severity, or none.
+- Urgency / Severity: for bugs, classify severity: S1 - Critical (core workflow unusable, no workaround) / S2 - Serious (significantly impaired or very broad impact, no workaround) / S3 - Moderate (workaround exists) / S4 - Minor (cosmetic); for feature requests, deal/renewal tie-in or none.
 
 Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links.
 
@@ -55,6 +55,6 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 **Persona:** [affected role]
 **Frequency:** [how often it comes up]
 **Scope:** [UI / API / admin policy / other]
-**Urgency / Severity:** [deal/renewal tie-in, bug severity, or none]
+**Urgency / Severity:** [S1 - Critical / S2 - Serious / S3 - Moderate / S4 - Minor for bugs; deal/renewal tie-in or none for feature requests]
 **Problem:** [current behavior → desired behavior]
 ```
