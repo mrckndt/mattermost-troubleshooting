@@ -193,11 +193,14 @@ Complete this phase before proceeding.
 Search all four unconditionally - all are required:
 1. `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
-3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings. Emit each query and matching post summaries. If unavailable, state `Mattermost Hub search skipped: <reason>`.
+3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
+   - Use short, focused queries (1-2 key terms); long phrases return oversized results truncated to a file.
+   - Emit each query and matching post summaries. If truncated, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
+   - If unavailable, state `Mattermost Hub search skipped: <reason>`.
 5. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
    - **Fallback (MCP absent or SAML-blocked):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
 
-If searches 3 or 4 cannot run (offline, WebFetch fails, MCP unavailable), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
+If searches 3 or 4 cannot run (offline, WebFetch fails, MCP unavailable, Hub result oversized), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
 Complete this phase before proceeding.
 
