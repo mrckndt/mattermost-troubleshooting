@@ -22,8 +22,6 @@ Determine mode:
 
 If no argument is provided, list `tickets/` subdirectories and ask which ticket to investigate before proceeding.
 
-Initialize the analysis log (ticket mode only): if `tickets/<ID>/analysis.md` does not exist, create it with the template at the bottom of this file. If `tickets/<ID>/analysis-full.md` does not exist, create it with the same template. Stubs only at this point.
-
 Complete this phase before proceeding.
 
 ## Phase 1 - Ticket file inventory
@@ -264,26 +262,14 @@ Complete this phase before proceeding.
 
 ## Phase 9 - Analysis log (MANDATORY)
 
-Maintain two files per ticket. Highest-priority task for any turn Phase 9 fires on.
+Maintain two files per ticket, **written once, at the end of the pipeline** (not incrementally per phase). Ticket mode only - description mode has no ticket directory, skip.
 
 - `tickets/<ID>/analysis.md` - live current-state view; key sections always reflect the latest understanding.
 - `tickets/<ID>/analysis-full.md` - append-driven current-state view; same content as analysis.md, but sections are kept current by appending, not editing in place.
 
-**Fires on (exhaustive gate):** the turn does at least one of:
-- reads or greps a file under `tickets/<ID>/` looking for a new fact,
-- runs a Phase 1-6 search (source, codebase-memory, docs, Hub, Jira, GitHub),
-- adds or changes evidence, a hypothesis, a ruled-out theory, or the resolution.
+**Runs once**, right after Phase 8's conclusion, same turn: `Write`/`Edit` both files with everything learned across Phases 0-8.
 
-**Otherwise: skip.** Any turn that doesn't match one of the above leaves both files untouched - no exceptions
-list to maintain. The gate is "did this turn produce a new investigation fact", not "which command ran". A
-turn that only drafts a reply, generates a KB article/PD&E intake, or copies something to clipboard doesn't
-match the gate by construction and is skipped by default. `analysis.md`/`analysis-full.md` must never contain
-drafting/copying narration (e.g. "Drafted + corrected customer reply...", "copied to clipboard").
-
-**How to apply:**
-
-1. First or last tool calls on any turn Phase 9 fires on must be `Write`/`Edit` to both files.
-2. Never defer - stale-by-one-turn is a violation.
+- Never contains drafting/copying narration (e.g. "Drafted + corrected customer reply...", "copied to clipboard") - investigation facts only.
 
 **`analysis.md` maintenance (live view):**
 
@@ -293,6 +279,8 @@ drafting/copying narration (e.g. "Drafted + corrected customer reply...", "copie
 
 **`analysis-full.md` maintenance (chronological log):**
 
+A "session" is one `/investigate` run, not a turn.
+
 Session 1 (creation): both files start identical - same template, same content.
 Subsequent sessions: add `---` and `## Session YYYY-MM-DD`, then re-append each section that changed with its full current content (same section names as the template). The bottom-most instance of any section is always the authoritative current state. Never edit earlier entries.
 
@@ -300,7 +288,7 @@ Subsequent sessions: add `---` and `## Session YYYY-MM-DD`, then re-append each 
 
 ## Analysis log template
 
-Stubs if empty; use for both files on creation:
+Section shape for both files on first creation, populated with real content, not left empty:
 
 ```markdown
 # Ticket <ID> - Analysis

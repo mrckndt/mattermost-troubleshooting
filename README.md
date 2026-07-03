@@ -169,7 +169,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - Searches source code at four angles (exact error strings, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
    - Searches important upgrade notes, the v11 changelog, product docs, developer docs, internal Jira, Mattermost Hub, and GitHub issues per repo - all required.
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
-   - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and maintains `tickets/12345/analysis.md` for handoffs and session breaks.
+   - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume`.
 5. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article` - generate a KB article.
