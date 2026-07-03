@@ -1,0 +1,1 @@
+../../.agents/skills/cbm-detect-changes/SKILL.md

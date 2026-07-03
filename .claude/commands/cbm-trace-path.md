@@ -1,0 +1,1 @@
+../../.agents/skills/cbm-trace-path/SKILL.md
