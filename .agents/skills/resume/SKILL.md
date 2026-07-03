@@ -14,6 +14,8 @@ If `$ARGUMENTS` matches a directory under `tickets/`, set `<ID>=$ARGUMENTS`. Oth
 
 ## Phase 1 - Reconstruct context
 
+If `tickets/<ID>/analysis.md` does not exist, state `tickets/<ID>/analysis.md not found - running /investigate <ID> from Phase 0` and run `/investigate <ID>` instead of continuing below.
+
 Read both files:
 - `tickets/<ID>/analysis.md`
 - `tickets/<ID>/analysis-full.md`
