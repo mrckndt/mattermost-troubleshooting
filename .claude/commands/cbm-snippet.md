@@ -1,0 +1,1 @@
+../../.agents/skills/cbm-snippet/SKILL.md

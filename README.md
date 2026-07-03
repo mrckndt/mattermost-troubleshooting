@@ -198,13 +198,29 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
   - No argument: pulls all repos.
   - `<repo>`: pulls one repo.
 
-- **`/git-switch <repo> [<ref>]`** - switch to a tag, branch, or commit.
+- **`/git-switch <repo> [<ref>]`** - switch to a tag, branch, commit, or version query.
   - No ref: returns to the default branch.
   - `<ref>`: switches to a tag (e.g. `v10.5.1`), branch, or commit.
+  - `<ref>` also accepts a version query (e.g. `latest esr`, `latest`, `11.5`), resolved via `/version-lookup`.
 
-- **`/cbm-index [<repo>]`** - reindex a repo into the codebase-memory knowledge graph.
+- **`/version-lookup [<repo>] <query>`** - resolve a version query to a concrete git ref.
+  - `<repo>`: defaults to `mattermost` when omitted.
+  - `<query>`: `latest esr`, `latest`/`latest release`, `X.Y`/`X.Y.Z`, or `main`/`default`.
+
+### Codebase memory
+
+Standalone access to the codebase-memory knowledge graph, usable independently of `/investigate`. `<repo>` defaults to `mattermost` when omitted from any of these.
+
+- **`/cbm-index [<repo>]`** - reindex a repo into the graph.
   - No argument: reindexes every already-indexed project.
   - `<repo>`: reindexes one repo.
+
+- **`/cbm-search [<repo>] <query>`** - find a symbol or definition by keyword or natural language.
+- **`/cbm-trace [<repo>] <question or function>`** - trace callers/callees of a function (e.g. "what calls ProcessOrder?").
+- **`/cbm-snippet [<repo>] <name>`** - pull source for a symbol (qualified or short name).
+- **`/cbm-query [<repo>] <cypher>`** - run a raw Cypher query for multi-hop or aggregation questions.
+- **`/cbm-architecture [<repo>] [<path>]`** - get a high-level architecture overview (packages, services, dependencies).
+- **`/cbm-changes [<repo>] [<since-ref>]`** - show the blast radius of a diff, risk-classified.
 
 ### Ticket management
 
