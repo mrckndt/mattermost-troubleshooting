@@ -1,0 +1,1 @@
+../../.agents/skills/version-lookup/SKILL.md

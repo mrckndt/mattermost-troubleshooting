@@ -120,31 +120,18 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 
 `mattermost` and `enterprise` are tightly coupled and must always be on the same ref. Switch both together; never leave them on different versions.
 
-For `mattermost` and `enterprise`: release branches are `release-X.Y`; patch tags are `vX.Y.Z`. Ref resolution:
-- Exact version known: `vX.Y.Z` tag
-- Minor version only: `release-X.Y` branch; a pulled branch reflects the latest patch
-- Current main: `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD --short`
-
 1. For each in-scope repo, check current ref:
    ```
    git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || \
      git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD
    ```
-2. If the ref does not match the customer's version, run `/git-switch <repo> <ref>`.
+2. If the ref does not match the customer's version, run `/git-switch <repo> <version>`; it resolves `vX.Y.Z` tags, `X.Y`/`X.Y.Z` queries, and branch names.
 3. Run `/git-pull` if on a branch; skip if on a tag (detached HEAD - tags are immutable).
 4. After the investigation completes, state which version(s) the analysis was run against (mirroring the unknown-version footer).
 
-**Unknown version:** look up the current ESR patch dynamically:
+**Unknown version:** run `/git-switch <repo> "latest esr"` for `mattermost` and `enterprise`; do not ask the engineer.
 
-```
-grep -m1 "Extended Support Release (ESR)" "$PROJECT_ROOT/upstream/docs/source/product-overview/version-archive.rst" | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*'
-```
-
-Fallbacks if that file has no match: `common-esr-support-rst.rst`, then `release-policy.md` (same directory).
-
-- Switch `mattermost` and `enterprise` to the resolved tag via `/git-switch`; do not ask the engineer.
-- After the investigation completes, state: "Version unknown; analysis run against `<esr-tag>` (current ESR,
-  `version-archive.rst`). Re-run `/git-switch mattermost <version>` if customer version is known."
+- After the investigation completes, state: "Version unknown; analysis run against `<esr-tag>` (current ESR). Re-run `/git-switch mattermost <version>` if customer version is known."
 - Apply the same note for any plugin repos in scope.
 
 Complete this phase before proceeding.
