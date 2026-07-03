@@ -61,13 +61,37 @@ This clones all upstream repos under `upstream/` and creates the `tickets/` dire
 
 ### Optional MCP integrations
 
-Set these up after the repo is cloned. The investigation pipeline consults two MCP-backed sources during Phase 6 (Docs and Issues Search) when their tools are available:
+Set these up after the repo is cloned. The investigation pipeline consults these MCP-backed sources when their tools are available:
 
 - **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
+- **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally.
 
-Both are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
 
 
+
+#### Codebase memory MCP setup
+
+A local stdio binary.
+
+**macOS:**
+```
+brew tap deusdata/codebase-memory-mcp https://github.com/DeusData/codebase-memory-mcp
+brew install codebase-memory-mcp
+```
+
+**Linux (including Windows via WSL):**
+```
+curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash
+```
+
+Register with Claude Code - the name must be `codebase_memory_local` exactly (the pipeline looks for the `mcp__codebase_memory_local__*` prefix):
+```
+claude mcp add codebase_memory_local "$(command -v codebase-memory-mcp)"
+```
+Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
+
+Indexing happens automatically in `/investigate` Phase 5, or manually via `/cbm-index`. Data lives in `~/.cache/codebase-memory-mcp/`; delete that directory to reset.
 
 ### Working a ticket
 
@@ -128,6 +152,10 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
   - No ref: returns to the default branch.
   - `<ref>`: switches to a tag (e.g. `v10.5.1`), branch, or commit.
 
+- **`/cbm-index [<repo>]`** - reindex a repo into the codebase-memory knowledge graph.
+  - No argument: reindexes every already-indexed project.
+  - `<repo>`: reindexes one repo.
+
 ### Ticket management
 
 - **`/resume <ticket-ID>`** - reconstruct context from `analysis.md`, identify the last completed phase, and continue from there.
@@ -157,6 +185,6 @@ The repo uses a provider-neutral layout so it works with any agent framework: `A
 
 ## TODO
 
-- [ ] Evaluate persistent codebase memory/graph tooling for faster source lookups: `https://github.com/DeusData/codebase-memory-mcp`, `https://github.com/CodeGraphContext/CodeGraphContext`, or `ast-grep` as alternatives.
+- [ ] Revisit `https://github.com/CodeGraphContext/CodeGraphContext` or `ast-grep` if codebase-memory-mcp's indexing approach doesn't pan out (chosen and integrated - see "Codebase memory MCP setup").
 - [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
 - [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas).
