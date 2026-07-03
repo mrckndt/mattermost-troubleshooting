@@ -132,8 +132,14 @@ brew install codebase-memory-mcp
 
 **Linux (including Windows via WSL):**
 ```
-curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --skip-config
 ```
+
+`--skip-config` installs the binary only. Without it, the installer's own `install` subcommand also
+runs, registering the MCP under the name `codebase-memory-mcp` (not the `codebase_memory_local` name
+this pipeline requires) and writing a global `~/.claude` skill, a Grep/Glob pre-tool hook, and a
+SessionStart reminder that duplicate this repo's `cbm-*` skills. Run `codebase-memory-mcp uninstall`
+to remove that global config if it was already applied.
 
 Register with Claude Code - the name must be `codebase_memory_local` exactly (the pipeline looks for the `mcp__codebase_memory_local__*` prefix):
 ```
@@ -141,7 +147,7 @@ claude mcp add codebase_memory_local "$(command -v codebase-memory-mcp)"
 ```
 Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
 
-Indexing happens automatically in `/investigate` Phase 5, or manually via `/cbm-index`. Data lives in `~/.cache/codebase-memory-mcp/`; delete that directory to reset.
+Indexing happens automatically in `/investigate` Phase 5, or manually via `/cbm-index-repository`. Data lives in `~/.cache/codebase-memory-mcp/`; delete that directory to reset.
 
 ### Working a ticket
 
@@ -211,16 +217,19 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 Standalone access to the codebase-memory knowledge graph, usable independently of `/investigate`. `<repo>` defaults to `mattermost` when omitted from any of these.
 
-- **`/cbm-index [<repo>]`** - reindex a repo into the graph.
+Each skill name matches the codebase-memory MCP tool it wraps.
+
+- **`/cbm-index-repository [<repo>]`** - reindex a repo into the graph.
   - No argument: reindexes every already-indexed project.
   - `<repo>`: reindexes one repo.
 
-- **`/cbm-search [<repo>] <query>`** - find a symbol or definition by keyword or natural language.
-- **`/cbm-trace [<repo>] <question or function>`** - trace callers/callees of a function (e.g. "what calls ProcessOrder?").
-- **`/cbm-snippet [<repo>] <name>`** - pull source for a symbol (qualified or short name).
-- **`/cbm-query [<repo>] <cypher>`** - run a raw Cypher query for multi-hop or aggregation questions.
-- **`/cbm-architecture [<repo>] [<path>]`** - get a high-level architecture overview (packages, services, dependencies).
-- **`/cbm-changes [<repo>] [<since-ref>]`** - show the blast radius of a diff, risk-classified.
+- **`/cbm-search-graph [<repo>] <query>`** - find a symbol or definition by keyword or natural language.
+- **`/cbm-search-code [<repo>] <pattern>`** - find a string literal, error message, or config value (graph-augmented grep).
+- **`/cbm-trace-path [<repo>] <question or function>`** - trace callers/callees of a function (e.g. "what calls ProcessOrder?").
+- **`/cbm-get-code-snippet [<repo>] <name>`** - pull source for a symbol (qualified or short name).
+- **`/cbm-query-graph [<repo>] <cypher>`** - run a raw Cypher query for multi-hop or aggregation questions.
+- **`/cbm-get-architecture [<repo>] [<path>]`** - get a high-level architecture overview (packages, services, dependencies).
+- **`/cbm-detect-changes [<repo>] [<since-ref>]`** - show the blast radius of a diff, risk-classified.
 
 ### Ticket management
 

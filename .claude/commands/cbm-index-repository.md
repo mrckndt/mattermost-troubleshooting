@@ -1,0 +1,1 @@
+../../.agents/skills/cbm-index-repository/SKILL.md

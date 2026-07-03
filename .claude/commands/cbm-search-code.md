@@ -1,0 +1,1 @@
+../../.agents/skills/cbm-search-code/SKILL.md

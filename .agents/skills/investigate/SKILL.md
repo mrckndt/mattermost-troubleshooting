@@ -158,11 +158,11 @@ Complete this phase before proceeding.
 
 ## Phase 5 - Source Code Search
 
-**Step 0: Ensure codebase-memory index (optional).**
-- Applies when `mcp__codebase_memory_local__*` is present; skip-safe otherwise.
-- For each in-scope repo, call `index_repository` with `repo_path` = absolute `upstream/<repo>`, `mode: moderate`, `persistence: false`.
-- Call `list_projects`; use the reported project name as `project` for every codebase-memory query below and in Phase 7.
-- If the MCP is absent or indexing fails: state `codebase-memory search skipped: <reason>` and rely on Step 2's grep angles alone.
+**Step 0: Ensure codebase-memory index.**
+- For each in-scope repo that exists under `upstream/` (note any absent, e.g. `enterprise` if not cloned), run `/cbm-index-repository <repo>` inline.
+- If it reports `codebase-memory MCP not present`: state `codebase-memory search skipped: MCP not present` once and run the grep-only form of every Step 2 angle.
+- Do not call any other `/cbm-*` skill for the rest of this phase or Phase 7 when absent.
+- Otherwise codebase-memory is available; use each repo's `Project` column value as `project` for every codebase-memory query below and in Phase 7.
 
 **Step 1: AppError → i18n key lookup.**
 - Applies only to Mattermost server logs; skip if none present.
@@ -173,13 +173,18 @@ Complete this phase before proceeding.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
 3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for the call site.
 
-**Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos. All five angles below are required; use `rg`/`grep`/`fd`/Read/Find for each; note `no matches` explicitly if a search returns nothing.
+**Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
+All five angles below are required, run once per in-scope repo; note `no matches` explicitly if a search returns nothing.
 
-1. Exact error strings from the Phase 1 error-families list.
-2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`.
-3. Function/method names from stack traces. If Step 0 indexed a codebase-memory project, also: `search_graph` to find the qualified name, `trace_path` on it for callers/callees, `get_code_snippet` on it for source.
-4. Feature flag or setting key names.
-5. Symptom keyword (free-form, drawn from the reported symptom). If Step 0 indexed a codebase-memory project, also run `search_graph` with `semantic_query`.
+Where Step 0 found codebase-memory available, lead each angle with the named skill below, then confirm/cover gaps with `rg`/`grep`/`fd`/Read/Find. Where absent, the grep form is the whole angle.
+
+1. Exact error strings from the Phase 1 error-families list: `/cbm-search-code <repo> "<string>"` for ranked leads.
+   - **Then `grep -F`/`rg` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; grep also covers excluded dirs, i18n JSON, non-code files).
+2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`: `/cbm-search-graph <repo> <key>` to locate the setting struct/field, then grep.
+3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees and `/cbm-get-code-snippet <repo> <fn>` for source, then grep.
+4. Feature flag or setting key names: `/cbm-search-graph <repo> <key>`, then grep.
+5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>` (semantic), then grep.
+   - Broad keywords can return large, loosely-ranked result sets - treat grep as the real filter here, not just confirmation of cbm's top hit.
 
 Complete this phase before proceeding.
 
@@ -205,7 +210,9 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 
 **Leading hypothesis.** Run a query to disprove it.
 
-- For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes. If Step 0 (Phase 5) indexed a codebase-memory project, use `search_graph` or `query_graph` for this search.
+- For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
+- If Step 0 (Phase 5) found codebase-memory available, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
+- If codebase-memory is unavailable, use grep/git for the artefact.
 
 **Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.
 

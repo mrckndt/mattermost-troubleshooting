@@ -1,1 +1,0 @@
-../../.agents/skills/cbm-architecture/SKILL.md
