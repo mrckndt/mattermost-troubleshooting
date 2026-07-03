@@ -173,6 +173,12 @@ Complete this phase before proceeding.
 
 ## Phase 5 - Source Code Search
 
+**Step 0: Ensure codebase-memory index (optional).**
+- Applies when `mcp__codebase_memory_local__*` is present; skip-safe otherwise.
+- For each in-scope repo, call `index_repository` with `repo_path` = absolute `upstream/<repo>`, `mode: moderate`, `persistence: false`.
+- Call `list_projects`; use the reported project name as `project` for every codebase-memory query below and in Phase 7.
+- If the MCP is absent or indexing fails: state `codebase-memory search skipped: <reason>` and rely on Step 2's grep angles alone.
+
 **Step 1: AppError → i18n key lookup.**
 - Applies only to Mattermost server logs; skip if none present.
 - Identify server logs by filename (`mattermost.log`, `*mattermost*.log`, `*mattermost*.txt`) or by content (lines matching `level=(error|warn|info|debug).*msg=`).
@@ -186,9 +192,9 @@ Complete this phase before proceeding.
 
 1. Exact error strings from the Phase 1 error-families list.
 2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`.
-3. Function/method names from stack traces.
+3. Function/method names from stack traces. If Step 0 indexed a codebase-memory project, also: `search_graph` to find the qualified name, `trace_path` on it for callers/callees, `get_code_snippet` on it for source.
 4. Feature flag or setting key names.
-5. Symptom keyword (free-form, drawn from the reported symptom).
+5. Symptom keyword (free-form, drawn from the reported symptom). If Step 0 indexed a codebase-memory project, also run `search_graph` with `semantic_query`.
 
 Complete this phase before proceeding.
 
@@ -214,7 +220,7 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 
 **Leading hypothesis.** Run a query to disprove it.
 
-- For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
+- For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes. If Step 0 (Phase 5) indexed a codebase-memory project, use `search_graph` or `query_graph` for this search.
 
 **Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.
 
@@ -265,7 +271,7 @@ Maintain two files per ticket. Highest-priority task for any turn Phase 9 fires 
 
 **Fires on (exhaustive gate):** the turn does at least one of:
 - reads or greps a file under `tickets/<ID>/` looking for a new fact,
-- runs a Phase 1-6 search (source, docs, Hub, Jira, GitHub),
+- runs a Phase 1-6 search (source, codebase-memory, docs, Hub, Jira, GitHub),
 - adds or changes evidence, a hypothesis, a ruled-out theory, or the resolution.
 
 **Otherwise: skip.** Any turn that doesn't match one of the above leaves both files untouched - no exceptions
