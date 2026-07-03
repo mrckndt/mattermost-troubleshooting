@@ -20,7 +20,7 @@ For each repo to reindex:
 3. `git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD` to report the current ref.
 4. Continue on error.
 
-Report a Markdown table: `Repo | Project | Ref | Nodes | Edges`.
+Report a Markdown table: `Repo | Project | Ref | Nodes | Edges`. Under the table, for each repo add a line from `index_repository`'s `excluded` field: `Excluded (<repo>): <count> dirs (<comma-joined dirs list>)`. `codebase-memory-mcp` excludes these directories from indexing entirely (no results, not "not found") - the other `cbm-*` skills point back here when a search unexpectedly comes up empty.
 
 Notes:
 - This is the manual equivalent of Phase 5 Step 0 in `/investigate`; use it for ad-hoc codebase-memory queries outside `/investigate`, e.g. after a manual `/git-switch`.
