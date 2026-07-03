@@ -258,24 +258,25 @@ Complete this phase before proceeding.
 
 ## Phase 9 - Analysis log (MANDATORY)
 
-Maintain two files per ticket. Highest-priority task - above drafting replies, clipboard, or closing the loop.
+Maintain two files per ticket. Highest-priority task for any turn Phase 9 fires on.
 
 - `tickets/<ID>/analysis.md` - live current-state view; key sections always reflect the latest understanding.
 - `tickets/<ID>/analysis-full.md` - append-driven current-state view; same content as analysis.md, but sections are kept current by appending, not editing in place.
 
-**Fires on:** any turn that references, reads, or discusses a `tickets/<ID>/` directory (lookups, clipboard, follow-ups); when a symptom matches a known ticket folder's evidence family; or when a finding refines or disproves a hypothesis in any prior ticket's analysis files.
+**Fires on (exhaustive gate):** the turn does at least one of:
+- reads or greps a file under `tickets/<ID>/` looking for a new fact,
+- runs a Phase 1-6 search (source, docs, Hub, Jira, GitHub),
+- adds or changes evidence, a hypothesis, a ruled-out theory, or the resolution.
 
-**Lightweight update (reply/draft turns):** when the turn's only action is `/draft-reply`, `/kb-article`,
-or `/pde-intake` and no new diagnostic findings were made:
-- Append one line to `## Steps and outcomes` (e.g. "Drafted reply - [topic]").
-- Update `## Next steps` only if they changed.
-- Skip all other sections.
-
-Full maintenance rules apply on any turn that reads ticket files or changes the hypothesis.
+**Otherwise: skip.** Any turn that doesn't match one of the above leaves both files untouched - no exceptions
+list to maintain. The gate is "did this turn produce a new investigation fact", not "which command ran". A
+turn that only drafts a reply, generates a KB article/PD&E intake, or copies something to clipboard doesn't
+match the gate by construction and is skipped by default. `analysis.md`/`analysis-full.md` must never contain
+drafting/copying narration (e.g. "Drafted + corrected customer reply...", "copied to clipboard").
 
 **How to apply:**
 
-1. First or last tool calls on any ticket-touching turn must be `Write`/`Edit` to both files.
+1. First or last tool calls on any turn Phase 9 fires on must be `Write`/`Edit` to both files.
 2. Never defer - stale-by-one-turn is a violation.
 
 **`analysis.md` maintenance (live view):**
@@ -299,6 +300,7 @@ Stubs if empty; use for both files on creation:
 # Ticket <ID> - Analysis
 
 - Investigated with: (model / effort-thinking level, e.g. "Claude Opus 4.8, high"; "Claude Sonnet 5, xhigh". Record model name; effort/thinking level if known or if the operator states it.)
+- Ticket type: Fault investigation | Advisory / research (pick one)
 
 ## Deployment
 - Version:
@@ -330,3 +332,16 @@ Stubs if empty; use for both files on creation:
 
 ## Resolution
 ```
+
+**Advisory / research mapping.** Headings stay identical regardless of `Ticket type` - `resume` and
+`search-tickets` key off these exact names. For `Ticket type: Advisory / research` (customer questions,
+architecture guidance, no fault to diagnose), map the same headings instead of forcing fault-investigation
+phrasing:
+
+- `Reported symptom` -> the question(s) asked.
+- `Correlation` -> reasoning connecting evidence to the recommendation.
+- `Current hypothesis` -> the recommendation/answer.
+- `Ruled out` -> alternatives considered and why rejected.
+
+Sections genuinely not applicable (e.g. `Timeline` for a single-session question) may be written as `N/A`
+instead of forced content.

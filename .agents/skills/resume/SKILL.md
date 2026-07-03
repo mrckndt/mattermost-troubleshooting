@@ -23,6 +23,7 @@ Emit a structured session briefing:
 ```
 ## Resuming ticket <ID>
 
+**Ticket type:** <Fault investigation | Advisory / research>
 **Deployment:** <version, type, DB, method>
 **Reported symptom:** <one line>
 **Artifacts reviewed:** <list>
