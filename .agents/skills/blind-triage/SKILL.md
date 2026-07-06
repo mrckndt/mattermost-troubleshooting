@@ -46,7 +46,7 @@ From all log files in the ticket directory:
 For every `level=error` line where `msg` contains `"An internal error has occurred"`, or any log entry matching the `<Where>: <Message>` AppError shape:
 
 1. Capture `<Message>` **exactly** as it appears - full punctuation, no paraphrasing, no truncation.
-2. Run the lazy auto-refresh on `upstream/mattermost` per the `AGENTS.md` policy, then:
+2. Run `/git-pull mattermost` first (i18n keys drift between releases; don't search a stale clone), then:
    `grep -F "<message>" "$PROJECT_ROOT/upstream/mattermost/server/i18n/en.json"`
    - One match: record the translation key alongside the error.
    - Multiple matches: record all candidates; disambiguate using `<Where>` and surrounding log context.

@@ -12,6 +12,8 @@ If no argument is provided, ask for a search term before proceeding.
 
 ## Search
 
+Uses `rg`; substitute equivalent `grep -r` invocations if `rg` is unavailable.
+
 Run the following searches in parallel:
 
 1. Analysis logs:

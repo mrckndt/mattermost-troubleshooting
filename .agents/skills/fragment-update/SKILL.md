@@ -12,7 +12,7 @@ Args: $ARGUMENTS
 
 1. Identify in-scope repos: read the current conversation for Phase 8 `Fragment opportunity` or `Fragment update opportunity` statements. If none are present, check `tickets/<ID>/analysis.md` (ask for `<ID>` if not clear from context).
 2. For each in-scope repo, check whether `fragments/<repo>.md` exists and read it in full if so.
-3. Pull the specific patterns, `file:line` references, and quoted log lines cited in the fragment opportunity notes. If the notes are vague and lack citations, search for them now: `rg` the pattern or error string in `upstream/<repo>/` and add the `file:line` reference before proceeding to Phase 2.
+3. Pull the specific patterns, `file:line` references, and quoted log lines cited in the fragment opportunity notes. If the notes are vague and lack citations, search for them now: `rg`/`grep` the pattern or error string in `upstream/<repo>/` and add the `file:line` reference before proceeding to Phase 2.
 
 If no fragment opportunity notes can be found and no ticket context is available, ask the engineer to describe the pattern to capture before proceeding.
 
