@@ -65,16 +65,25 @@ Set these up after the repo is cloned (the Jira steps reference files under `mcp
 
 - **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
 - **Internal Jira** - `mattermost.atlassian.net` (`MM-XXXXX`) via [`sooperset/mcp-atlassian`](https://github.com/sooperset/mcp-atlassian), run locally.
-- **GitHub issues/PRs** - `github.com/mattermost/*` via [`github/github-mcp-server`](https://github.com/github/github-mcp-server), run locally.
+- **GitHub issues/PRs** - `github.com/mattermost/*`, preferably via the claude.ai GitHub MCP connector; falls back to a local [`github/github-mcp-server`](https://github.com/github/github-mcp-server) instance.
 - **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally.
 
 All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
 
 Each Docker-based MCP server (Jira, GitHub) lives in its own folder under `mcp/`, isolating its compose project and `.env`. codebase-memory-mcp is a local stdio binary with no Docker service - see its setup section below.
 
-#### GitHub MCP setup
+#### GitHub MCP (custom) setup
 
-A long-lived docker-compose service (streamable HTTP, port `7081`).
+Preferred: no Docker service, no PAT to manage.
+
+1. Go to `https://claude.ai/customize/connectors`, add/connect the GitHub connector, and authorize.
+2. In Claude Code, run `/mcp` and select the GitHub connector. It registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
+
+This is the pipeline's preferred GitHub source. The local setup below is a fallback.
+
+#### GitHub MCP (local) setup
+
+A long-lived docker-compose service (streamable HTTP, port `7081`). Kept as a fallback for the GitHub MCP (custom) connector above; may be removed once that connector proves sufficient.
 
 1. Create a classic PAT at `https://github.com/settings/tokens` (GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic) > Generate new token (classic)). Select scopes: `public_repo` (under `repo`), `read:org` (under `admin:org`), `read:user` (under `user`).
 
@@ -265,3 +274,4 @@ The repo uses a provider-neutral layout so it works with any agent framework: `A
 - [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
 - [ ] Figure out how scoped Atlassian API tokens work with the Jira MCP. Scoped tokens currently fail basic auth against the Jira REST endpoints `mcp-atlassian` uses (every query returns empty / `total: -1`), so setup requires an unscoped token. A working scoped-token path would allow least-privilege, per-app credentials.
 - [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas).
+- [ ] Remove the local `github-mcp-server` docker-compose setup (`mcp/github/`) once the GitHub MCP (custom) connector has proven reliable as the sole GitHub source.
