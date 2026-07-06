@@ -71,6 +71,7 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 **MCP integrations (optional, use if present):**
 - Use MCP-backed sources when the runtime exposes their tools; skip with a noted reason when it does not. Never block an investigation on a missing MCP; fall back to local data.
 - **Mattermost Hub:** `mcp__claude_ai_Mattermost_Hub__*` (enterprise Claude connector).
+- **GitHub issues/PRs:** claude.ai GitHub MCP `mcp__claude_ai_GitHub_MCP__*`; falls back to WebFetch/WebSearch if unavailable. Setup is in README.
 - **Codebase memory:** the local codebase-memory MCP `mcp__codebase_memory_local__*`, a stdio binary indexing `upstream/<repo>/` clones into a queryable graph. Setup is in README.
 - **Skip convention:** when a source's tools are absent, state `<source> search skipped: <reason>` in the relevant phase output. Do not omit silently.
 

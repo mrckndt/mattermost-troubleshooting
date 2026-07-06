@@ -198,7 +198,9 @@ Search all four unconditionally - all are required:
    - Emit each query and matching post summaries. If truncated, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
    - If unavailable, state `Mattermost Hub search skipped: <reason>`.
 5. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
-   - **Fallback (MCP absent or SAML-blocked):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
+   - **Preferred:** `mcp__claude_ai_GitHub_MCP__search_issues` and `mcp__claude_ai_GitHub_MCP__search_pull_requests` with symptom keywords and Phase 1 error strings. Emit each query and matching issue/PR titles + numbers.
+   - **Fallback 2 (no GitHub MCP available):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
+   - If no GitHub MCP is available, state `GitHub MCP skipped: <reason>` and use the WebFetch fallback.
 
 If searches 3 or 4 cannot run (offline, WebFetch fails, MCP unavailable, Hub result oversized), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
