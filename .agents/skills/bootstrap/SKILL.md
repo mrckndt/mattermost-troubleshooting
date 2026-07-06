@@ -51,6 +51,5 @@ Repos to bootstrap (alphabetical):
 Report a Markdown table: `Repo | Result`, where `Result` is `already present`, `cloned`, or the git error.
 
 Notes:
-- Run each `git clone` as its own Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
 - This command does NOT pull or switch. Use `/git-pull` or `/git-switch <repo> <ref>` (pin to tag/branch).
 - This file is the canonical repo list. `AGENTS.md` and `README.md` reference it rather than duplicating URLs.

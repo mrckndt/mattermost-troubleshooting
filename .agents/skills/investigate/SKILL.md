@@ -43,7 +43,7 @@ ls -lh tickets/<ID>/
 
 - Files under 100 KB: read in full.
 - Files 100 KB to 1 MB: read head (first 200 lines) + tail (last 200 lines).
-- Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + grep for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
+- Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + `rg`/`grep` for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
 For extracting specific fields or sections from any file (including JSON and YAML config files), use `rg` or `grep`.
 
@@ -171,7 +171,7 @@ Complete this phase before proceeding.
 
 1. Identify server language from the server log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
-3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; grep source for the call site.
+3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `rg`/`grep` source for the call site.
 
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 All five angles below are required, run once per in-scope repo; note `no matches` explicitly if a search returns nothing.
@@ -179,20 +179,20 @@ All five angles below are required, run once per in-scope repo; note `no matches
 Where Step 0 found codebase-memory available, lead each angle with the named skill below, then confirm/cover gaps with `rg`/`grep`/`fd`/Read/Find. Where absent, the grep form is the whole angle.
 
 1. Exact error strings from the Phase 1 error-families list: `/cbm-search-code <repo> "<string>"` for ranked leads.
-   - **Then `grep -F`/`rg` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; grep also covers excluded dirs, i18n JSON, non-code files).
-2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`: `/cbm-search-graph <repo> <key>` to locate the setting struct/field, then grep.
-3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees and `/cbm-get-code-snippet <repo> <fn>` for source, then grep.
-4. Feature flag or setting key names: `/cbm-search-graph <repo> <key>`, then grep.
-5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>` (semantic), then grep.
-   - Broad keywords can return large, loosely-ranked result sets - treat grep as the real filter here, not just confirmation of cbm's top hit.
+   - **Then `rg --no-ignore --hidden`/`grep -F` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; bypassing default ignore-file filtering covers excluded dirs, i18n JSON, non-code files).
+2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`: `/cbm-search-graph <repo> <key>` to locate the setting struct/field, then `rg --no-ignore --hidden`/`grep`.
+3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees and `/cbm-get-code-snippet <repo> <fn>` for source, then `rg --no-ignore --hidden`/`grep`.
+4. Feature flag or setting key names: `/cbm-search-graph <repo> <key>`, then `rg --no-ignore --hidden`/`grep`.
+5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>` (semantic), then `rg --no-ignore --hidden`/`grep`.
+   - Broad keywords can return large, loosely-ranked result sets - treat the rg/grep exhaustive pass as the real filter here, not just confirmation of cbm's top hit.
 
 Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
 Search all five unconditionally - all are required:
-1. `upstream/docs/source/` (product docs, customer-facing). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`
-2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
+1. `upstream/docs/source/` (product docs, customer-facing). Example: `rg -n "MaxOpenConns" upstream/docs/source/` / `grep -rn "MaxOpenConns" upstream/docs/source/`
+2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `rg -n "plugin manifest" upstream/mattermost-developer-documentation/site/content/` / `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
    - Use short, focused queries (1-2 key terms); long phrases return oversized results truncated to a file.
    - Emit each query and matching post summaries. If truncated, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
@@ -216,7 +216,7 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 
 - For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
 - If Step 0 (Phase 5) found codebase-memory available, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
-- If codebase-memory is unavailable, use grep/git for the artefact.
+- If codebase-memory is unavailable, use `rg`/`grep`/`git` for the artefact.
 
 **Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.
 
@@ -234,7 +234,7 @@ Re-validation: <hypothesis>; disproved by <command>:
   <quoted output or "no matches">.
 ```
 
-For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`grep -rn '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
+For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' upstream/<repo>/\` / \`grep -rn '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
 
 Complete this phase before proceeding.
 

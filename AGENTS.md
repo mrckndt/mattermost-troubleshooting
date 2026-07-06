@@ -49,6 +49,7 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 2. **Re-derive `PROJECT_ROOT="$(pwd)"` at top of every Bash call** that needs it (does not survive between calls). Use `"$PROJECT_ROOT/..."` for all paths within that call.
 3. **Absolute paths** required in `cd`, path flags (`-C`, etc.), and Read/Grep/Find/Edit/Write (they ignore CWD).
 4. **Before returning:** `cd "$PROJECT_ROOT"` so shell ends at project root.
+5. **Multi-repo loops:** run each per-repo invocation (`git clone`, `git fetch`, etc.) as its own Bash call - never chain with `&&`/`;` or redirect `2>&1`; parallelize across repos in a single message.
 
 ## Session behavior
 

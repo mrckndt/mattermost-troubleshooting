@@ -22,5 +22,4 @@ Report a Markdown table: `Repo | Branch | Pull`.
 - `Pull`: `up to date`, `updated <oldsha>..<newsha>`, or the git error.
 
 Notes:
-- Run each git invocation as a separate Bash tool call; do not chain or append `2>&1`. Parallelize across repos in a single message.
 - Tags are refreshed as step 1, so `/git-switch <tag>` always sees the latest tags. A detached-HEAD repo still fetches tags even though its `pull --ff-only` reports no upstream branch.
