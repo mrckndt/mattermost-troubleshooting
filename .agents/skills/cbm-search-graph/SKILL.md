@@ -18,7 +18,7 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
    - Also pass `semantic_query` = `<query>` split into individual keyword strings (vector search; bridges vocabulary, e.g. "publish" matches "send").
    - Both modes search **symbol names**, not source text. This tool cannot find string literals or error messages; use `/cbm-search-code` for that.
    - The `query` mode filters out `Variable`/`File`/`Folder`/`Module`-labeled nodes as noise - a named constant or config-struct field can legitimately return 0 hits even though it exists.
-   - Use `/cbm-query-graph` (raw Cypher has no such filter) or `rg`/`grep` to reach those.
+   - Use `/cbm-query-graph` (raw Cypher has no such filter) or `rg` to reach those.
 3. Present the top matches from `results`: `name`, `qualified_name`, `file_path:start_line`.
    - If the response also has a `semantic_results` key, present those too. The key can be absent entirely (not just empty) even when `semantic_query` was passed - say only BM25 `results` came back.
    - Note `has_more`/`total` if truncated (default `limit` is 200; pass `offset` to page).
@@ -29,5 +29,5 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
 5. No matches: report it.
    - `codebase-memory-mcp` hardcodes some directories out of indexing entirely (e.g. `docs`, `build`, vendor dirs).
    - Before assuming the symbol doesn't exist, check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
-   - Fall back to `rg`/`grep`/`Read` for anything under an excluded path.
+   - Fall back to `rg --no-ignore --hidden -n` or reading the file directly for anything under an excluded path.
    - Otherwise suggest `/cbm-query-graph` for a Cypher search, `/cbm-search-code` if the target may be a text literal, or broader keywords.

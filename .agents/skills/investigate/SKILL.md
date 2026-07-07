@@ -35,17 +35,17 @@ for f in tickets/<ID>/*.tar.gz tickets/<ID>/*.tgz; do tar -xzf "$f" -C "tickets/
 
 Skip silently if no archives are present. Do not delete the original archives.
 
-Then list every file in `tickets/<ID>/` with sizes, then read each one before forming any hypothesis:
+Then list every file recursively in `tickets/<ID>/` with sizes (unpacked archives from the previous step nest files in subdirectories), then read each one before forming any hypothesis:
 
 ```
-ls -lh tickets/<ID>/
+fd -t f . "tickets/<ID>/" -x ls -lh
 ```
 
 - Files under 100 KB: read in full.
 - Files 100 KB to 1 MB: read head (first 200 lines) + tail (last 200 lines).
-- Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + `rg`/`grep` for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
+- Files over 1 MB: read head (first 100 lines) + tail (last 100 lines) + `rg -ni` for `error`, `warn`, `fatal`, `crash`, `panic`, `exception`.
 
-For extracting specific fields or sections from any file (including JSON and YAML config files), use `rg` or `grep`.
+For extracting specific fields or sections from any file (including JSON and YAML config files), use `grep -n`.
 
 
 Do not begin scope inference until all files have been inventoried this way.
@@ -114,7 +114,7 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 **Detect plugin versions** (when plugins are in scope) - check both sources:
 1. `tickets/<ID>/plugins.json` - `version` field per plugin entry
 2. `tickets/<ID>/mattermost.log` - bottom-most `"Installing extracted plugin"` line per `plugin_id`. Earlier installs were superseded by upgrades or rollbacks.
-   Example: `rg "Installing extracted plugin" mattermost.log | rg <plugin_id> | tail -1`
+   Run: `rg "Installing extracted plugin" mattermost.log | rg <plugin_id> | tail -1`
 
 **Align repos:**
 
@@ -138,18 +138,18 @@ Complete this phase before proceeding.
 
 ## Phase 4 - Fragment and Upgrade Notes Search
 
-For each in-scope repo, check whether `fragments/<repo>.md` exists and Read it.
+For each in-scope repo, check whether `fragments/<repo>.md` exists and read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
 Then search both files for the customer's version range - both are required, not alternatives:
 
 1. Important upgrade notes:
 ```
-grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/upgrade/important-upgrade-notes.rst"
+grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/upgrade/important-upgrade-notes.rst"
 ```
 2. v11 changelog:
 ```
-grep -n "<keywords>" "$PROJECT_ROOT/upstream/docs/source/product-overview/mattermost-v11-changelog.md"
+grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/source/product-overview/mattermost-v11-changelog.md"
 ```
 
 Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
@@ -171,28 +171,28 @@ Complete this phase before proceeding.
 
 1. Identify server language from the server log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
-3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `rg`/`grep` source for the call site.
+3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `rg -n` the repo source for the call site.
 
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 All five angles below are required, run once per in-scope repo; note `no matches` explicitly if a search returns nothing.
 
-Where Step 0 found codebase-memory available, lead each angle with the named skill below, then confirm/cover gaps with `rg`/`grep`/`fd`/Read/Find. Where absent, the grep form is the whole angle.
+Where Step 0 found codebase-memory available, lead each angle with the named skill below, then confirm/cover gaps with the search defined per angle below (or a direct file read). Where absent, that search is the whole angle.
 
 1. Exact error strings from the Phase 1 error-families list: `/cbm-search-code <repo> "<string>"` for ranked leads.
-   - **Then `rg --no-ignore --hidden`/`grep -F` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; bypassing default ignore-file filtering covers excluded dirs, i18n JSON, non-code files).
-2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`: `/cbm-search-graph <repo> <key>` to locate the setting struct/field, then `rg --no-ignore --hidden`/`grep`.
-3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees and `/cbm-get-code-snippet <repo> <fn>` for source, then `rg --no-ignore --hidden`/`grep`.
-4. Feature flag or setting key names: `/cbm-search-graph <repo> <key>`, then `rg --no-ignore --hidden`/`grep`.
-5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>` (semantic), then `rg --no-ignore --hidden`/`grep`.
-   - Broad keywords can return large, loosely-ranked result sets - treat the rg/grep exhaustive pass as the real filter here, not just confirmation of cbm's top hit.
+   - **Then `rg --no-ignore --hidden -n` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; bypassing default ignore-file filtering covers excluded dirs, i18n JSON, non-code files).
+2. Config keys found in `sanitized_config.json` or `diagnostics.yaml`: `/cbm-search-graph <repo> <key>` to locate the setting struct/field, then `rg --no-ignore --hidden -n`.
+3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees and `/cbm-get-code-snippet <repo> <fn>` for source, then `rg --no-ignore --hidden -n`.
+4. Feature flag or setting key names: `/cbm-search-graph <repo> <key>`, then `rg --no-ignore --hidden -n`.
+5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>` (semantic), then `rg --no-ignore --hidden -ni`.
+   - Broad keywords can return large, loosely-ranked result sets - treat the `rg` exhaustive pass as the real filter here, not just confirmation of cbm's top hit.
 
 Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
 Search all five unconditionally - all are required:
-1. `upstream/docs/source/` (product docs, customer-facing). Example: `rg -n "MaxOpenConns" upstream/docs/source/` / `grep -rn "MaxOpenConns" upstream/docs/source/`
-2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `rg -n "plugin manifest" upstream/mattermost-developer-documentation/site/content/` / `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
+1. `upstream/docs/source/` (product docs, customer-facing). Search with `rg -ni "<keywords>" upstream/docs/source/`
+2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Search with `rg -ni "<keywords>" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
    - Use focused 1-2 term queries (stricter AND-matches with more terms often return zero results). Leave `keyword_limit`/`semantic_limit` at their defaults; raising them risks an oversized result truncated to a file.
    - Emit each query and matching post summaries. If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
@@ -216,7 +216,7 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 
 - For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
 - If Step 0 (Phase 5) found codebase-memory available, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
-- If codebase-memory is unavailable, use `rg`/`grep`/`git` for the artefact.
+- If codebase-memory is unavailable, use `rg`/`git` for the artefact.
 
 **Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.
 
@@ -227,14 +227,14 @@ After the leading hypothesis survives re-validation, scan the Phase 6 Hub, GitHu
 context for the confirmed bug, error string, or fix commit. If a match exists, note it: known issue,
 existing workaround, or fix version. No new tool calls required; results are already in context.
 
-Each hypothesis produces an artefact: shell command (`rg`, `fd`, `grep`, `find`, `git`) or Grep/Read/Find call plus a quoted output line (or `no matches`):
+Each hypothesis produces an artefact: shell command (`rg`, `fd`, `grep`, `find`, `git`) or a direct file read/search, plus a quoted output line (or `no matches`):
 
 ```
 Re-validation: <hypothesis>; disproved by <command>:
   <quoted output or "no matches">.
 ```
 
-For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' upstream/<repo>/\` / \`grep -rn '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
+For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
 
 Complete this phase before proceeding.
 
@@ -265,7 +265,7 @@ Maintain two files per ticket, **written once, at the end of the pipeline** (not
 - `tickets/<ID>/analysis.md` - live current-state view; key sections always reflect the latest understanding.
 - `tickets/<ID>/analysis-full.md` - append-driven current-state view; same content as analysis.md, but sections are kept current by appending, not editing in place.
 
-**Runs once**, right after Phase 8's conclusion, same turn: `Write`/`Edit` both files with everything learned across Phases 0-8.
+**Runs once**, right after Phase 8's conclusion, same turn: write both files with everything learned across Phases 0-8.
 
 - Never contains drafting/copying narration (e.g. "Drafted + corrected customer reply...", "copied to clipboard") - investigation facts only.
 

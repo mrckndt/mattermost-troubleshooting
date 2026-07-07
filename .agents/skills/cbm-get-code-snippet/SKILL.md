@@ -20,4 +20,4 @@ Parse args as `[<repo>] <qualified name or short name>`. Determine `<repo>` by c
 3. Present the file:line header, then the source.
 4. Ambiguous (tool returns suggestions): list them and ask which one.
 5. Not found: check whether the symbol's file falls under an excluded directory (see the excluded-dirs line from `/cbm-index-repository <repo>`'s output).
-   - `codebase-memory-mcp` excludes those from indexing entirely; fall back to `Read` directly for anything under an excluded path.
+   - `codebase-memory-mcp` excludes those from indexing entirely; fall back to reading the file directly for anything under an excluded path.
