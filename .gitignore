@@ -15,10 +15,6 @@
 !fragments/
 !fragments/**
 
-# Track pipeline-evaluation reports and rollup scorecard
-!evals/
-!evals/**
-
 # Track provider-neutral agent skills
 !.agents/
 !.agents/**
