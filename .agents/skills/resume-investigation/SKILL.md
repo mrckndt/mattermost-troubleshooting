@@ -1,5 +1,5 @@
 ---
-name: resume
+name: resume-investigation
 description: Resume an in-progress ticket investigation. Reads analysis.md and analysis-full.md, reconstructs session context, identifies the last completed phase, and continues from the next one.
 user-invocable: true
 ---
