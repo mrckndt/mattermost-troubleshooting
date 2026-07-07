@@ -12,22 +12,20 @@ If no argument is provided, ask for a search term before proceeding.
 
 ## Search
 
-Uses `rg`; substitute equivalent `grep -r` invocations if `rg` is unavailable.
-
 Run the following searches in parallel:
 
 1. Analysis logs:
 ```
-rg -l "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"
+rg -li "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"
 ```
 2. Raw ticket files:
 ```
-rg -l "$ARGUMENTS" "$PROJECT_ROOT/tickets/"
+rg -li "$ARGUMENTS" "$PROJECT_ROOT/tickets/"
 ```
 
 For each matching file, get a context snippet:
 ```
-rg -n "$ARGUMENTS" <file> | head -5
+rg -ni "$ARGUMENTS" <file> | head -5
 ```
 
 ## Output

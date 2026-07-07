@@ -47,7 +47,7 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 
 1. **On entry:** verify CWD is project root (`pwd && ls -1 AGENTS.md`); if not, cd there by absolute path.
 2. **Re-derive `PROJECT_ROOT="$(pwd)"` at top of every Bash call** that needs it (does not survive between calls). Use `"$PROJECT_ROOT/..."` for all paths within that call.
-3. **Absolute paths** required in `cd`, path flags (`-C`, etc.), and Read/Grep/Find/Edit/Write (they ignore CWD).
+3. **Absolute paths** required in `cd`, path flags (`-C`, etc.), and any file read/search/edit/write call (they ignore CWD).
 4. **Before returning:** `cd "$PROJECT_ROOT"` so shell ends at project root.
 5. **Multi-repo loops:** run each per-repo invocation (`git clone`, `git fetch`, etc.) as its own Bash call - never chain with `&&`/`;` or redirect `2>&1`; parallelize across repos in a single message.
 
@@ -55,13 +55,13 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 
 - **Clipboard:** invoke `/clipboard` rather than asking the user to copy manually.
 - **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `fragments/mattermost.md`, `upstream/docs/source/...`, `file:line`).
-- **Search tools:** prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable or predicate unsupported.
+- **Search tools:** prefer `fd` over `find`, `rg` over `grep`; fall back only when unavailable.
 
 ## Authoritative sources
 
 **Local first:**
 - `fragments/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
-- `upstream/docs/source/` - version-pinned product docs (`.rst`). Example: `grep -rn "MaxOpenConns" upstream/docs/source/`.
+- `upstream/docs/source/` - version-pinned product docs (`.rst`). Search with `rg -ni "<keywords>" upstream/docs/source/`.
 - `upstream/<repo>/` - source code; authoritative when docs are silent or stale.
 
 **External:**
