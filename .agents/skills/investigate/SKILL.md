@@ -194,8 +194,8 @@ Search all four unconditionally - all are required:
 1. `upstream/docs/source/` (product docs, customer-facing). Example: `rg -n "MaxOpenConns" upstream/docs/source/` / `grep -rn "MaxOpenConns" upstream/docs/source/`
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Example: `rg -n "plugin manifest" upstream/mattermost-developer-documentation/site/content/` / `grep -rn "plugin manifest" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
-   - Use short, focused queries (1-2 key terms); long phrases return oversized results truncated to a file.
-   - Emit each query and matching post summaries. If truncated, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
+   - Use focused 1-2 term queries (stricter AND-matches with more terms often return zero results). Leave `keyword_limit`/`semantic_limit` at their defaults; raising them risks an oversized result truncated to a file.
+   - Emit each query and matching post summaries. If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
    - If unavailable, state `Mattermost Hub search skipped: <reason>`.
 5. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
    - **Preferred:** `mcp__claude_ai_GitHub_MCP__search_issues` and `mcp__claude_ai_GitHub_MCP__search_pull_requests` with symptom keywords and Phase 1 error strings. Emit each query and matching issue/PR titles + numbers.
