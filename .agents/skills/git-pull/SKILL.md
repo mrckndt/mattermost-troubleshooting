@@ -14,9 +14,13 @@ Args: optionally a single `<repo>` name matching a directory under `upstream/`.
 For each repo:
 
 1. `git -C "$PROJECT_ROOT/upstream/<repo>" fetch --tags`. Refreshes all tags so a later `/git-switch <tag>` cannot resolve to a stale tag. Runs regardless of branch or detached HEAD.
-2. `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only`. Report whatever git says; do not pre-check or guard.
-3. `git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD` to capture the branch (`HEAD` = detached, report as `(detached)`).
-4. Continue on error.
+2. `git -C "$PROJECT_ROOT/upstream/<repo>" status -s`.
+   - If non-empty: report the listed lines as changes about to be discarded.
+   - Discard them: `git -C "$PROJECT_ROOT/upstream/<repo>" reset --hard`, then `git -C "$PROJECT_ROOT/upstream/<repo>" clean -fd`.
+   - Continue to the next step once clean.
+3. `git -C "$PROJECT_ROOT/upstream/<repo>" pull --ff-only`. Report whatever git says; do not pre-check or guard.
+4. `git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD` to capture the branch (`HEAD` = detached, report as `(detached)`).
+5. Continue on error.
 
 Report a Markdown table: `Repo | Branch | Pull`.
 - `Pull`: `up to date`, `updated <oldsha>..<newsha>`, or the git error.
