@@ -325,7 +325,7 @@ Section shape for both files on first creation, populated with real content, not
 ## Resolution
 ```
 
-**Advisory / research mapping.** Headings stay identical regardless of `Ticket type` - `resume` and
+**Advisory / research mapping.** Headings stay identical regardless of `Ticket type` - `resume-investigation` and
 `search-tickets` key off these exact names. For `Ticket type: Advisory / research` (customer questions,
 architecture guidance, no fault to diagnose), map the same headings instead of forcing fault-investigation
 phrasing:
