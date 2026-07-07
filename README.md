@@ -57,8 +57,6 @@ Then inside Claude:
 
 This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
 
-> `/bootstrap` and `/git-pull` are mechanical shell operations - a mid-tier model at its default effort/thinking (e.g. **Claude Sonnet 5**) is right for these; no need to manually drop it lower.
-
 ### Optional MCP integrations
 
 Set these up after the repo is cloned. The investigation pipeline consults these MCP-backed sources when their tools are available:
@@ -68,6 +66,7 @@ Set these up after the repo is cloned. The investigation pipeline consults these
 - **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally.
 
 All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+
 
 
 #### GitHub MCP (custom) setup
@@ -122,12 +121,16 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    cp ~/Downloads/mattermost.log tickets/12345/
    cp ~/Downloads/support_packet.zip tickets/12345/
    ```
+
+   If the ticket is mirrored to the Mattermost Hub from Zendesk, skip the manual copy: run `/hub-harvest 12345` to fetch the full thread into `tickets/12345/hub-thread.md`.
 3. Open Claude Code:
    ```
    claude
    ```
 
    > Default: a **flagship-tier model** (e.g. **Claude Opus 4.8** or an equivalent model) with **1M context** and **high or xhigh effort/thinking** (xhigh sits one step below Claude's "max" tier, reserved for genuinely stuck sessions, not routine use). A **mid-tier model** (e.g. **Claude Sonnet 5**) at high or xhigh effort/thinking is also worth evaluating for `/investigate` itself - not just a cost fallback, potentially faster or a differently-useful result profile. Auto-mode is recommended once the investigation starts - the skill enforces phase order and search completeness regardless of model.
+
+   > `/bootstrap` and `/git-pull` are mechanical shell operations - a mid-tier model at its default effort/thinking (e.g. **Claude Sonnet 5**) is right for these; no need to manually drop it lower.
 
 4. Run the investigation pipeline: `/investigate 12345`.
 
@@ -147,6 +150,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
+- **`/hub-harvest <ticket-ID|assignee-email> [time-range]`** - fetch a Zendesk ticket thread (or every thread assigned to a TSE in a time window) from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`. Ready for `/investigate`.
 - **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
 ### Output
@@ -193,7 +197,7 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 
 ### Ticket management
 
-- **`/resume <ticket-ID>`** - reconstruct context from `analysis.md`, identify the last completed phase, and continue from there.
+- **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md`, identify the last completed phase, and continue from there.
 - **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
 - **`/fragment-update`** - draft and write fragment updates from the current ticket's Phase 8 findings; presents a diff for approval before writing.
 - **`/tldr [ticket-ID|ticket-URL|text]`** - print a concise summary; reads `analysis.md` if present, else runs `/investigate` first. No argument: summarizes the current session's conclusion if one exists.
