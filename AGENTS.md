@@ -88,6 +88,10 @@ Pull a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/hub-thr
 
 Investigation pipeline and analysis log: run `/investigate <ID>`.
 
+Ticket-scoped KB articles from `/kb-article <ID>` save to `tickets/<ID>/kb-article.md` +
+`.html`; standalone articles (no ticket in play) save to `kb-articles/<slug>-<date>.md` + `.html`
+at the project root instead.
+
 ## Working with the cloned repos
 
 `upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap`.
