@@ -1,22 +1,44 @@
 ---
 name: kb-article
-description: Generate a KB article from the current troubleshooting context. Optional arg: problem/solution description to factor in.
+description: Generate a KB article from the current troubleshooting context. Optional arg: ticket ID (tickets/<name>/) or problem/solution description to factor in.
 user-invocable: true
 ---
 
+Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
+
 Args: $ARGUMENTS
 
-Generate a knowledge-base article for the current troubleshooting context.
+Generate a knowledge-base article for the current troubleshooting context, and save it to disk.
+
+## Phase 0 - Resolve save location
+
+1. `$ARGUMENTS` matches an existing directory under `tickets/` (check with
+   `ls "$PROJECT_ROOT/tickets/$ARGUMENTS"`): **ticket mode**, `<ID>=$ARGUMENTS`.
+2. Otherwise, if `$ARGUMENTS` contains a `tickets/<name>/` path reference anywhere in the text
+   and that directory exists: **ticket mode**, `<ID>=<name>`.
+3. Otherwise, if this conversation has already been working a specific ticket (its files were
+   read earlier in this session, e.g. via `/investigate`): **ticket mode** with that `<ID>`.
+4. Otherwise: **no-ticket mode**.
+
+Save targets:
+- **Ticket mode:** `tickets/<ID>/kb-article.md`, `tickets/<ID>/kb-article.html`.
+- **No-ticket mode:** `kb-articles/<slug>-<date>.md`, `kb-articles/<slug>-<date>.html`, where
+  `<slug>` is a kebab-case slug of the article's `##` topic heading and `<date>` is today's
+  date (`date +%Y-%m-%d`). Create `kb-articles/` at the project root if it doesn't exist yet.
 
 ## How to reason
 
-1. Review everything known: `./tickets/<name>/` files, the conversation, logs, config, error messages.
+1. Review everything known: the conversation, logs, config, error messages, and (in ticket
+   mode) `tickets/<ID>/` files per Phase 1's first step.
 2. If $ARGUMENTS is provided, treat it as additional context or direction and incorporate it.
-3. Follow the three phases below in order.
+3. Follow the four phases below in order.
 
 ## KB article format rules (apply these exactly)
 
 **Phase 1 - Gather inputs**
+- In ticket mode (Phase 0 resolved an `<ID>`): always read `tickets/<ID>/hub-thread.md` and
+  `tickets/<ID>/analysis.md` (or `analysis-full.md`), whichever exist, regardless of what this
+  conversation already covered.
 - Check whether the following are known from the conversation:
   - Product and version(s) affected (e.g., Mattermost Server v9.x, Mattermost Cloud)
   - Problem description
@@ -33,7 +55,13 @@ Generate a knowledge-base article for the current troubleshooting context.
 
 **Phase 3 - Convert to HTML**
 - Convert to HTML using only tags with direct Markdown equivalents (h1-h6, strong, em, del, code, a, p, img, ul, ol, li, blockquote, pre, hr, br, table, thead, tbody, tr, th, td, sup). No styling, classes, or wrapper divs.
-- Label this block "# 📋 Article HTML" and wrap in a fenced code block so it can be copied without rendering.
+- Do not print this HTML in the response; it exists only in the `.html` file Phase 4 writes.
+
+**Phase 4 - Save**
+- Write the Markdown from Phase 2 (including its `##` heading) to the `.md` save target resolved in Phase 0.
+- Write the HTML from Phase 3 to the `.html` save target.
+- Overwrite in place if either file already exists.
+- After the Markdown in the response, append one line: `Saved to: <md path>, <html path>`.
 
 **Writing style**
 - Second person ("you", "your"). Present tense for instructions ("Navigate to...", not "You should navigate to...").
