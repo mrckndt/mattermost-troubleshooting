@@ -44,9 +44,18 @@ and stop.
 1. Resolve `[since, until]` from the remainder of `$ARGUMENTS`: an explicit
    `YYYY-MM-DD..YYYY-MM-DD` range, a natural-language phrase (`last 2 weeks`, `June`), or, absent
    any time expression, a 30-day lookback ending today. Echo the resolved window before fetching.
-2. Query the assignee email. Page with `keyword_offset` until a page returns no new posts.
-   Collect and dedup every result's `Root ID` into a set of candidates.
-3. **Search is discovery, not ground truth - do not filter here.** A hit only proves the query
+2. Resolve the assignee's display name: call `mcp__claude_ai_Mattermost_Hub__search_users` with
+   the email's local part (the segment before `@`) as the search term - the full email address
+   does not match. On success use the returned display name. If the call fails or returns
+   nothing, fall back to title-casing the local part (`firstname.lastname` -> `Firstname
+   Lastname`). This name is a discovery/signature-matching aid only, never ground truth by
+   itself - Phase 2 is still what decides.
+3. Query the assignee email, then separately query the resolved display name. Page each with
+   `keyword_offset` until a page returns no new posts. Collect and dedup every result's `Root ID`
+   from both queries into one set of candidates - the name query exists so a thread never showing
+   the email string anywhere in its text (the empty-assignee case Phase 2 handles below) still
+   becomes a candidate, instead of relying on coincidental token overlap with the email query.
+4. **Search is discovery, not ground truth - do not filter here.** A hit only proves a query
    matched somewhere in that post; it is never authoritative for a structured field like
    `Current Assignee`. Keyword mode further tokenizes on non-alphanumeric characters, so an
    email-shaped query (`firstname.lastname@...`) becomes an AND of `firstname` and `lastname`,
@@ -83,9 +92,22 @@ From each thread, derive:
   New ticket / Internal workspace activity), timestamp, visible assignee for Mattermost replies,
   body, and any links or file references.
 
-**Assignee mode filter.** Keep a thread only if its derived latest assignee equals the
-`$ARGUMENTS` email AND its last-activity falls within `[since, until]`. Drop the rest (note the
-count dropped).
+**Assignee mode filter.** Keep a thread, subject to its last-activity falling within
+`[since, until]` in both cases, if EITHER:
+- **(a) assignee match** - its derived latest assignee equals the `$ARGUMENTS` email. This wins
+  outright whenever the latest assignee is non-empty, regardless of who authored any
+  intervening replies (a thread can bounce between several people; only the latest snapshot
+  decides who's in charge now).
+- **(b) unassigned-reply match** - at least one `Reply (Mattermost)` post in the thread has an
+  empty `Current Assignee` value *on that post itself* (the snapshot at the time that specific
+  reply was sent, not the thread's overall latest snapshot) AND is signed with the display name
+  resolved in Phase 1. This can match even when the thread's current/final assignee is a
+  different, later person - it only asks whether this person personally replied during a gap
+  when no one was marked as owner, independent of what happened to the ticket afterward.
+
+Drop the rest (note the count dropped). Record which rule matched, `assignee` or
+`reply, unassigned`, and carry it into Phase 3 alongside the change label - (b) is a weaker
+signal than a formal assignment and should stay visibly distinguishable from (a).
 
 **Change classification.** Before writing, label each kept thread `new` / `updated` / `unchanged`,
 purely as a reporting signal for downstream consumers; it does not change what this skill writes:
@@ -155,11 +177,11 @@ Window: <since> to <until> (anchor: last activity). Channel: Zendesk Notificatio
 
 ## <Status>
 
-| zd# | Subject | Customer | Last activity | analysis? | Change | Thread |
-|---|---|---|---|---|---|---|
-| <zd#> | <subject> | <customer> | <last-activity> | yes/no | new/updated/unchanged | tickets/<zd#>/hub-thread.md |
+| zd# | Subject | Customer | Last activity | analysis? | Change | Matched via | Thread |
+|---|---|---|---|---|---|---|---|
+| <zd#> | <subject> | <customer> | <last-activity> | yes/no | new/updated/unchanged | assignee/reply, unassigned | tickets/<zd#>/hub-thread.md |
 ```
 
 Note any threads dropped by the window/assignee filter and any skipped as oversized, so the run
-is not silently partial. Add a rollup line after those notes: `Change: <N> new, <M> updated, <K>
-unchanged.`
+is not silently partial. Add rollup lines after those notes: `Change: <N> new, <M> updated, <K>
+unchanged.` and `Matched via: <N> assignee, <M> reply, unassigned.`
