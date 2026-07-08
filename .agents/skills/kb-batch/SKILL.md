@@ -121,20 +121,19 @@ Closed). Nothing is skipped for state. A `pending-draft` row may be brand new or
 (reset by Phase 2 reconciliation because its thread changed since a prior terminal decision);
 both are drafted the same way. For each `pending-draft` row, in manifest order:
 
-1. Read `tickets/<zd#>/hub-thread.md`, and `tickets/<zd#>/analysis.md` (or
-   `analysis-full.md`) if the row is `analysis? yes`, so both are in context.
-2. Invoke `/kb-article` inline with an argument that names the ticket and points at those
-   files, e.g. `` /kb-article Ticket <zd#> (<subject>). Draft from
-   tickets/<zd#>/hub-thread.md and tickets/<zd#>/analysis.md if present. ``. This puts the
-   ticket dir in `/kb-article`'s own "review ./tickets/<name>/ files" scope; the argument
-   keeps it focused on this one ticket.
+1. Read `tickets/<zd#>/hub-thread.md` (and check the `analysis? yes/no` flag from the harvest
+   index) only to determine whether this row will classify as `thin` in step 5 below -
+   `/kb-article` independently reads `hub-thread.md`/`analysis.md` itself once it resolves
+   ticket mode, so this step no longer needs to preload context on its behalf.
+2. Invoke `` /kb-article <zd#> `` inline. The bare ticket ID trips `/kb-article`'s own Phase 0
+   ticket-mode detection (exact match against `tickets/<zd#>/`), which puts it in that
+   ticket's scope for both input and output.
 3. **Do not stall the batch.** If `/kb-article` would ask a clarifying follow-up, proceed
    with the available context instead; a ticket with no resolution yet (for example an Open
    thread with no analysis) still gets whatever article the thread supports.
-4. Capture `/kb-article`'s two outputs and write them immediately (no data loss):
-   - the Markdown article (including its `##` topic heading) -> `tickets/<zd#>/kb-article.md`
-   - the HTML (the contents of the `# 📋 Article HTML` block, without the outer ``` fence)
-     -> `tickets/<zd#>/kb-article.html`
+4. Verify `/kb-article` wrote `tickets/<zd#>/kb-article.md` and `tickets/<zd#>/kb-article.html`
+   itself (its own Phase 4 - Save). Treat either file being missing as an error for this row
+   rather than continuing silently.
 5. Update the row: `Draft` = `tickets/<zd#>/kb-article.md`, `Review` = `drafted`, or `thin`
    if the source thread had no resolution and no analysis to draw on (flag it so the reviewer
    prioritizes it).
