@@ -190,7 +190,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
 5. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
-   - `/kb-article` - generate a KB article.
+   - `/kb-article 12345` - generate a KB article scoped to this ticket (saves to `tickets/12345/`).
    - `/pde-intake` - create a feature request, bug report, or security issue for sharing with PDE Intake Agent.
 
 ## Skills / slash commands
@@ -199,13 +199,13 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
-- **`/hub-harvest <ticket-ID|assignee-email> [time-range]`** - fetch a Zendesk ticket thread (or every thread assigned to a TSE in a time window) from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`. Ready for `/investigate`.
+- **`/hub-harvest <ticket-ID|assignee-email> [time-range]`** - fetch a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`, ready for `/investigate`. Given an assignee email instead, harvests every thread assigned to that TSE in the time window (default: last 30 days) and additionally writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`, grouped by status.
 - **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
 ### Output
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
-- **`/kb-article [description]`** - generate a KB article (Markdown + HTML).
+- **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `hub-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
 - **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
@@ -260,7 +260,8 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 ├── fragments/               # Per-upstream-repo knowledge fragments
 ├── mcp/                     # Optional MCP server config, one folder per server (e.g. mcp/atlassian/); .env files gitignored
 ├── upstream/                # Local clones, one directory per upstream repo
-├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/, tickets/customer-name/)
+├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/); tickets/hub-harvest/ holds /hub-harvest assignee-mode indexes
+├── kb-articles/             # Standalone KB articles from /kb-article when no ticket is in play
 ├── .agents/
 │   └── skills/              # Canonical skill definitions (SKILL.md per skill)
 └── .claude/

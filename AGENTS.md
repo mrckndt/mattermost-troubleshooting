@@ -85,6 +85,8 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 Files (logs, config dumps, packets, screenshots) live under `./tickets/<name>/` (Zendesk ID, customer name, or identifier). Check there before asking the engineer to paste.
 
 Pull a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`: run `/hub-harvest <ID>`.
+Given an assignee email instead, `/hub-harvest` harvests every thread assigned to that TSE in a time window and
+also writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`.
 
 Investigation pipeline and analysis log: run `/investigate <ID>`.
 
