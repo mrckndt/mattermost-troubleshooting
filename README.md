@@ -133,8 +133,9 @@ A local stdio binary.
 
 **macOS:**
 ```
-brew tap deusdata/codebase-memory-mcp "https://github.com/DeusData/codebase-memory-mcp"
+brew tap "deusdata/codebase-memory-mcp" "https://github.com/DeusData/codebase-memory-mcp"
 brew install codebase-memory-mcp
+brew trust --formula deusdata/codebase-memory-mcp/codebase-memory-mcp
 ```
 
 **Linux (including Windows via WSL):**
