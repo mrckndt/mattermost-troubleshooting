@@ -12,10 +12,8 @@ Generate a knowledge-base article for the current troubleshooting context, and s
 
 ## Phase 0 - Resolve save location
 
-1. `$ARGUMENTS` matches an existing directory under `tickets/` (check with
-   `ls "$PROJECT_ROOT/tickets/$ARGUMENTS"`): **ticket mode**, `<ID>=$ARGUMENTS`.
-2. Otherwise, if `$ARGUMENTS` contains a `tickets/<name>/` path reference anywhere in the text
-   and that directory exists: **ticket mode**, `<ID>=<name>`.
+1. Run `/resolve-ticket-id $ARGUMENTS` inline; ID returned: **ticket mode**, `<ID>` = that value.
+2. Otherwise, if `$ARGUMENTS` contains a `tickets/<name>/` path reference and that directory exists: **ticket mode**, `<ID>=<name>`.
 3. Otherwise, if this conversation has already been working a specific ticket (its files were
    read earlier in this session, e.g. via `/investigate`): **ticket mode** with that `<ID>`.
 4. Otherwise: **no-ticket mode**.
