@@ -17,10 +17,10 @@ Args: $ARGUMENTS
 ## Phase 0 - Setup and argument resolution
 
 Determine mode:
-- If `$ARGUMENTS` matches a directory under `tickets/` (check with `ls "$PROJECT_ROOT/tickets/$ARGUMENTS"` or similar): **ticket mode** - set `<ID>=$ARGUMENTS`.
-- Otherwise: **description mode** - the argument is a problem description. Skip Phase 1 and the Version-alignment file-based detection in Phase 3; proceed using the description as the only input.
-
-If no argument is provided, list `tickets/` subdirectories and ask which ticket to investigate before proceeding.
+- If `$ARGUMENTS` is empty: list `tickets/` subdirectories and ask which ticket to investigate.
+- Otherwise: run `/resolve-ticket-id $ARGUMENTS` inline.
+  - ID returned: **ticket mode** - set `<ID>` to that value.
+  - `no-match`: **description mode** - treat the argument as a problem description; skip Phase 1 and file-based version detection in Phase 3.
 
 Complete this phase before proceeding.
 
