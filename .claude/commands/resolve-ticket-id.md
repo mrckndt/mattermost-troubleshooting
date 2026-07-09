@@ -1,0 +1,1 @@
+../../../.agents/skills/resolve-ticket-id/SKILL.md
