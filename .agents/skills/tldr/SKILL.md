@@ -13,9 +13,8 @@ Args: $ARGUMENTS
 1. **No `$ARGUMENTS`:**
    - If this conversation already contains an investigation conclusion (a completed `/investigate` run, or the most recent substantive assistant message states a diagnosis, root cause, fix, or resolution): **session mode**.
    - Otherwise: ask for a ticket ID/URL or text before proceeding.
-2. `$ARGUMENTS` matches an existing directory under `tickets/` (check with `ls "$PROJECT_ROOT/tickets/$ARGUMENTS"`): **ticket mode**, `<ID>=$ARGUMENTS`.
-3. `$ARGUMENTS` looks like a URL (`http://` or `https://`): extract the trailing numeric path segment as a candidate ID (e.g. `.../tickets/51427` -> `51427`). If `tickets/<candidate>/` exists: **ticket mode** with that ID. Otherwise fall through to step 4 - do not fabricate a ticket folder.
-4. Otherwise: **text mode**, treat `$ARGUMENTS` as the markdown text to summarize.
+2. Run `/resolve-ticket-id $ARGUMENTS` inline; ID returned: **ticket mode**, `<ID>` = that value.
+3. Otherwise: **text mode**, treat `$ARGUMENTS` as the markdown text to summarize.
 
 ## Ticket mode
 

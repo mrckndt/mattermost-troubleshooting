@@ -10,7 +10,7 @@ Args: $ARGUMENTS
 
 ## Phase 0 - Resolve ticket ID
 
-If `$ARGUMENTS` matches a directory under `tickets/`, set `<ID>=$ARGUMENTS`. Otherwise list `tickets/` subdirectories and ask which ticket to resume before proceeding.
+Run `/resolve-ticket-id $ARGUMENTS` inline; ID returned: set `<ID>` to that value. Otherwise list `tickets/` subdirectories and ask which ticket to resume.
 
 ## Phase 1 - Reconstruct context
 
