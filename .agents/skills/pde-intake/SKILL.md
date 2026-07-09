@@ -28,7 +28,7 @@ Required (ask once, batched, if any are missing):
 - Product tier: Professional / Enterprise / Enterprise Advanced.
 - Urgency / Severity: for bugs, classify severity: S1 - Critical (core workflow unusable, no workaround) / S2 - Serious (significantly impaired or very broad impact, no workaround) / S3 - Moderate (workaround exists) / S4 - Minor (cosmetic); for feature requests, deal/renewal tie-in or none.
 
-Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links.
+Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links; Salesforce Account URL (hub-thread.md).
 
 ## Output
 
@@ -37,6 +37,7 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 - Never invent or guess a URL, key, or email. Per-field rules for unknowns:
   - **Contact:** omit the line if name unknown. Drop `, Title` or `, email` if unknown. Render email as plain text.
   - **Jira Ticket:** omit the line if URL unknown.
+  - **Salesforce Account:** omit the line if URL unknown.
   - **Zendesk Ticket** / **Hub Post:** at least one must render; omit the other if unknown.
   - All other fields: write `N/A` if not applicable.
 
@@ -47,6 +48,7 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 
 **Customer:** [Company Name]
 **Contact:** [First Surname][, Title][, email]
+**Salesforce Account:** [Account](URL)
 **Zendesk Ticket:** [#ID](URL)
 **Hub Post:** [Label](URL)
 **Jira Ticket:** [KEY](URL)
