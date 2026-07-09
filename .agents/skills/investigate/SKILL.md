@@ -14,6 +14,15 @@ Args: $ARGUMENTS
 - Phases 4-6 must all complete before forming hypotheses or drawing conclusions. No early stopping.
 - After any Phase 5 source hit, re-check the error-families list for unexplained entries before narrowing.
 
+## Output style (all phases)
+
+The engineer reads this to fix the issue fast. Every printed message optimizes for scanning:
+
+- **Bullets over prose:** one line per fact; no block over 2 lines.
+- **Emit only what the phase requires:** its gate artifact or search results. No narration of what you are about to do, no recap of completed phases.
+- **Keep gate artifacts compact:** Phase 1 inventory, Phase 5/6 search notes, and Phase 7 re-validation keep their required shape but stay one line per file/hit; never restate unchanged context.
+- The full record lives in `analysis.md` (Phase 9) and the closing digest (Phase 10); the run itself stays terse.
+
 ## Phase 0 - Setup and argument resolution
 
 Determine mode:
@@ -261,6 +270,8 @@ When a customer config issue intersects an upstream defect, state BOTH:
 
 Config-only answer when a defect was found is a framing violation. If no defect found, state: "No upstream defect identified - configuration is out of contract."
 
+This framing is content for Phase 9's log and the Phase 10 digest; do not also emit it as standalone prose during the run.
+
 **Fragment opportunity (mandatory check).** For each in-scope repo, check whether `fragments/<repo>.md` exists.
 
 - **Missing fragment:** state `Fragment opportunity: fragments/<repo>.md`.
@@ -295,6 +306,51 @@ A "session" is one `/investigate` run, not a turn.
 
 Session 1 (creation): both files start identical - same template, same content.
 Subsequent sessions: add `---` and `## Session YYYY-MM-DD`, then re-append each section that changed with its full current content (same section names as the template). The bottom-most instance of any section is always the authoritative current state. Never edit earlier entries.
+
+Complete this phase before proceeding.
+
+## Phase 10 - Final output (terminal digest)
+
+After Phase 9 writes the files, print ONE digest to the conversation. This is what the engineer reads to act under time pressure. Two rules in tension, both binding:
+
+- **Terse in form:** bullets, one line per item, no block over 2 lines, no prose walls.
+- **Complete in coverage:** include every fact that changes what the engineer does. Omitting a load-bearing detail (a caveat, "not backported", a live alternative) to save space is a defect; brevity must never mislead.
+
+The cap is words per item, not item count: list as many findings as are load-bearing; drop only redundant or decorative ones. The exhaustive record is `analysis.md`; the digest is the actionable subset, never a re-narration.
+
+- **Line 1 is the whole answer:** an `##` verdict, one sentence carrying outcome and fix.
+- **Fixed order, every time:** verdict, scan line, facts, remediation, evidence, ruled out, open/unverified, citations, pointer. Never reorder; never drop a heading. Write `N/A` only when genuinely empty, so a blank never hides a fact.
+- **Advisory / research tickets:** relabel `Root cause` to `Answer`, `Fix` / `Interim` to `Recommendation`.
+
+Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
+
+```
+## <verdict: one sentence, outcome and fix>
+
+**<ID> · <version, topology> · <CONFIRMED | LIKELY | INCONCLUSIVE>**
+
+| Field | Value |
+|---|---|
+| Root cause | <one line> |
+| Fixed in | <version + ref, or "no fix"> |
+| Backported | <yes / no / N/A> |
+| Type | <defect / config / advisory> |
+
+**Fix:** <one line>
+**Interim:** <one line, or "none">
+
+**Evidence**
+- <file:line> - <finding, few words>
+
+**Ruled out**
+- <alternative> - <why, few words>
+
+**Open / unverified**
+- <unconfirmed detail affecting the action, or "none">
+
+**Citations:** <docs.mattermost.com or support.mattermost.com links>
+**Full detail:** tickets/<ID>/analysis.md
+```
 
 ---
 
