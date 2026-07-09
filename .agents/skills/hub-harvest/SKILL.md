@@ -27,8 +27,7 @@ activity.
    state `Mattermost Hub search skipped: MCP not available` and stop. Never block.
 2. If `$ARGUMENTS` is empty, ask for a ticket number or an assignee email before proceeding.
 3. Pick the mode: an `@` token means **assignee mode** (that token is the email, the remainder
-   is the time range); otherwise **ticket mode** (extract the ticket number from a bare number,
-   a `zd`-prefixed form, or a Hub/Zendesk URL's trailing numeric segment).
+   is the time range); otherwise **ticket mode**: run `/resolve-ticket-id <the non-@ remainder>` inline to get the ticket number.
 
 ## Phase 1 - Locate roots
 
@@ -82,15 +81,19 @@ From each thread, derive:
   `tickets/` directory).
 - **requester**, **priority**, **support level**, **tags**, **references** - from the root
   attachment (trim trailing whitespace and stray `\n`).
+- **zendesk**, **zendesk_org**, **salesforce** - parse `references` as a pipe-delimited list of
+  labeled Markdown links (`[Zendesk Ticket](...) | [Zendesk Organization](...) | [Salesforce
+  Account](...)`) and extract each URL by its label. Default any label not present to `"unknown"`
+  - don't assume all three always appear.
 - **customer** - the organization from References/attachment, else the requester's email domain
   plus any Account Manager.
 - **status (latest)** / **assignee (latest)** - the verbatim value from the single newest post
   that carries the field. An empty `Current Assignee` on that post means unassigned now - do not
   scan backward for an older non-empty value.
 - **created** / **last-activity** - root post time / newest post time (any post type).
-- **messages** - every post in order: index, direction (Customer / Mattermost / Internal note /
-  New ticket / Internal workspace activity), timestamp, visible assignee for Mattermost replies,
-  body, and any links or file references.
+- **messages** - every post in order: Post ID, index, direction (Customer / Mattermost / Internal
+  note / New ticket / Internal workspace activity), timestamp, visible assignee for Mattermost
+  replies, body, and any links or file references.
 
 **Assignee mode filter.** Keep a thread, subject to its last-activity falling within
 `[since, until]` in both cases, if EITHER:
@@ -120,12 +123,19 @@ purely as a reporting signal for downstream consumers; it does not change what t
 Carry the label into Phase 3. This applies the same way in ticket mode and assignee mode; both
 persist here, per Root ID.
 
-Write `tickets/<zd#>/hub-thread.md` per kept thread using the template below, regardless of its
-label - always overwrite, even when `unchanged` (the comparison is a cheap local read of the
-small existing file, not a re-fetch, and the file's own `Harvested: <today>` stamp must advance
-on every run anyway). Reuse-safe: this skill only ever writes `hub-thread.md` (it is a pure Hub
-mirror); it never touches any other file in the ticket dir. Record whether
-`analysis.md`/`analysis-full.md` already exists there.
+Persist `tickets/<zd#>/hub-thread.md` per kept thread, per label. Posts are immutable once
+mirrored, so only patch what's new:
+- **new** - no existing file; write it in full with the template below.
+- **unchanged** - patch only `- Harvested: <today>` in place.
+- **updated** - patch the header block (`# Ticket ...` through the blank line before
+  `## Conversation`) with fresh values, then append one `### <next index>. ...` block per fetched
+  post not already present (matched by its `(post <id>)` marker), continuing numbering in fetch
+  order. Never rewrite or renumber existing blocks.
+- **Migration fallback** - any `### N.` heading missing `(post <id>)`, or an unparseable header,
+  triggers a one-time full overwrite; it self-migrates from there.
+
+Reuse-safe: only ever writes `hub-thread.md`, never another file in the ticket dir. Record whether
+`analysis.md`/`analysis-full.md` exists there.
 
 Template (apply the `AGENTS.md` formatting constraints - no em dashes, plain ``` fences):
 
@@ -134,6 +144,8 @@ Template (apply the `AGENTS.md` formatting constraints - no em dashes, plain ```
 
 - Source: Mattermost Hub, Zendesk Notifications channel, root post <Root ID>
 - Zendesk: <Zendesk Ticket URL from References, or "unknown">
+- Zendesk Organization: <Zendesk Organization URL from References, or "unknown">
+- Salesforce: <Salesforce Account URL from References, or "unknown">
 - Customer: <org / requester domain>
 - Requester: <requester>
 - Priority: <priority>
@@ -147,17 +159,17 @@ Template (apply the `AGENTS.md` formatting constraints - no em dashes, plain ```
 
 ## Conversation
 
-### 1. New ticket (customer) - <root time>
+### 1. New ticket (customer) - <root time> (post <Root ID>)
 
 <root Description>
 
 Links/attachments: <any URLs or file references, or "none">
 
-### 2. Reply (Mattermost, <assignee>) - <time>
+### 2. Reply (Mattermost, <assignee>) - <time> (post <Post ID>)
 
 <Description>
 
-<... one ### block per post, in order; label each per the direction list above ...>
+<... one ### block per post, in order, each tagged (post <Post ID>); label per the direction list above ...>
 ```
 
 ## Phase 3 - Index and report
