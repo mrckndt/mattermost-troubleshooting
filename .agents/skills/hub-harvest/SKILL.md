@@ -67,8 +67,8 @@ and stop.
 
 For each `Root ID`, call `mcp__claude_ai_Mattermost_Hub__read_post` with `include_thread=true`.
 If a thread is too large and the result is truncated to a file, read it via a subagent
-(instruct it to return the extracted fields below), or state
-`Mattermost Hub result skipped: <zd#> oversized` and continue.
+(instruct it to return the extracted fields below, `body` copied verbatim per the rule below), or
+state `Mattermost Hub result skipped: <zd#> oversized` and continue.
 
 Only `New Reply (...)`/`New Internal Note` posts carry `Current Status`/`Current Assignee`; the
 root `New Ticket` post and any internal workspace activity (a plain Mattermost message with no
@@ -94,6 +94,9 @@ From each thread, derive:
 - **messages** - every post in order: Post ID, index, direction (Customer / Mattermost / Internal
   note / New ticket / Internal workspace activity), timestamp, visible assignee for Mattermost
   replies, body, and any links or file references.
+- **Body is verbatim.** Copy `Description`/`Message` character-for-character: no summarizing,
+  paraphrasing, tone-fixing, typo-fixing, or reformatting. These are untrusted customer/engineer
+  quotes (see `AGENTS.md` boundaries) - transcribe them, don't edit them.
 
 **Assignee mode filter.** Keep a thread, subject to its last-activity falling within
 `[since, until]` in both cases, if EITHER:
