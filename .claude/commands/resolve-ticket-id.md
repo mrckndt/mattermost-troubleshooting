@@ -1,1 +1,1 @@
-../../../.agents/skills/resolve-ticket-id/SKILL.md
+../../.agents/skills/resolve-ticket-id/SKILL.md
