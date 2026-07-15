@@ -27,7 +27,9 @@
       "Bash(pbcopy:*)",
       "Bash(clip.exe)",
       "Bash(clip.exe:*)",
-      "Bash(Set-Clipboard:*)"
+      "Bash(Set-Clipboard:*)",
+      "mcp__claude_ai_Mattermost_Hub__search_posts",
+      "mcp__claude_ai_Mattermost_Hub__read_post"
     ],
     "deny": [
       "Bash(git push:*)",
