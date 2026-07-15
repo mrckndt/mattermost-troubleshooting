@@ -22,7 +22,7 @@ Required (ask once, batched, if any are missing):
 - At least one source URL: Zendesk ticket OR Hub link. Use both if known; if neither, ask before proceeding.
 - Feature title (imperative).
 - Problem today + desired behavior.
-- Affected persona.
+- Affected role.
 - How often it comes up.
 - Deployment type: Cloud / On-premises / Air-gapped.
 - Product tier: Professional / Enterprise / Enterprise Advanced.
@@ -54,7 +54,7 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 **Jira Ticket:** [KEY](URL)
 **Deployment:** Cloud / On-premises / Air-gapped
 **Tier:** Professional / Enterprise / Enterprise Advanced
-**Persona:** [affected role]
+**Affected Role:** [affected role]
 **Frequency:** [how often it comes up]
 **Scope:** [UI / API / admin policy / other]
 **Urgency / Severity:** [S1 - Critical / S2 - Serious / S3 - Moderate / S4 - Minor for bugs; deal/renewal tie-in or none for feature requests]
