@@ -181,6 +181,9 @@ Complete this phase before proceeding.
 - If it reports `codebase-memory MCP not present`: state `codebase-memory search skipped: MCP not present` once and run the grep-only form of every Step 2 angle.
 - Do not call any other `/cbm-*` skill for the rest of this phase or Phase 7 when absent.
 - Otherwise codebase-memory is available; use each repo's `Project` column value as `project` for every codebase-memory query below and in Phase 7.
+- **Mandatory log line, one per in-scope repo, every session:** append to Phase 9's `Steps and outcomes`:
+  `codebase-memory: <repo> <reindexed|unchanged|skipped: <reason>> @ <ref>, <nodes> nodes / <edges> edges`.
+- No silent skips. Never merge repos into one line. "Used direct read/grep instead" is not a substitute for running Step 0.
 
 **Step 1: AppError → i18n key lookup.**
 - Applies only to Mattermost server logs; skip if none present.
