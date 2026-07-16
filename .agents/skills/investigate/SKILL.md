@@ -275,15 +275,6 @@ Config-only answer when a defect was found is a framing violation. If no defect 
 
 This framing is content for Phase 9's log and the Phase 10 digest; do not also emit it as standalone prose during the run.
 
-**Fragment opportunity (mandatory check).** For each in-scope repo, check whether `fragments/<repo>.md` exists.
-
-- **Missing fragment:** state `Fragment opportunity: fragments/<repo>.md`.
-  - List 1-3 reusable patterns from this ticket that belong in it; each with `file:line` or a quoted log line.
-  - Offer to create in a follow-up turn; do not auto-create.
-- **Fragment exists, pattern not yet captured:** state `Fragment update opportunity: fragments/<repo>.md - <section>` with supporting evidence.
-
-To action any fragment opportunity, run `/fragment-update`.
-
 Complete this phase before proceeding.
 
 ## Phase 9 - Analysis log (MANDATORY)
