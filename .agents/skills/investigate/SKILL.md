@@ -313,7 +313,13 @@ After Phase 9 writes the files, print ONE digest to the conversation. This is wh
 The cap is words per item, not item count: list as many findings as are load-bearing; drop only redundant or decorative ones. The exhaustive record is `analysis.md`; the digest is the actionable subset, never a re-narration.
 
 - **Line 1 is the whole answer:** an `##` verdict, one sentence carrying outcome and fix.
-- **Fixed order, every time:** verdict, scan line, facts, remediation, evidence, ruled out, open/unverified, citations, pointer. Never reorder; never drop a heading. Write `N/A` only when genuinely empty, so a blank never hides a fact.
+- **Fixed order, every time:** Issue, Fix, Next steps, Open/unverified, Ruled out, Evidence, pointer.
+  - Never reorder; never drop a heading. Write `N/A` only when genuinely empty, so a blank never hides a fact.
+- **Every section is bullets, no prose lines:** Issue, Fix, and Evidence use `-` bullets, same as Next steps/Open/Ruled out.
+- **Evidence is a compressed summary, not a file:line list:**
+  - Name the *kind* of evidence per bullet (source inspection, PR/commit, docs, historical ticket pattern) and what it shows.
+  - Plain behavioral language; inline the `docs.mattermost.com`/`support.mattermost.com` link on any bullet it backs.
+  - Exact locations live in `analysis.md`/`analysis-full.md` only - never repeat file:line in the digest.
 - **Advisory / research tickets:** relabel `Root cause` to `Answer`, `Fix` / `Interim` to `Recommendation`.
 
 Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
@@ -321,28 +327,28 @@ Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
 ```
 ## <verdict: one sentence, outcome and fix>
 
-**<ID> · <version, topology> · <CONFIRMED | LIKELY | INCONCLUSIVE>**
+**Issue**
+- <ID> · <version, topology> · <CONFIRMED | LIKELY | INCONCLUSIVE>
+- <root cause, plain language, one line> · <defect / config / advisory>
+- Backported: <yes / no / N/A - only if backporting matters to this case>
 
-| Field | Value |
-|---|---|
-| Root cause | <one line> |
-| Fixed in | <version + ref, or "no fix"> |
-| Backported | <yes / no / N/A> |
-| Type | <defect / config / advisory> |
+**Fix**
+- <one line: what to change, restart/reload note>
+- Interim: <one line, or "none">
 
-**Fix:** <one line>
-**Interim:** <one line, or "none">
-
-**Evidence**
-- <file:line> - <finding, few words>
-
-**Ruled out**
-- <alternative> - <why, few words>
+**Next steps**
+- <action item for the engineer>
 
 **Open / unverified**
 - <unconfirmed detail affecting the action, or "none">
 
-**Citations:** <docs.mattermost.com or support.mattermost.com links>
+**Ruled out**
+- <alternative> - <why, few words>
+
+**Evidence**
+- <kind of evidence: source inspection, PR/commit, docs, historical pattern> - <what it shows, plain language>
+- <2-4 bullets total; inline the docs.mattermost.com/support.mattermost.com link on any bullet it backs, no file:line>
+
 **Full detail:** tickets/<ID>/analysis.md
 ```
 
