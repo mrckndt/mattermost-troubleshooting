@@ -16,11 +16,11 @@ Run the following searches in parallel:
 
 1. Analysis logs:
 ```
-rg -li "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"
+rg -li --no-ignore --hidden "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"
 ```
 2. Raw ticket files:
 ```
-rg -li "$ARGUMENTS" "$PROJECT_ROOT/tickets/"
+rg -li --no-ignore --hidden "$ARGUMENTS" "$PROJECT_ROOT/tickets/"
 ```
 
 For each matching file, get a context snippet:
