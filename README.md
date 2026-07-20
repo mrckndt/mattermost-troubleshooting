@@ -248,8 +248,6 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 
 - **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md`, identify the last completed phase, and continue from there.
 - **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
-- **`/fragment-update`** - draft and write fragment updates from the current ticket's Phase 8 findings; presents a diff for approval before writing.
-- **`/tldr [ticket-ID|ticket-URL|text]`** - print a concise summary; reads `analysis.md` if present, else runs `/investigate` first. No argument: summarizes the current session's conclusion if one exists.
 
 ## Layout
 

@@ -1,1 +1,0 @@
-../../.agents/skills/fragment-update/SKILL.md
