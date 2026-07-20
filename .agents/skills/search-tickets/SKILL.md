@@ -12,27 +12,18 @@ If no argument is provided, ask for a search term before proceeding.
 
 ## Search
 
-Run the following searches in parallel:
+Run in parallel:
 
-1. Analysis logs:
-```
-rg -li --no-ignore --hidden "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"
-```
-2. Raw ticket files:
-```
-rg -li --no-ignore --hidden "$ARGUMENTS" "$PROJECT_ROOT/tickets/"
-```
+1. Analysis logs: `rg -li --no-ignore --hidden "$ARGUMENTS" "$PROJECT_ROOT/tickets/" -g "analysis*.md"`
+2. Raw ticket files: `rg -li --no-ignore --hidden "$ARGUMENTS" "$PROJECT_ROOT/tickets/"`
 
-For each matching file, get a context snippet:
-```
-rg -ni "$ARGUMENTS" <file> | head -5
-```
+For each matching file, get a context snippet: `rg -ni "$ARGUMENTS" <file> | head -5`
 
 ## Output
 
-Group results by ticket ID. For each ticket with matches:
+Group results by ticket ID, ordered by match density (most matches first). If no matches found, say so explicitly.
+
+For each ticket with matches:
 
 - **`tickets/<ID>/`** - `<one-line characterization from analysis.md reported symptom, or inferred from filenames>`
   - `<file>:<line>: <matched line snippet>` (up to 3 snippets per ticket)
-
-Order by match density (most matches first). If no matches found, say so explicitly.
