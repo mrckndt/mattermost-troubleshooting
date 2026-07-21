@@ -12,8 +12,11 @@ Copy content to the user's clipboard via the OS-appropriate CLI rather than prin
 
 1. Determine the content to copy:
    - If $ARGUMENTS contains the literal content, use it as-is.
-   - If $ARGUMENTS describes what to copy (e.g. "the draft reply", "the KB article", "the last command"), pick the most recent matching artifact from the conversation.
-   - If $ARGUMENTS is empty, copy the most recent generated artifact (draft reply, KB article, feature request, command, code block, etc.). If there are multiple plausible candidates, ask which one before piping.
+   - If $ARGUMENTS describes what to copy (e.g. "the draft reply", "the KB article", "the last command"),
+     pick the most recent matching artifact from the conversation.
+   - If $ARGUMENTS is empty, copy the most recent generated artifact (draft reply, KB article, feature
+     request, command, code block, etc.).
+   - If multiple plausible candidates exist, ask which one before piping.
 2. Detect the OS and pipe the content in. Avoid any form that appends a trailing newline.
 
    **macOS** (`uname -s` = `Darwin`) - pipe into `pbcopy`. Use `printf '%s'` (not `echo`) and a heredoc for multi-line content:
