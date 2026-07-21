@@ -242,6 +242,10 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 
 - For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
 - If Step 0 (Phase 5) found codebase-memory available, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
+- For "changed across versions" hypotheses: `base_branch` must be the OLDER tag, checkout (`HEAD`) the NEWER one, or it silently returns 0.
+  - Checking a later release for a fix: temporarily `/git-switch <repo> <newer-version>`, run `/cbm-detect-changes <repo> <customer-version-tag>`, then `/git-switch <repo> <customer-version>` back.
+  - Checking what regressed since an older release: stay on the customer's checkout, run `/cbm-detect-changes <repo> <older-version-tag>` directly.
+  - Start with `scope: files`; a multi-version span can be hundreds of files and the fuller symbol listing has no cap (see the skill's notes).
 - If codebase-memory is unavailable, use `rg`/`git` for the artefact.
 
 **Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.

@@ -241,8 +241,7 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 - **`/cbm-trace-path [<repo>] <question or function>`** - trace callers/callees of a function (e.g. "what calls ProcessOrder?").
 - **`/cbm-get-code-snippet [<repo>] <name>`** - pull source for a symbol (qualified or short name).
 - **`/cbm-query-graph [<repo>] <cypher>`** - run a raw Cypher query for multi-hop or aggregation questions.
-- **`/cbm-get-architecture [<repo>] [<path>]`** - get a high-level architecture overview (packages, services, dependencies).
-- **`/cbm-detect-changes [<repo>] [<since-ref>]`** - show the blast radius of a diff, risk-classified.
+- **`/cbm-detect-changes [<repo>] [<compare-ref>]`** - list symbols defined in a diff's changed files.
 
 ### Ticket management
 
