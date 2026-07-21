@@ -12,8 +12,7 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
 - If it matches, that token is `<repo>` and the remaining tokens form `<query>`.
 - Otherwise, `<repo>` defaults to `mattermost` and the entire argument string is `<query>`.
 
-1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop.
-   - Use the `Project` column from its output table as `project` below.
+1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop. Use the `Project` column from its output table as `project` below.
 2. Call `search_graph` with `project` and `query` = `<query>` verbatim (BM25 full-text over symbol identifiers, camelCase-split).
    - Also pass `semantic_query` = `<query>` split into individual keyword strings (vector search; bridges vocabulary, e.g. "publish" matches "send").
    - Both modes search **symbol names**, not source text. This tool cannot find string literals or error messages; use `/cbm-search-code` for that.
@@ -27,7 +26,7 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
    - `min_degree`/`max_degree` with `relationship` and `direction` for fan-in/fan-out; `max_degree: 0` + `exclude_entry_points: true` surfaces dead code.
    - `file_pattern` to scope by path.
 5. No matches: report it.
-   - `codebase-memory-mcp` hardcodes some directories out of indexing entirely (e.g. `docs`, `build`, vendor dirs).
+   - `codebase-memory-mcp` hardcodes some directories out of indexing entirely, even under `mode: full` (e.g. `vendor`, `vendored`, `node_modules`, `.git`).
    - Before assuming the symbol doesn't exist, check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
    - Fall back to `rg --no-ignore --hidden -n` or reading the file directly for anything under an excluded path.
    - Otherwise suggest `/cbm-query-graph` for a Cypher search, `/cbm-search-code` if the target may be a text literal, or broader keywords.
