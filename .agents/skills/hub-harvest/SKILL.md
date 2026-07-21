@@ -12,14 +12,14 @@ Fetch Zendesk ticket conversations from the Mattermost Hub and persist each one 
 so later work (`/investigate`) reads from `tickets/<zd#>/` instead of re-querying
 the Hub.
 
-The source is the fixed Hub channel `p77n3165i3r89kugxyabx9wwer` ("Zendesk Notifications", team
-Staff). Every ticket is one thread: a root `New Ticket: <subject> (#zdNNNNN)` post plus threaded
-replies. Zendesk-mirrored replies are `New Reply (Customer)`, `New Reply (Mattermost)`, or
-`New Internal Note`, authored by `zendesk_bot`, each carrying a `Current Status` and
-`Current Assignee` snapshot. The root post's own ID is the thread `Root ID`. A thread can also
-contain plain Mattermost messages that are not Zendesk-mirrored (for example a TSE invoking an
-`@techsupport` bot inline to draft a reply) - Phase 2 calls these out as internal workspace
-activity.
+- **Source:** fixed Hub channel `p77n3165i3r89kugxyabx9wwer` ("Zendesk Notifications", team Staff).
+- **Thread shape:** one thread per ticket - a root `New Ticket: <subject> (#zdNNNNN)` post plus threaded replies.
+  The root post's own ID is the thread `Root ID`.
+- **Zendesk-mirrored replies:** `New Reply (Customer)`, `New Reply (Mattermost)`, `New Internal Note` - authored
+  by `zendesk_bot`, each carrying a `Current Status` and `Current Assignee` snapshot.
+- **Non-mirrored messages:** a thread can also contain plain Mattermost messages with no Zendesk metadata (e.g. a
+  TSE invoking `@techsupport` inline, or the bot's resulting drafted reply) - Phase 2 labels these internal
+  workspace activity and excludes them from status/assignee derivation.
 
 ## Phase 0 - Setup and mode
 
@@ -43,25 +43,21 @@ and stop.
 1. Resolve `[since, until]` from the remainder of `$ARGUMENTS`: an explicit
    `YYYY-MM-DD..YYYY-MM-DD` range, a natural-language phrase (`last 2 weeks`, `June`), or, absent
    any time expression, a 30-day lookback ending today. Echo the resolved window before fetching.
-2. Resolve the assignee's display name: call `mcp__claude_ai_Mattermost_Hub__search_users` with
-   the email's local part (the segment before `@`) as the search term - the full email address
-   does not match. On success use the returned display name. If the call fails or returns
-   nothing, fall back to title-casing the local part (`firstname.lastname` -> `Firstname
-   Lastname`). This name is a discovery/signature-matching aid only, never ground truth by
-   itself - Phase 2 is still what decides.
+2. Resolve the assignee's display name via `mcp__claude_ai_Mattermost_Hub__search_users`, querying the email's
+   local part (before `@`) - the full email address does not match. Success: use the returned name. Failure or
+   empty result: fall back to title-casing the local part (`firstname.lastname` -> `Firstname Lastname`).
+   Discovery/signature-matching aid only, never ground truth by itself - Phase 2 still decides.
 3. Query the assignee email, then separately query the resolved display name. Page each with
    `keyword_offset` until a page returns no new posts. Collect and dedup every result's `Root ID`
-   from both queries into one set of candidates - the name query exists so a thread never showing
-   the email string anywhere in its text (the empty-assignee case Phase 2 handles below) still
-   becomes a candidate, instead of relying on coincidental token overlap with the email query.
+   from both queries into one candidate set - the name query catches a thread that never shows the
+   email string in its text, instead of relying on coincidental token overlap with the email query.
 4. **Search is discovery, not ground truth - do not filter here.** A hit only proves a query
    matched somewhere in that post; it is never authoritative for a structured field like
    `Current Assignee`. Keyword mode further tokenizes on non-alphanumeric characters, so an
    email-shaped query (`firstname.lastname@...`) becomes an AND of `firstname` and `lastname`,
    matching any post where both co-occur anywhere in the text (a signature, a quoted email) -
-   not only a post whose `Current Assignee` field literally holds that address. And even an
-   accurate per-post value is just a snapshot; a search hit need not be a thread's newest post.
-   The real filter is Phase 2, against a full-thread fetch.
+   not only a post whose `Current Assignee` field literally holds that address. A hit also need
+   not be a thread's newest post; the real filter is Phase 2, against a full-thread fetch.
 
 ## Phase 2 - Fetch and persist
 
@@ -71,10 +67,9 @@ If a thread is too large and the result is truncated to a file, read it via a su
 state `Mattermost Hub result skipped: <zd#> oversized` and continue.
 
 Only `New Reply (...)`/`New Internal Note` posts carry `Current Status`/`Current Assignee`; the
-root `New Ticket` post and any internal workspace activity (a plain Mattermost message with no
-Zendesk metadata, e.g. a bot-drafted reply) do not - skip them when deriving status/assignee, but
-still include them in the written conversation, labeled `Internal workspace activity
-(<author username>)`, body from `Message` instead of `Description`.
+root `New Ticket` post and any internal workspace activity (defined above) do not - skip them when
+deriving status/assignee, but still include them in the written conversation, labeled `Internal
+workspace activity (<author username>)`, body from `Message` instead of `Description`.
 
 From each thread, derive:
 - **zd#** and **subject** - from the root `New Ticket: <subject> (#<num>)` (zd# names the
@@ -100,16 +95,12 @@ From each thread, derive:
 
 **Assignee mode filter.** Keep a thread, subject to its last-activity falling within
 `[since, until]` in both cases, if EITHER:
-- **(a) assignee match** - its derived latest assignee equals the `$ARGUMENTS` email. This wins
-  outright whenever the latest assignee is non-empty, regardless of who authored any
-  intervening replies (a thread can bounce between several people; only the latest snapshot
-  decides who's in charge now).
-- **(b) unassigned-reply match** - at least one `Reply (Mattermost)` post in the thread has an
-  empty `Current Assignee` value *on that post itself* (the snapshot at the time that specific
-  reply was sent, not the thread's overall latest snapshot) AND is signed with the display name
-  resolved in Phase 1. This can match even when the thread's current/final assignee is a
-  different, later person - it only asks whether this person personally replied during a gap
-  when no one was marked as owner, independent of what happened to the ticket afterward.
+- **(a) assignee match** - its derived latest assignee equals the `$ARGUMENTS` email. Wins outright whenever the
+  latest assignee is non-empty, regardless of who authored intervening replies (only the latest snapshot governs).
+- **(b) unassigned-reply match** - at least one `Reply (Mattermost)` post has an empty `Current Assignee` value
+  *on that post itself* (its own snapshot, not the thread's latest) AND is signed with the display name resolved
+  in Phase 1. Matches even if a different, later person is the final assignee - it only asks whether this person
+  replied during an unassigned gap, independent of what happened afterward.
 
 Drop the rest (note the count dropped). Record which rule matched, `assignee` or
 `reply, unassigned`, and carry it into Phase 3 alongside the change label - (b) is a weaker
