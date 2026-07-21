@@ -245,7 +245,7 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 
 ### Ticket management
 
-- **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md`/`analysis-full.md` if present, then re-run `/investigate` for a new session primed with that context; runs `/investigate` fresh if no prior analysis exists.
+- **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md`/`analysis-full.md` if present, then ask before re-running `/investigate`; runs `/investigate` unprompted only if no prior analysis exists.
 - **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
 
 ## Layout
