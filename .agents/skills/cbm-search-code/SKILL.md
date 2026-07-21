@@ -28,6 +28,7 @@ This skill is the codebase-memory tool for that: it greps raw text, then dedupli
    - Raise `limit`, narrow with `file_pattern`/`path_filter`, or fall back to `rg --no-ignore --hidden -nF` for the exhaustive pass.
    - Do not report this tool's result as the complete match set for exact-string searches (e.g. Phase 5 angle 1 of `/investigate`).
 5. No matches: report it.
-   - `codebase-memory-mcp` hardcodes some directories out of indexing entirely (e.g. `docs`, `build`, vendor dirs) - check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
+   - `codebase-memory-mcp` hardcodes some directories out of indexing entirely, even under `mode: full` (e.g. `vendor`, `vendored`, `node_modules`, `.git`).
+   - Check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
    - Non-code files (Dockerfiles, shell scripts, YAML) may also fall outside what got indexed.
    - Fall back to `rg --no-ignore --hidden -n` or reading the file directly for anything under an excluded path or a non-code file.

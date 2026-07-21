@@ -20,6 +20,8 @@ Parse args as `[<repo>] <cypher>`. Determine `<repo>` by checking whether the fi
    - `codebase-memory-mcp` excludes those from indexing entirely.
 6. Note the 100k row ceiling. There is no `offset` support here - use `/cbm-search-graph` with `offset`/`limit` for paginated browsing instead.
    - Add `LIMIT` in `<cypher>` for broad queries.
+   - `Function` (no receiver) vs `Method` (has a receiver) reflects real Go semantics, not an indexing inconsistency - a `(f:Method)` filter can silently miss a related free function in the same file.
+   - When searching for "any function/method that does X", omit the label or match both rather than assuming one.
 7. For performance/hot-path questions, every `Function`/`Method` node carries queryable complexity properties:
    - `cyclomatic`, `cognitive`, `loop_count`, `loop_depth` (max nested-loop depth).
    - `transitive_loop_depth`: worst-case nested-loop degree propagated along `CALLS` edges (interprocedural).

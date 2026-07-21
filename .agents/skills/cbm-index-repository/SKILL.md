@@ -35,16 +35,17 @@ Report a Markdown table: `Repo | Project | Ref | Nodes | Edges` (`Ref` = `ref`, 
 - `codebase-memory-mcp` excludes these directories from indexing entirely (no results, not "not found"); the other `cbm-*` skills point back here when a search unexpectedly comes up empty.
 
 Notes:
-- `mode: full` (not `moderate`): moderate hardcodes out dirs named `public`, `i18n`, `migrations`, and similar regardless of content, which blinded every `cbm-*` skill to `server/public` (the `model`/`client4` module) in `mattermost`/`enterprise`.
+- `mode: full` (not `moderate`): `moderate` hardcodes out dirs named `public`, `i18n`, `migrations`, and similar
+  regardless of content. That blinded every `cbm-*` skill to `server/public` (the `model`/`client4` module) in
+  `mattermost`/`enterprise`.
 - This is the manual equivalent of Phase 5 Step 0 in `/investigate`; use it for ad-hoc codebase-memory queries outside `/investigate`, e.g. after a manual `/git-switch`.
 - `index_repository` always walks the full tree before it can even tell nothing changed, and has no notion of git ref at all.
-- Its own file-level cache is mtime+size, not a real content hash - the `sha256` field it stores is an empty string (`pipeline_incremental.c:461-462`).
+- Its own file-level cache is mtime+size, not a real content hash - the `sha256` field it stores is an empty string.
 - `upstream/.cbm-index-cache.json` is our own layer on top: gitignored, and sits outside every repo clone's working tree (untouched by `/git-switch`, invisible to that clone's `git status`).
 - The cache key is the ref label, not a commit sha: a detached tag (`v10.11.19`) is immutable, so this is exact.
 - On a moving branch (`master`, `release-11.7`) the label can't detect new commits landing on that branch without a `/git-switch` in between.
 - Accepted: customer investigations mostly pin to a specific tag, and cross-version differences dwarf a few trailing branch commits.
 - The false-skip window is small and cheap to fix (`/git-switch` or `delete_project`).
-- A dirty tree, a cache miss, or a cache/graph mismatch (missing project, zero nodes) always forces a real reindex - never trust a ref match alone.
 - A repo with no cache entry (first run, or indexed manually outside this skill) always gets a real index.
 - Every other `cbm-*` skill calls this skill first as its presence check; repeated calls for an unchanged repo are cheap now because of this cache, not `index_repository`'s own incrementalism.
 - `persistence: false` always - `true` would write into the working tree and block a later `/git-switch`.
