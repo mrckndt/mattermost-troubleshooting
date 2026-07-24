@@ -12,7 +12,9 @@ Parse args as `[<repo>] <cypher>`. Determine `<repo>` by checking whether the fi
 - If it matches, that token is `<repo>` and the remaining tokens form `<cypher>`.
 - Otherwise, `<repo>` defaults to `mattermost` and the entire argument string is `<cypher>`.
 
-1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop. Use the `Project` column from its output table as `project` below.
+1. Run `/cbm-index-repository <repo>` inline.
+   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+   - Otherwise, use the `Project` column from its output table as `project` below.
 2. If unsure what to query, first call `get_graph_schema` with `project` for node labels and edge types.
 3. Call `query_graph` with `query` = `<cypher>`, `project`. Optionally pass `max_rows` to cap the result.
 4. Present the returned rows as a table (`total` in the response is the returned row count).
@@ -23,7 +25,7 @@ Parse args as `[<repo>] <cypher>`. Determine `<repo>` by checking whether the fi
    - `Function` (no receiver) vs `Method` (has a receiver) reflects real Go semantics, not an indexing inconsistency - a `(f:Method)` filter can silently miss a related free function in the same file.
    - When searching for "any function/method that does X", omit the label or match both rather than assuming one.
 7. For performance/hot-path questions, every `Function`/`Method` node carries queryable complexity properties:
-   - `cyclomatic`, `cognitive`, `loop_count`, `loop_depth` (max nested-loop depth).
+   - `complexity` (the cyclomatic value; `f.cyclomatic` returns null), `cognitive`, `loop_count`, `loop_depth` (max nested-loop depth).
    - `transitive_loop_depth`: worst-case nested-loop degree propagated along `CALLS` edges (interprocedural).
    - `recursive`, `linear_scan_in_loop` (find/contains/indexOf-style scans in a loop - the hidden O(n^2) that `loop_depth` misses).
    - `alloc_in_loop`, `recursion_in_loop`, `unguarded_recursion`, `param_count`, `max_access_depth`.

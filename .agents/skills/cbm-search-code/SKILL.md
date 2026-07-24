@@ -16,7 +16,9 @@ Parse args as `[<repo>] <pattern>`. Determine `<repo>` by checking whether the f
 
 This skill is the codebase-memory tool for that: it greps raw text, then deduplicates hits into their containing functions and ranks them (definitions first, popular functions next, tests last).
 
-1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop. Use the `Project` column from its output table as `project` below.
+1. Run `/cbm-index-repository <repo>` inline.
+   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+   - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `search_code` with `project`, `pattern` = `<pattern>` verbatim.
    - Default `mode: compact` (signatures + metadata, token-efficient); `mode: full` also pulls source; `mode: files` returns just the file list.
    - Narrow with `file_pattern` (glob, e.g. `*.go`), `path_filter` (regex on result paths, e.g. `^server/`), or `context` (lines of context, compact mode only).

@@ -12,7 +12,9 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
 - If it matches, that token is `<repo>` and the remaining tokens form `<query>`.
 - Otherwise, `<repo>` defaults to `mattermost` and the entire argument string is `<query>`.
 
-1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop. Use the `Project` column from its output table as `project` below.
+1. Run `/cbm-index-repository <repo>` inline.
+   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+   - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `search_graph` with `project` and `query` = `<query>` verbatim (BM25 full-text over symbol identifiers, camelCase-split).
    - Also pass `semantic_query` = `<query>` split into individual keyword strings (vector search; bridges vocabulary, e.g. "publish" matches "send").
    - Both modes search **symbol names**, not source text. This tool cannot find string literals or error messages; use `/cbm-search-code` for that.

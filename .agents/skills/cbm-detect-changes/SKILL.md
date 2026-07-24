@@ -13,13 +13,16 @@ Parse args as `[<repo>] [<compare-ref>]`. Determine `<repo>` by checking whether
 - Otherwise, `<repo>` defaults to `mattermost` and any remaining text is `<compare-ref>`.
 - No `<compare-ref>`: diffs the working tree's uncommitted changes against the repo's default branch.
 
-1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop. Use the `Project` column from its output table as `project` below.
+1. Run `/cbm-index-repository <repo>` inline.
+   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+   - Otherwise, use the `Project` column from its output table as `project` below.
 2. Resolve the repo's actual default branch: `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's#refs/remotes/origin/##'`.
    - `detect_changes`'s own `base_branch` default is the literal string `main`, not the repo's actual default.
    - Most repos under `upstream/` (including `mattermost`/`enterprise`) default to `master`.
    - Never omit `base_branch` and rely on the tool's default; always pass the resolved branch explicitly.
 3. Call `detect_changes` with `project`, `scope: files`, `base_branch` = `<compare-ref>` if given, else the resolved default branch.
-   - There is no `since` parameter on this tool. To diff against a version tag ("what changed between vX and vY"), pass that tag directly as `base_branch`.
+   - The `since` parameter exists in the schema but is inert in 0.8.1 (silently ignored); always use `base_branch`.
+   - To diff against a version tag ("what changed between vX and vY"), pass that tag directly as `base_branch`.
    - `git diff --name-only <base_branch>...HEAD` accepts any valid ref, not just a branch name - a tag works fine here.
    - For two version tags on a linear history, `base_branch` must be the OLDER tag and the repo's checkout (`HEAD`) must be the NEWER one.
    - The reverse silently returns 0 changes (three-dot diff resolves from the merge-base, which equals the older ref either way).

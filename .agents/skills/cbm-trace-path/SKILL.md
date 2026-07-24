@@ -17,14 +17,18 @@ Determine `direction` from phrasing, then extract the function name from whateve
 - "what does X call" / "callees of X" -> `outbound`.
 - Unspecified / "trace X" -> `both`.
 
-1. Run `/cbm-index-repository <repo>` inline. If it reports `codebase-memory MCP not present`, report the same and stop. Use the `Project` column from its output table as `project` below.
+1. Run `/cbm-index-repository <repo>` inline.
+   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+   - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `trace_path` with `function_name`, `project`, `direction`, `depth: 3`.
+   - A bare short name resolves to one node silently and may trace the wrong overload.
+   - If the name is ambiguous, run `/cbm-search-graph <repo> <name>` first and pass the exact `qualified_name` as `function_name`.
    - Default `mode` is `calls` (follows `CALLS` edges).
    - `mode: data_flow` adds arg expressions at each hop, optionally scoped with `parameter_name`.
    - `mode: cross_service` follows `HTTP_CALLS`/`ASYNC_CALLS`/`DATA_FLOWS` through Route nodes.
    - `risk_labels: true` classifies each hop CRITICAL/HIGH/MEDIUM/LOW by distance.
    - `include_tests: true` keeps test-file callers (excluded by default); `edge_types` restricts to specific edges.
-3. No results: run `/cbm-search-graph <repo> <function name>` inline for the closest candidates, present them, and ask which to trace.
+3. No results, or results that look wrong or incomplete: run `/cbm-search-graph <repo> <function name>` inline for the closest candidates, present them, and ask which to trace.
    - If that also finds nothing, check whether the function's file falls under an excluded directory before concluding it doesn't exist.
    - See the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
 4. Present the chain grouped by `hop`, using `name`/`qualified_name` per node.
