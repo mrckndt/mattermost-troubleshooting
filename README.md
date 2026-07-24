@@ -69,9 +69,7 @@ All are optional. When their tools are not present, `/investigate` skips that so
 
 codebase-memory-mcp is a local stdio binary with no Docker service - see its setup section below.
 
-#### GitHub MCP (custom) setup
-
-Preferred: no Docker service, no PAT to manage.
+#### GitHub MCP setup
 
 1. Go to `https://claude.ai/customize/connectors`, add/connect the GitHub connector, and authorize.
 2. In Claude Code, run `/mcp` and select the GitHub connector. It registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
