@@ -67,7 +67,7 @@ Set these up after the repo is cloned. The investigation pipeline consults these
 
 All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
 
-
+codebase-memory-mcp is a local stdio binary with no Docker service - see its setup section below.
 
 #### GitHub MCP (custom) setup
 
@@ -77,7 +77,6 @@ Preferred: no Docker service, no PAT to manage.
 2. In Claude Code, run `/mcp` and select the GitHub connector. It registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
 
 This is the pipeline's GitHub source; falls back to WebFetch/WebSearch if unavailable.
-
 
 #### Codebase memory MCP setup
 
