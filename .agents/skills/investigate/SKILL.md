@@ -177,14 +177,14 @@ Complete this phase before proceeding.
 ## Phase 5 - Source Code Search
 
 **Step 0: Ensure codebase-memory index.**
-- For each in-scope repo that exists under `upstream/` (note any absent or permanently excluded, e.g. `enterprise`), run `/cbm-index-repository <repo>` inline.
+- For each in-scope repo that exists under `upstream/` (note any absent, or excluded per `.agents/config/repos.json`'s `cbm_excluded` field), run `/cbm-index-repository <repo>` inline.
 - If it reports `codebase-memory MCP not present`: state `codebase-memory search skipped: MCP not present` once and run the grep-only form of every Step 2 angle for every repo.
-- If it reports a repo excluded (`enterprise`, always): grep-only for that repo alone in Step 2 and Phase 7; other in-scope repos are unaffected.
+- If it reports a repo excluded: grep-only for that repo alone in Step 2 and Phase 7; other in-scope repos are unaffected.
 - Do not call any other `/cbm-*` skill for the rest of this phase or Phase 7 against a repo that is absent, excluded, or MCP-unavailable.
 - Otherwise codebase-memory is available for that repo; use its `Project` column value as `project` for every codebase-memory query below and in Phase 7.
 - **Mandatory log line, one per in-scope repo, every session:** append to Phase 9's `Steps and outcomes`:
   `codebase-memory: <repo> <reindexed|unchanged|skipped: <reason>> @ <ref>, <nodes> nodes / <edges> edges`.
-  For `enterprise`, always: `codebase-memory: enterprise skipped: excluded (private/license-gated) @ <ref>` (no nodes/edges).
+  For an excluded repo: `codebase-memory: <repo> skipped: excluded (see .agents/config/repos.json) @ <ref>` (no nodes/edges).
 - No silent skips. Never merge repos into one line. "Used direct read/grep instead" is not a substitute for running Step 0.
 
 **Step 1: AppError → i18n key lookup.**
@@ -200,7 +200,7 @@ Complete this phase before proceeding.
 All five angles below are required, run once per in-scope repo; note `no matches` explicitly if a search returns nothing.
 
 - Where Step 0 found codebase-memory available for that repo: lead each angle with the named skill below, then confirm/cover gaps with the search defined per angle below (or a direct file read).
-- Where absent or excluded (e.g. `enterprise`): that search is the whole angle.
+- Where absent or excluded (per `.agents/config/repos.json`): that search is the whole angle.
 
 1. Exact error strings from the Phase 1 error-families list: `/cbm-search-code <repo> "<string>"` for ranked leads.
    - **Then `rg --no-ignore --hidden -n` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; bypassing default ignore-file filtering covers excluded dirs, i18n JSON, non-code files).

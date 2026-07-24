@@ -15,16 +15,19 @@ Read `"$PROJECT_ROOT/upstream/.cbm-index-cache.json"` as `cache` (missing or unp
 **Project name derivation** (used throughout): absolute repo path with the leading `/` stripped and each
 remaining `/` replaced by `-` (e.g. `/Users/foo/upstream/mattermost` -> `Users-foo-upstream-mattermost`).
 
-**`enterprise` is permanently excluded** (private, license-gated repo; data sensitivity). If `<repo>` is
-`enterprise`: derive its project name; if `index_status` reports it indexed, call `delete_project` to purge it.
-Drop `cache["enterprise"]` if present and write `cache`. Report
-`enterprise excluded from codebase-memory (private/license-gated); use rg/grep against upstream/enterprise/ directly` and stop.
+Read `"$PROJECT_ROOT/.agents/config/repos.json"`'s `repos` array; `excluded` = the set of `name` values
+with `cbm_excluded: true` (currently `enterprise`; see that entry's `cbm_excluded_reason`, and the
+policy-exclusion note below).
+
+If `<repo>` is in `excluded`: derive its project name; if `index_status` reports it indexed, call
+`delete_project` to purge it. Drop `cache[<repo>]` if present and write `cache`. Report
+`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg/grep against upstream/<repo>/ directly` and stop.
 
 Determine repos to process:
 - Arg given: verify `upstream/<repo>/` exists (if not, list available repos under `upstream/` and stop). Process that repo only.
-- No arg: call `list_projects` once as `snapshot`; process every entry whose `root_path` does not end in `/enterprise`.
-  For any `enterprise` entry: call `delete_project` with its `name`, drop its cache entry, and note
-  `enterprise: excluded (private/license-gated), index purged` in the final report.
+- No arg: call `list_projects` once as `snapshot`; process every entry whose `root_path`'s final segment is not in `excluded`.
+  For any entry whose final segment is in `excluded`: call `delete_project` with its `name`, drop its cache
+  entry, and note `<repo>: excluded (<cbm_excluded_reason>), index purged` in the final report.
 
 For each repo to process:
 
@@ -47,8 +50,9 @@ Report a Markdown table: `Repo | Project | Ref | Nodes | Edges` (`Ref` = `ref`, 
 - `codebase-memory-mcp` excludes these directories from indexing entirely (no results, not "not found"); the other `cbm-*` skills point back here when a search unexpectedly comes up empty.
 
 Notes:
-- `enterprise` exclusion is a policy decision (data sensitivity), not a tool limitation like the excluded-dirs
-  list below - it never gets indexed, purged if a stale index exists. Use `rg`/`git` against `upstream/enterprise/` directly.
+- `cbm_excluded` repos in `.agents/config/repos.json` are policy exclusions, not a tool limitation like the
+  excluded-dirs list below - they never get indexed, purged if a stale index exists. Use `rg`/`git` against
+  `upstream/<repo>/` directly.
 - `index_status(project)` replaces `list_projects` on the single-repo cache-hit path to avoid fetching every
   other indexed project's metadata just to check one repo's node count.
 - `mode: full` (not `moderate`): `moderate` hardcodes out dirs named `public`, `i18n`, `migrations`, and similar
