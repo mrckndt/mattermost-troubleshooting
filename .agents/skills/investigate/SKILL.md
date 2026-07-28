@@ -12,7 +12,7 @@ Args: $ARGUMENTS
 
 - No hypotheses until Phase 1's inventory output (severity table, distinct-msg sweep, error-families list) is in the conversation.
 - Phases 4-6 must all complete before forming hypotheses or drawing conclusions. No early stopping.
-- After any Phase 5 source hit, re-check the error-families list for unexplained entries before narrowing.
+- After any Phase 5 source hit, re-check the error-families list and the Phase 4 hits block for unexplained entries before narrowing.
 
 ## Output style (all phases)
 
@@ -172,6 +172,18 @@ grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/source/product-overview/matte
 
 Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
 
+### Phase 4 hits block (required)
+
+Emit a single fenced block, one line per source per repo:
+
+- `fragments/<repo>.md` - `<relevant note quoted verbatim>` (or `no relevant entries`)
+- `important-upgrade-notes.rst` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
+- `mattermost-v11-changelog.md` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
+
+- Record every hit verbatim, even if it doesn't fit the current theory - no relevance verdicts in this block.
+- Full quote if in the customer's version range or names an in-scope component; else `file:line` + first ~15 words.
+- Gate: Phase 5 cannot start, no hypothesis stated, until this block is present. Carries into Phase 9's `Evidence collected` verbatim.
+
 Complete this phase before proceeding.
 
 ## Phase 5 - Source Code Search
@@ -249,6 +261,8 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 
 **Leading hypothesis.** Run a query to disprove it.
 
+- First, scan the Phase 4 hits block and Phase 6 Hub/GitHub/Jira results already in context for a match.
+  - No new tool calls. Note it (known issue / workaround / fix version); let it steer the search below.
 - For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
 - If Step 0 (Phase 5) found codebase-memory available for that repo, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
 - For "changed across versions" hypotheses: `base_branch` must be the OLDER tag, checkout (`HEAD`) the NEWER one, or it silently returns 0.
@@ -256,15 +270,16 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
   - Checking what regressed since an older release: stay on the customer's checkout, run `/cbm-detect-changes <repo> <older-version-tag>` directly.
   - Start with `scope: files`; a multi-version span can be hundreds of files and the fuller symbol listing has no cap (see the skill's notes).
 - If codebase-memory is unavailable, use `rg`/`git` for the artefact.
+- **Commit/PR claimed as fix:** verify before accepting.
+  - Search terms come from wording already collected (Phase 1/4/6), not a guessed phrase.
+  - Match the commit's description/diff against that exact wording, not just its title or a shared keyword.
+  - Confirm the diff touches the specific code path in the hypothesis.
+  - Disambiguate explicitly if 2+ commits match the keyword.
 
 **Alternative hypotheses (≥2).** Name plausible competitors drawn from the Phase 1 inventory output - candidates not yet ruled out.
 
 - Examples: permissions, license tier, a separate config flag, a different code path.
 - No strawmen.
-
-After the leading hypothesis survives re-validation, scan the Phase 6 Hub and GitHub results already in
-context for the confirmed bug, error string, or fix commit. If a match exists, note it: known issue,
-existing workaround, or fix version. No new tool calls required; results are already in context.
 
 Each hypothesis produces an artefact: shell command (`rg`, `fd`, `grep`, `find`, `git`) or a direct file read/search, plus a quoted output line (or `no matches`):
 
