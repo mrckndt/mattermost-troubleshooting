@@ -325,25 +325,30 @@ Complete this phase before proceeding.
 
 Maintain two files per ticket, **written once, at the end of the pipeline** (not incrementally per phase). Ticket mode only - description mode has no ticket directory, skip.
 
-- `tickets/<ID>/analysis.md` - live current-state view; key sections always reflect the latest understanding.
-- `tickets/<ID>/analysis-full.md` - append-driven current-state view; same content as analysis.md, but sections are kept current by appending, not editing in place.
+- `tickets/<ID>/analysis.md` - current understanding only. Each section holds the latest state; superseded content is replaced or removed, never left alongside the current answer.
+- `tickets/<ID>/analysis-full.md` - session history. Nothing is ever edited or deleted; each session adds only what's new.
 
-**Runs once**, right after Phase 8's conclusion, same turn: write both files with everything learned across Phases 0-8.
+**Write for AI ingestion, not human prose.** Almost every reader of these files is another LLM session (this
+pipeline resuming, `resume-investigation`, `search-tickets`, or a colleague pasting the file into their own
+session) - optimize for dense, structured parsing, never for cutting a fact, caveat, version boundary, or
+alternative a reader would need:
+- Dense bullets, not paragraphs; a `file:line` citation beats a prose explanation of what the code does.
+- A sequential/causal chain (call order, read/write routing) compresses to `A -> B -> C`, one hop per arrow,
+  instead of a full sentence per hop.
+- Don't restate a fact the file already establishes elsewhere (e.g. don't re-explain `Deployment` inside
+  `Correlation`) - reference it briefly instead.
+- No narration of the investigation process (e.g. "Phases 0-9 completed") or of drafting/copying activity (e.g.
+  "Drafted + corrected customer reply...", "copied to clipboard") - facts only.
 
-- Never contains drafting/copying narration (e.g. "Drafted + corrected customer reply...", "copied to clipboard") - investigation facts only.
+**`analysis.md`:** replace `Current hypothesis`, `Correlation`, `Open questions`, and `Next steps` in place with
+the current answer (move a superseded hypothesis to `Ruled out` with a one-line reason). Append to
+`Evidence collected`, `Artifacts reviewed`, `Steps and outcomes`, and `Deployment` as facts are confirmed. Never
+delete a `Ruled out` entry. **Investigated with:** set once; update only if it changes mid-ticket.
 
-**`analysis.md` maintenance (live view):**
-
-- **Replace in place:** Current hypothesis (move superseded entries to Ruled out with a brief reason), Correlation, Open questions (remove answered; add new), Next steps (replace; don't accumulate stale items).
-- **Never delete:** Ruled out entries; only add.
-- **Append:** Artifacts reviewed, Evidence collected, Steps and outcomes, Deployment facts as they are confirmed. **Investigated with:** set once; update only if it changes mid-ticket.
-
-**`analysis-full.md` maintenance (chronological log):**
-
-A "session" is one `/investigate` run, not a turn.
-
-Session 1 (creation): both files start identical - same template, same content.
-Subsequent sessions: add `---` and `## Session YYYY-MM-DD`, then re-append each section that changed with its full current content (same section names as the template). The bottom-most instance of any section is always the authoritative current state. Never edit earlier entries.
+**`analysis-full.md`:** a "session" is one `/investigate` run, not a turn. Session 1 is identical to `analysis.md`.
+Every later session: add `---` and `## Session YYYY-MM-DD`, then write ONLY what changed this session - new list
+items, or a changed conclusion - under the same heading names as the template. Skip any section that didn't
+change; never restate content already recorded in an earlier session.
 
 Complete this phase before proceeding.
 
