@@ -16,7 +16,7 @@ Parse args as `[<repo>] <qualified name or short name>`. Determine `<repo>` by c
    - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. This is a read tool, not a search tool - it needs an exact or close name.
-   - If unsure of the exact qualified name, run `/cbm-search-graph <repo> <name>` first to find it.
+   - If unsure of the exact qualified name, call `search_graph` with `project` and `query` = `<name>` to find it first.
    - Call `get_code_snippet` with `qualified_name` = the name (full qualified or short), `project`.
    - Pass `include_neighbors: true` to also pull immediately-connected symbols (e.g. a struct's methods) in the same call.
 3. Present the file:line header, then the source.

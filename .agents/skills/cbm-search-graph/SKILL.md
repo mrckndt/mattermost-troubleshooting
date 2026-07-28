@@ -16,12 +16,16 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
    - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `search_graph` with `project` and `query` = `<query>` verbatim (BM25 full-text over symbol identifiers, camelCase-split).
-   - Also pass `semantic_query` = `<query>` split into individual keyword strings (vector search; bridges vocabulary, e.g. "publish" matches "send").
+   - Do not pass `semantic_query` alongside `query`: the tool returns as soon as BM25 matches, so the semantic pass never runs and `semantic_results` is absent from the response.
+   - For semantic search (vector; bridges vocabulary, e.g. "publish" matches "send"), **omit `query`** and pass only
+     `semantic_query` = the query split into keyword strings. That is a separate second call.
    - Both modes search **symbol names**, not source text. This tool cannot find string literals or error messages; use `/cbm-search-code` for that.
    - The `query` mode filters out `Variable`/`File`/`Folder`/`Module`-labeled nodes as noise - a named constant or config-struct field can legitimately return 0 hits even though it exists.
    - Use `/cbm-query-graph` (raw Cypher has no such filter) or `rg` to reach those.
+   - A Go struct field (e.g. `MaxOpenConns`) isn't a node at all - `/cbm-query-graph` won't find it either; use `/cbm-search-code` or `rg`.
 3. Present the top matches from `results`: `name`, `qualified_name`, `file_path:start_line`.
-   - If the response also has a `semantic_results` key, present those too. The key can be absent entirely (not just empty) even when `semantic_query` was passed - say only BM25 `results` came back.
+   - On a semantic-only call, read `semantic_results` (each with a `score`) and ignore `results`: with no `query` it
+     degrades to an unfiltered match on the whole graph and is pure noise.
    - Note `has_more`/`total` if truncated (default `limit` is 200; pass `offset` to page).
 4. For narrower or structural questions, use filters instead of / alongside `query`:
    - `label` (e.g. `Function`, `Route`), `name_pattern` (regex, exact matching).

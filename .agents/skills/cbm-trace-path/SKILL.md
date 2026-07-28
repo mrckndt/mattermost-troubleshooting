@@ -22,13 +22,14 @@ Determine `direction` from phrasing, then extract the function name from whateve
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `trace_path` with `function_name`, `project`, `direction`, `depth: 3`.
    - A bare short name resolves to one node silently and may trace the wrong overload.
-   - If the name is ambiguous, run `/cbm-search-graph <repo> <name>` first and pass the exact `qualified_name` as `function_name`.
+   - If the name is ambiguous, call `search_graph` with `project` and `query` = `<name>`, then pass the exact `qualified_name` as `function_name`.
    - Default `mode` is `calls` (follows `CALLS` edges).
    - `mode: data_flow` adds arg expressions at each hop, optionally scoped with `parameter_name`.
    - `mode: cross_service` follows `HTTP_CALLS`/`ASYNC_CALLS`/`DATA_FLOWS` through Route nodes.
    - `risk_labels: true` classifies each hop CRITICAL/HIGH/MEDIUM/LOW by distance.
    - `include_tests: true` keeps test-file callers (excluded by default); `edge_types` restricts to specific edges.
-3. No results, or results that look wrong or incomplete: run `/cbm-search-graph <repo> <function name>` inline for the closest candidates, present them, and ask which to trace.
+   - Default exclusion only catches `_test.go` files - Go test-helper packages without that suffix (e.g. `storetest`) still show up as callers.
+3. No results, or results that look wrong or incomplete: call `search_graph` with `project` and `query` = `<function name>` for the closest candidates, present them, and ask which to trace.
    - If that also finds nothing, check whether the function's file falls under an excluded directory before concluding it doesn't exist.
    - See the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
 4. Present the chain grouped by `hop`, using `name`/`qualified_name` per node.

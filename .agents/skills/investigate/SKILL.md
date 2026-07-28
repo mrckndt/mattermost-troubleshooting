@@ -183,7 +183,7 @@ Complete this phase before proceeding.
 - Do not call any other `/cbm-*` skill for the rest of this phase or Phase 7 against a repo that is absent, excluded, or MCP-unavailable.
 - Otherwise codebase-memory is available for that repo; use its `Project` column value as `project` for every codebase-memory query below and in Phase 7.
 - **Mandatory log line, one per in-scope repo, every session:** append to Phase 9's `Steps and outcomes`:
-  `codebase-memory: <repo> <reindexed|unchanged|skipped: <reason>> @ <ref>, <nodes> nodes / <edges> edges`.
+  `codebase-memory: <repo> reindexed @ <ref>, <nodes> nodes / <edges> edges`.
   For an excluded repo: `codebase-memory: <repo> skipped: excluded (see .agents/config/repos.json) @ <ref>` (no nodes/edges).
 - No silent skips. Never merge repos into one line. "Used direct read/grep instead" is not a substitute for running Step 0.
 

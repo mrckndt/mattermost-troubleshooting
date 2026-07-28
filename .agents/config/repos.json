@@ -22,6 +22,7 @@
     { "name": "mattermost-plugin-github", "url": "https://github.com/mattermost/mattermost-plugin-github" },
     { "name": "mattermost-plugin-gitlab", "url": "https://github.com/mattermost/mattermost-plugin-gitlab" },
     { "name": "mattermost-plugin-google-calendar", "url": "https://github.com/mattermost/mattermost-plugin-google-calendar" },
+    { "name": "mattermost-plugin-google-drive", "url": "https://github.com/mattermost-community/mattermost-plugin-google-drive" },
     { "name": "mattermost-plugin-jira", "url": "https://github.com/mattermost/mattermost-plugin-jira" },
     { "name": "mattermost-plugin-mscalendar", "url": "https://github.com/mattermost/mattermost-plugin-mscalendar" },
     { "name": "mattermost-plugin-msteams", "url": "https://github.com/mattermost/mattermost-plugin-msteams" },

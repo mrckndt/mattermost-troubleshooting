@@ -16,10 +16,11 @@ Parse args as `[<repo>] [<compare-ref>]`. Determine `<repo>` by checking whether
 1. Run `/cbm-index-repository <repo>` inline.
    - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
    - Otherwise, use the `Project` column from its output table as `project` below.
-2. Resolve the repo's actual default branch: `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's#refs/remotes/origin/##'`.
+2. Only when no `<compare-ref>` was given, resolve the repo's default branch:
+   `git -C "$PROJECT_ROOT/upstream/<repo>" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's#refs/remotes/origin/##'`.
    - `detect_changes`'s own `base_branch` default is the literal string `main`, not the repo's actual default.
    - Most repos under `upstream/` (including `mattermost`/`enterprise`) default to `master`.
-   - Never omit `base_branch` and rely on the tool's default; always pass the resolved branch explicitly.
+   - Never omit `base_branch` and rely on the tool's default; always pass a ref explicitly.
 3. Call `detect_changes` with `project`, `scope: files`, `base_branch` = `<compare-ref>` if given, else the resolved default branch.
    - The `since` parameter exists in the schema but is inert in 0.8.1 (silently ignored); always use `base_branch`.
    - To diff against a version tag ("what changed between vX and vY"), pass that tag directly as `base_branch`.
@@ -34,7 +35,7 @@ Parse args as `[<repo>] [<compare-ref>]`. Determine `<repo>` by checking whether
 5. Present `changed_files`, then (if fetched) `impacted_symbols` (flat `name`/`label`/`file` per symbol defined anywhere in a changed file).
    - This is **not** a transitive blast radius: it does not follow callers/callees.
    - It is also not scoped to the actual changed lines - touching one line at the end of a file lists every symbol in that whole file.
-   - Use `/cbm-trace-path <repo> <symbol>` on any listed symbol to get its actual callers/callees.
+   - Offer `/cbm-trace-path <repo> <symbol>` for a symbol's actual callers/callees; if tracing one now, call `trace_path` with `project` instead.
 6. If `changed_count` is 0 and that's surprising, cross-check before trusting it:
    - Run `git -C "$PROJECT_ROOT/upstream/<repo>" diff --stat <compare-ref-or-resolved-default-branch> 2>&1`.
    - No `--` before a ref: `git diff --stat <ref> -- HEAD` misparses `HEAD` as a pathspec and returns nothing.

@@ -1,73 +1,71 @@
 ---
 name: cbm-index-repository
-description: Reindex an upstream/<repo> clone (or all indexed repos) into the codebase-memory knowledge graph. Wraps index_repository, skipped when a per-repo ref cache shows nothing changed.
+description: Index one or more upstream/<repo> clones (or every non-excluded repo) into the codebase-memory knowledge graph. Wraps index_repository.
 user-invocable: true
 ---
 
 Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
 
-Args: optionally a single `<repo>` name matching a directory under `upstream/`.
+Args: zero, one, or several `<repo>` names matching directories under `upstream/`.
 
 If `mcp__codebase_memory_local__*` is absent: report `codebase-memory MCP not present` and stop.
-
-Read `"$PROJECT_ROOT/upstream/.cbm-index-cache.json"` as `cache` (missing or unparseable counts as `{}`).
 
 **Project name derivation** (used throughout): absolute repo path with the leading `/` stripped and each
 remaining `/` replaced by `-` (e.g. `/Users/foo/upstream/mattermost` -> `Users-foo-upstream-mattermost`).
 
 Read `"$PROJECT_ROOT/.agents/config/repos.json"`'s `repos` array; `excluded` = the set of `name` values
-with `cbm_excluded: true` (currently `enterprise`; see that entry's `cbm_excluded_reason`, and the
-policy-exclusion note below).
+with `cbm_excluded: true` (currently `enterprise`; see that entry's `cbm_excluded_reason`).
 
-If `<repo>` is in `excluded`: derive its project name; if `index_status` reports it indexed, call
-`delete_project` to purge it. Drop `cache[<repo>]` if present and write `cache`. Report
-`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg/grep against upstream/<repo>/ directly` and stop.
+Build the target list:
+- Args given: exactly those names. Verify each `upstream/<repo>/` exists; if one does not, list what is
+  under `upstream/` and drop that name, continuing with the rest.
+- No args: every `name` in `repos.json`'s `repos` array. Note any without a clone on disk as
+  `<repo>: not cloned, skipped (run /bootstrap)` and drop it.
 
-Determine repos to process:
-- Arg given: verify `upstream/<repo>/` exists (if not, list available repos under `upstream/` and stop). Process that repo only.
-- No arg: call `list_projects` once as `snapshot`; process every entry whose `root_path`'s final segment is not in `excluded`.
-  For any entry whose final segment is in `excluded`: call `delete_project` with its `name`, drop its cache
-  entry, and note `<repo>: excluded (<cbm_excluded_reason>), index purged` in the final report.
+**Excluded repos are never indexed - no argument, flag, or phrasing overrides this.** For each name in the
+target list that is also in `excluded`: derive its project name, call `delete_project`
+(`status: "not_found"` means nothing to purge, not an error), report
+`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg/grep against upstream/<repo>/ directly`,
+and drop it from the target list. Do this before any `index_repository` call.
 
-For each repo to process:
-
-1. `ref` = `git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD`.
+For each remaining target repo:
+1. Call `index_repository` with `repo_path` = absolute `upstream/<repo>`, `mode: full`, `persistence: false`.
+   On error: note it, continue to the next repo.
+2. `ref` = `git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD`.
    Same resolution `/git-switch`/`/version-lookup` treat as the repo's identity.
-   `clean` = `git -C "$PROJECT_ROOT/upstream/<repo>" status --porcelain` prints nothing.
-2. `project` = derived project name (see above). `proj` = the matching `snapshot` entry, if one was fetched (no-arg mode).
-3. Skip the real index only if `cache[<repo>].ref == ref`, `clean` is true, and `nodes > 0` where `nodes`/`status`
-   come from `proj` if it exists, else from `index_status(project)`. Otherwise:
-   - Call `index_repository` with `repo_path` = absolute `upstream/<repo>`, `mode: full`, `persistence: false`.
-   - On error: continue to the next repo; leave `cache[<repo>]` untouched (retried for real next run).
-   - On success: call `index_status(project)` for `nodes`/`edges` (fall back to `list_projects` matched by
-     `root_path` if `index_status` errors); set `cache[<repo>] = {"ref": ref, "indexed_at": <UTC now>}`.
 
-After the loop, write `cache` back to `"$PROJECT_ROOT/upstream/.cbm-index-cache.json"` once.
+After the loop, write `"$PROJECT_ROOT/upstream/.cbm-index-cache.json"` once: per indexed repo,
+`{"ref": ref, "indexed_at": <UTC now>, "nodes": <nodes>, "edges": <edges>}` from that repo's
+`index_repository` response.
 
-Report a Markdown table: `Repo | Project | Ref | Nodes | Edges` (`Ref` = `ref`, rest from `proj`/`index_status`).
-- One line per skipped repo: `Unchanged (<repo>): ref matches last run (<ref>), reindex skipped.`
-- One line per repo actually reindexed this run, from `index_repository`'s `excluded` field: `Excluded (<repo>): <count> dirs (<comma-joined dirs list>)`.
-- `codebase-memory-mcp` excludes these directories from indexing entirely (no results, not "not found"); the other `cbm-*` skills point back here when a search unexpectedly comes up empty.
+Report a Markdown table: `Repo | Project | Ref | Nodes | Edges`, all from the response plus `ref` above.
+- One line per repo, from that response's `excluded` field: `Excluded (<repo>): <count> dirs (<comma-joined dirs list>)`.
+  `codebase-memory-mcp` excludes these directories from indexing entirely (no results, not "not found"); the
+  other `cbm-*` skills point back here when a search unexpectedly comes up empty.
+- One line per policy-excluded repo and per not-cloned repo, as worded above.
 
 Notes:
-- `cbm_excluded` repos in `.agents/config/repos.json` are policy exclusions, not a tool limitation like the
-  excluded-dirs list below - they never get indexed, purged if a stale index exists. Use `rg`/`git` against
-  `upstream/<repo>/` directly.
-- `index_status(project)` replaces `list_projects` on the single-repo cache-hit path to avoid fetching every
-  other indexed project's metadata just to check one repo's node count.
-- `mode: full` (not `moderate`): `moderate` hardcodes out dirs named `public`, `i18n`, `migrations`, and similar
-  regardless of content. That blinded every `cbm-*` skill to `server/public` (the `model`/`client4` module) in
-  `mattermost`/`enterprise`.
-- This is the manual equivalent of Phase 5 Step 0 in `/investigate`; use it for ad-hoc codebase-memory queries outside `/investigate`, e.g. after a manual `/git-switch`.
-- `index_repository` always walks the full tree before it can even tell nothing changed, and has no notion of git ref at all.
-- Its own file-level cache is mtime+size, not a real content hash - the `sha256` field it stores is an empty string.
-- `upstream/.cbm-index-cache.json` is our own layer on top: gitignored, and sits outside every repo clone's working tree (untouched by `/git-switch`, invisible to that clone's `git status`).
-- The cache key is the ref label, not a commit sha: a detached tag (`v10.11.19`) is immutable, so this is exact.
-- On a moving branch (`master`, `release-11.7`) the label can't detect new commits landing on that branch without a `/git-switch` in between.
-- Accepted: customer investigations mostly pin to a specific tag, and cross-version differences dwarf a few trailing branch commits.
-- The false-skip window is small and cheap to fix (`/git-switch` or `delete_project`).
-- A repo with no cache entry (first run, or indexed manually outside this skill) always gets a real index.
-- Every other `cbm-*` skill calls this skill first as its presence check; repeated calls for an unchanged repo are cheap now because of this cache, not `index_repository`'s own incrementalism.
-- `persistence: false` always - `true` would write into the working tree and block a later `/git-switch`.
-- If a project's index looks corrupt or stale in a way reindexing doesn't fix: call `delete_project` with `project`, then reindex from scratch (self-heals the cache too).
-- That's a surgical alternative to wiping all of `~/.cache/codebase-memory-mcp/`.
+- `mode: full`, always: `moderate`/`fast` hardcode out dirs like `public`, `i18n`, `migrations`, blinding
+  `cbm-*` to `server/public` (the `model`/`client4` module) in `mattermost`. Switching modes on an
+  already-indexed repo also fails codebase-memory-mcp's incremental-eligibility check internally, forcing a
+  full reindex either way - so there's no cheaper mode to reach for later.
+- `persistence: false`, always: `true` writes `.codebase-memory/graph.db.zst` into the working tree and sets
+  `merge.ours.driver` in that clone's git config, blocking a later `/git-switch`. Once such an artifact
+  exists it's rewritten on every run regardless of the flag; delete `upstream/<repo>/.codebase-memory/` if
+  one appears.
+- Reindex cost tracks content, not repo size: an unchanged repo is a near-instant no-op internally. One
+  changed file reloads and rebuilds the whole graph (similarity, semantic edges, the search index) from
+  scratch. codebase-memory-mcp's own file cache keys on mtime+size, not content hash, so any `/git-switch`
+  pays that full cost even switching back to a ref indexed before.
+- Indexing is serialized inside codebase-memory-mcp - a no-arg run over every repo runs strictly one at a
+  time, not in parallel.
+- `cbm_excluded` in `repos.json` is a policy decision (private/license-gated repos), distinct from the
+  excluded-dirs list above, which is a tool limitation - use `rg`/`git` against `upstream/<repo>/` for those.
+- `upstream/.cbm-index-cache.json` is a record of what was indexed and when, not a skip gate: it's
+  gitignored, sits outside every clone's working tree, and is untouched by `/git-switch` or `git status`.
+- This is the manual equivalent of Phase 5 Step 0 in `/investigate`; use it for ad-hoc codebase-memory
+  queries outside `/investigate`, e.g. after a manual `/git-switch`. Every other `cbm-*` skill calls this
+  skill first as its presence check.
+- If a project's index looks corrupt or stale in a way reindexing doesn't fix: call `delete_project` with
+  the project name, then reindex from scratch. Surgical alternative to wiping all of
+  `~/.cache/codebase-memory-mcp/`.
