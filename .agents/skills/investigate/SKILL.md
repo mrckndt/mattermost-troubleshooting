@@ -20,8 +20,15 @@ The engineer reads this to fix the issue fast. Every printed message optimizes f
 
 - **Bullets over prose:** one line per fact; no block over 2 lines.
 - **Emit only what the phase requires:** its gate artifact or search results. No narration of what you are about to do, no recap of completed phases.
-- **Keep gate artifacts compact:** Phase 1 inventory, Phase 5/6 search notes, and Phase 7 re-validation keep their required shape but stay one line per file/hit; never restate unchanged context.
-- The full record lives in `analysis.md` (Phase 9) and the closing digest (Phase 10); the run itself stays terse.
+- **Keep gate artifacts compact:** Phase 1 inventory, Phase 4 hits block, Phase 5/6 search notes, and Phase 7 re-validation keep their required shape but stay one line per file/hit; never restate unchanged context.
+- **Progress lines:** one line per item, no lead-in, no trailing summary, cap lists at 3 + `(+N more)`. Each verb below is defined once here; phases reference it, never restate it:
+  - `version` (Phase 3): `version: <repo> - detected <X>, ref <Y> - aligned | switched to <ver> | pulled`
+  - `codebase-memory` (Phase 5 Step 0): template and Phase 9 duplication rule defined there.
+  - `search:<angle>` (Phase 5 Step 2): `search:<angle> <repo> - <n> hits (top: <file>:<line>) | no matches`, grouped by repo.
+  - `hub` / `github <repo>` / `jira` (Phase 6): `<verb>: "<query>" - <n>: <up to 3 items>; ... (+N more)` (or `no matches`)
+  - `git-switch`/`git-pull` and the Phase 4 hits block already print their own one-line/gate shape - no separate progress line.
+- **Flagged findings:** bullets, not paragraphs, even outside a fixed artifact. No lead-in sentence - open with the fact. Cap 2-4 bullets; longer belongs in Phase 9.
+- The full record lives in `analysis.md`/`analysis-full.md` (Phase 9, own density rule) and the closing digest (Phase 10); the run itself stays terse too.
 
 ## Phase 0 - Setup and argument resolution
 
@@ -147,6 +154,8 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 3. Run `/git-pull` if on a branch; skip if on a tag (detached HEAD - tags are immutable).
 4. After the investigation completes, state which version(s) the analysis was run against (mirroring the unknown-version footer).
 
+Progress line: `version` (Output style), one per repo.
+
 **Unknown version:** run `/git-switch <repo> "latest esr"` for `mattermost` and `enterprise`; do not ask the engineer.
 
 - After the investigation completes, state: "Version unknown; analysis run against `<esr-tag>` (current ESR). Re-run `/git-switch mattermost <version>` if customer version is known."
@@ -198,6 +207,7 @@ Complete this phase before proceeding.
   `codebase-memory: <repo> reindexed @ <ref>, <nodes> nodes / <edges> edges`.
   For an excluded repo: `codebase-memory: <repo> skipped: excluded (see .agents/config/repos.json) @ <ref>` (no nodes/edges).
 - No silent skips. Never merge repos into one line. "Used direct read/grep instead" is not a substitute for running Step 0.
+- This line doubles as the progress line: print it inline here; Phase 9 copies it verbatim rather than restating it.
 
 **Step 1: AppError → i18n key lookup.**
 - Applies only to Mattermost server logs; skip if none present.
@@ -209,7 +219,9 @@ Complete this phase before proceeding.
 3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `rg -n` the repo source for the call site.
 
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
-All five angles below are required, run once per in-scope repo; note `no matches` explicitly if a search returns nothing.
+All five angles below are required, run once per in-scope repo.
+
+Progress line: `search:<angle>` (Output style).
 
 - Where Step 0 found codebase-memory available for that repo: lead each angle with the named skill below, then confirm/cover gaps with the search defined per angle below (or a direct file read).
 - Where absent or excluded (per `.agents/config/repos.json`): that search is the whole angle.
@@ -234,12 +246,13 @@ Search all five unconditionally - all are required:
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Search with `rg -ni "<keywords>" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
    - Use focused 1-2 term queries (stricter AND-matches with more terms often return zero results). Leave `keyword_limit`/`semantic_limit` at their defaults; raising them risks an oversized result truncated to a file.
-   - Emit each query and matching post summaries. If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
+   - Progress line: `hub` (Output style). If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
    - If unavailable, state `Mattermost Hub search skipped: <reason>`.
 4. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
-   - **Preferred:** `mcp__claude_ai_GitHub_MCP__search_issues` and `mcp__claude_ai_GitHub_MCP__search_pull_requests` with symptom keywords and Phase 1 error strings. Emit each query and matching issue/PR titles + numbers.
+   - **Preferred:** `mcp__claude_ai_GitHub_MCP__search_issues` and `mcp__claude_ai_GitHub_MCP__search_pull_requests` with symptom keywords and Phase 1 error strings.
    - Pass `perPage: 5` and `minimal_output: true`; default page size and full output overflow the tool limit.
-   - **Fallback (no GitHub MCP available):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
+   - Progress line: `github <repo>` (Output style).
+   - **Fallback (no GitHub MCP available):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`, same progress line from the search URL's top results.
    - If no GitHub MCP is available, state `GitHub MCP skipped: <reason>` and use the WebFetch fallback.
 5. Internal Jira issues per in-scope repo (project `MM` only) - one search per repo, all repos required:
    - **Preferred:** `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`.
@@ -248,6 +261,7 @@ Search all five unconditionally - all are required:
    - `text ~` matches stemmed words anywhere in the description, not a phrase or feature.
    - Multi-word queries return noisy hits on shared common words.
    - Pass a small `maxResults` (e.g. 5).
+   - Progress line: `jira` (Output style).
    - Discard hits not actually about the symptom, even if the query matched.
    - **No fallback:** not publicly reachable. State `Jira search skipped: <reason>` if unavailable; do not attempt WebFetch.
 
@@ -287,6 +301,8 @@ Each hypothesis produces an artefact: shell command (`rg`, `fd`, `grep`, `find`,
 Re-validation: <hypothesis>; disproved by <command>:
   <quoted output or "no matches">.
 ```
+
+One line of quoted output max; truncate long command output with `...`.
 
 For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
 
