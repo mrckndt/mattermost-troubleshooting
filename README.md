@@ -188,9 +188,9 @@ Standalone access to the codebase-memory knowledge graph, usable independently o
 
 Each skill name matches the codebase-memory MCP tool it wraps.
 
-- **`/cbm-index-repository [<repo>]`** - reindex a repo into the graph.
-  - No argument: reindexes every already-indexed project.
-  - `<repo>`: reindexes one repo.
+- **`/cbm-index-repository [<repo>...]`** - index one or more repos into the graph.
+  - No argument: indexes every non-excluded repo in `.agents/config/repos.json`.
+  - `<repo>...`: indexes one or more named repos.
 
 - **`/cbm-search-graph [<repo>] <query>`** - find a symbol or definition by keyword or natural language.
 - **`/cbm-search-code [<repo>] <pattern>`** - find a string literal, error message, or config value (graph-augmented grep).
@@ -203,6 +203,7 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 
 - **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md`/`analysis-full.md` if present, then ask before re-running `/investigate`; runs `/investigate` unprompted only if no prior analysis exists.
 - **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
+- **`/resolve-ticket-id <reference>`** - normalize a ticket reference (bare number, `zd-`/`ZD-` prefix, Zendesk URL) to a numeric ID; verifies `tickets/<id>/` exists. Returns the ID or `no-match`.
 
 ## Layout
 
