@@ -63,6 +63,7 @@ Set these up after the repo is cloned. The investigation pipeline consults these
 
 - **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
 - **GitHub issues/PRs** - `github.com/mattermost/*`, via the claude.ai GitHub MCP connector; falls back to WebFetch/WebSearch if unavailable.
+- **Internal Jira (engineering tickets)** - project `MM` only, via the claude.ai Atlassian MCP connector.
 - **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally.
 
 All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
@@ -75,6 +76,12 @@ codebase-memory-mcp is a local stdio binary with no Docker service - see its set
 2. In Claude Code, run `/mcp` and select the GitHub connector. It registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
 
 This is the pipeline's GitHub source; falls back to WebFetch/WebSearch if unavailable.
+
+#### Jira MCP setup
+
+1. Go to `https://claude.ai/customize/connectors`, add/connect the Atlassian connector, and authorize.
+
+This is the pipeline's internal Jira source (project `MM` only); no public fallback if unavailable.
 
 #### Codebase memory MCP setup
 

@@ -217,7 +217,7 @@ Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
-Search all four unconditionally - all are required:
+Search all five unconditionally - all are required:
 1. `upstream/docs/source/` (product docs, customer-facing). Search with `rg -ni "<keywords>" upstream/docs/source/`
 2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Search with `rg -ni "<keywords>" upstream/mattermost-developer-documentation/site/content/`
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
@@ -229,8 +229,17 @@ Search all four unconditionally - all are required:
    - Pass `perPage: 5` and `minimal_output: true`; default page size and full output overflow the tool limit.
    - **Fallback (no GitHub MCP available):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`. Emit the search URL and top result titles + numbers.
    - If no GitHub MCP is available, state `GitHub MCP skipped: <reason>` and use the WebFetch fallback.
+5. Internal Jira issues per in-scope repo (project `MM` only) - one search per repo, all repos required:
+   - **Preferred:** `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`.
+   - JQL: `project = MM AND text ~ "<term>"` ORDER BY updated DESC.
+   - One exact error string or config/component name per query, not a multi-word phrase.
+   - `text ~` matches stemmed words anywhere in the description, not a phrase or feature.
+   - Multi-word queries return noisy hits on shared common words.
+   - Pass a small `maxResults` (e.g. 5).
+   - Discard hits not actually about the symptom, even if the query matched.
+   - **No fallback:** not publicly reachable. State `Jira search skipped: <reason>` if unavailable; do not attempt WebFetch.
 
-If searches 3 or 4 cannot run (offline, WebFetch fails, MCP unavailable, Hub result oversized), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
+If searches 3, 4, or 5 cannot run (offline, WebFetch fails, MCP unavailable, Hub result oversized), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
 Complete this phase before proceeding.
 
