@@ -127,7 +127,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    cp ~/Downloads/support_packet.zip tickets/12345/
    ```
 
-   If the ticket is mirrored to the Mattermost Hub from Zendesk, skip the manual copy: run `/hub-harvest 12345` to fetch the full thread into `tickets/12345/hub-thread.md`.
+   If the ticket is mirrored to the Mattermost Hub from Zendesk, skip the manual copy: run `/hub-harvest 12345` (or paste a Hub thread permalink) to fetch the full thread into `tickets/12345/hub-thread.md`.
 3. Open Claude Code:
    ```
    claude
@@ -155,7 +155,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
-- **`/hub-harvest <ticket-ID|assignee-email> [time-range]`** - fetch a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`, ready for `/investigate`. Given an assignee email instead, harvests every thread assigned to that TSE in the time window (default: last 30 days) and additionally writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`, grouped by status.
+- **`/hub-harvest <ticket-ID|assignee-email|hub-thread-link> [time-range]`** - fetch a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`, ready for `/investigate`. Accepts a pasted Hub thread permalink directly. Given an assignee email instead, harvests every thread assigned to that TSE in the time window (default: last 30 days) and additionally writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`, grouped by status.
 - **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
 ### Output

@@ -1,6 +1,6 @@
 ---
 name: hub-harvest
-description: Fetch a Zendesk ticket thread (or all of a TSE's assigned threads in a time window) from the Mattermost Hub notifications channel into tickets/<zd#>/hub-thread.md. Ready for /investigate.
+description: Fetch a Zendesk ticket thread (by ticket ID, assignee email for a time window, or a pasted Hub thread permalink) from the Mattermost Hub into tickets/<zd#>/hub-thread.md. Ready for /investigate.
 user-invocable: true
 ---
 
@@ -25,11 +25,17 @@ the Hub.
 
 1. Confirm the Mattermost Hub MCP is present (`mcp__claude_ai_Mattermost_Hub__*`). If absent,
    state `Mattermost Hub search skipped: MCP not available` and stop. Never block.
-2. If `$ARGUMENTS` is empty, ask for a ticket number or an assignee email before proceeding.
-3. Pick the mode: an `@` token means **assignee mode** (that token is the email, the remainder
-   is the time range); otherwise **ticket mode**: run `/resolve-ticket-id <the non-@ remainder>` inline to get the ticket number.
+2. If `$ARGUMENTS` is empty, ask for a ticket number, an assignee email, or a Hub thread link before proceeding.
+3. Pick the mode, in this order:
+   - `$ARGUMENTS` matches `https?://\S+/pl/([A-Za-z0-9]{26})` (a Mattermost permalink, any host -
+     `<siteURL>/<team-name>/pl/<postID>`): **link mode**, the captured group is the entry post ID.
+   - An `@` token: **assignee mode** (that token is the email, the remainder is the time range).
+   - Otherwise **ticket mode**: run `/resolve-ticket-id <the remainder>` inline to get the ticket number.
 
 ## Phase 1 - Locate roots
+
+**Link mode skips this phase entirely** - the entry post ID from Phase 0 is already usable; go
+straight to Phase 2 and call `read_post` on it directly.
 
 Use `mcp__claude_ai_Mattermost_Hub__search_posts` with `channel_id` set to
 `p77n3165i3r89kugxyabx9wwer`. Keep `keyword_limit`/`semantic_limit` at their defaults; raising
@@ -61,10 +67,18 @@ and stop.
 
 ## Phase 2 - Fetch and persist
 
-For each `Root ID`, call `mcp__claude_ai_Mattermost_Hub__read_post` with `include_thread=true`.
+For each `Root ID` (ticket/assignee mode) or entry post ID (link mode), call
+`mcp__claude_ai_Mattermost_Hub__read_post` with `include_thread=true`.
 If a thread is too large and the result is truncated to a file, read it via a subagent
 (instruct it to return the extracted fields below, `body` copied verbatim per the rule below), or
 state `Mattermost Hub result skipped: <zd#> oversized` and continue.
+
+**Link mode:** a permalink can point at any post in the thread, not necessarily the root, so
+don't assume the entry post ID is the `Root ID`. Once fetched, the thread's actual root post (the
+`New Ticket: <subject> (#<num>)` post, per the derivation below) determines the true `Root ID` for
+the template header and migration markers - same as ticket/assignee mode. If the fetched thread's
+root post doesn't match that pattern, state `pasted thread is not a Zendesk ticket thread (root
+post doesn't match "New Ticket: <subject> (#<num>)")` and stop.
 
 Only `New Reply (...)`/`New Internal Note` posts carry `Current Status`/`Current Assignee`; the
 root `New Ticket` post and any internal workspace activity (defined above) do not - skip them when
