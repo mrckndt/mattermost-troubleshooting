@@ -18,6 +18,7 @@
     { "name": "mattermost-plugin-boards", "url": "https://github.com/mattermost/mattermost-plugin-boards" },
     { "name": "mattermost-plugin-calls", "url": "https://github.com/mattermost/mattermost-plugin-calls" },
     { "name": "mattermost-plugin-channel-automation", "url": "https://github.com/mattermost/mattermost-plugin-channel-automation" },
+    { "name": "mattermost-plugin-channel-export", "url": "https://github.com/mattermost/mattermost-plugin-channel-export" },
     { "name": "mattermost-plugin-confluence", "url": "https://github.com/mattermost/mattermost-plugin-confluence" },
     { "name": "mattermost-plugin-github", "url": "https://github.com/mattermost/mattermost-plugin-github" },
     { "name": "mattermost-plugin-gitlab", "url": "https://github.com/mattermost/mattermost-plugin-gitlab" },
