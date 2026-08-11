@@ -29,7 +29,8 @@
       "Bash(clip.exe:*)",
       "Bash(Set-Clipboard:*)",
       "mcp__claude_ai_Mattermost_Hub__search_posts",
-      "mcp__claude_ai_Mattermost_Hub__read_post"
+      "mcp__claude_ai_Mattermost_Hub__read_post",
+      "mcp__codebase_memory_local__index_repository"
     ],
     "deny": [
       "Bash(git push:*)",
