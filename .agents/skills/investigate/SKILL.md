@@ -198,15 +198,20 @@ Complete this phase before proceeding.
 ## Phase 5 - Source Code Search
 
 **Step 0: Ensure codebase-memory index.**
-- For each in-scope repo that exists under `upstream/` (note any absent, or excluded per `.agents/config/repos.json`'s `cbm_excluded` field), run `/cbm-index-repository <repo>` inline.
-- If it reports `codebase-memory MCP not present`: state `codebase-memory search skipped: MCP not present` once and run the grep-only form of every Step 2 angle for every repo.
-- If it reports a repo excluded: grep-only for that repo alone in Step 2 and Phase 7; other in-scope repos are unaffected.
+- Read `.agents/config/repos.json`; `excluded` = names with `cbm_excluded: true` (currently `enterprise`).
+- Filter before invoking: target list = in-scope repos under `upstream/`, minus `excluded`.
+- Excluded names never appear in any `/cbm-*` invocation, in any phase, including Phase 7.
+- For each excluded in-scope repo: skip indexing (zero MCP calls); append to Phase 9's `Steps and outcomes`:
+  `codebase-memory: <repo> skipped: excluded (see .agents/config/repos.json) @ <ref>`
+  (`<ref>` via `git -C upstream/<repo> describe --tags --exact-match 2>/dev/null || git -C upstream/<repo> rev-parse --abbrev-ref HEAD`).
+  Grep-only for that repo in Step 2 and Phase 7.
+- Run `/cbm-index-repository` with the surviving (non-excluded) names.
+- If it reports `codebase-memory MCP not present`: state `codebase-memory search skipped: MCP not present` once and run the grep-only form of every Step 2 angle for every repo, excluded ones included.
 - Do not call any other `/cbm-*` skill for the rest of this phase or Phase 7 against a repo that is absent, excluded, or MCP-unavailable.
 - Otherwise codebase-memory is available for that repo; use its `Project` column value as `project` for every codebase-memory query below and in Phase 7.
 - **Mandatory log line, one per in-scope repo, every session:** append to Phase 9's `Steps and outcomes`:
   `codebase-memory: <repo> <state> @ <ref>, <nodes> nodes / <edges> edges`, where `<state>` is
-  `cbm-index-repository`'s reported `reindexed` or `unchanged` for that repo.
-  For an excluded repo: `codebase-memory: <repo> skipped: excluded (see .agents/config/repos.json) @ <ref>` (no nodes/edges).
+  `cbm-index-repository`'s reported `reindexed` or `unchanged` for that repo. Excluded repos are logged above.
 - No silent skips. Never merge repos into one line. "Used direct read/grep instead" is not a substitute for running Step 0.
 - This line doubles as the progress line: print it inline here; Phase 9 copies it verbatim rather than restating it.
 
@@ -280,6 +285,7 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
   - No new tool calls. Note it (known issue / workaround / fix version); let it steer the search below.
 - For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
 - If Step 0 (Phase 5) found codebase-memory available for that repo, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
+- Never against an excluded repo (see Phase 5 Step 0).
 - For "changed across versions" hypotheses: `base_branch` must be the OLDER tag, checkout (`HEAD`) the NEWER one, or it silently returns 0.
   - Checking a later release for a fix: temporarily `/git-switch <repo> <newer-version>`, run `/cbm-detect-changes <repo> <customer-version-tag>`, then `/git-switch <repo> <customer-version>` back.
   - Checking what regressed since an older release: stay on the customer's checkout, run `/cbm-detect-changes <repo> <older-version-tag>` directly.
