@@ -1,6 +1,6 @@
 ---
 name: resume-investigation
-description: Resume a ticket investigation: read analysis.md/analysis-full.md, ask before running /investigate; skip the ask only if no analysis files exist.
+description: Resume a ticket investigation: read analysis.md, ask before running /investigate; skip the ask only if no analysis.md exists.
 user-invocable: true
 ---
 
@@ -14,9 +14,9 @@ Run `/resolve-ticket-id $ARGUMENTS` inline; ID returned: set `<ID>` to that valu
 
 ## Phase 1 - Reconstruct or start
 
-- Neither `analysis.md` nor `analysis-full.md` exists: state `tickets/<ID>/analysis.md not found - running /investigate <ID> from Phase 0` and run `/investigate <ID>`.
+- `analysis.md` does not exist: state `tickets/<ID>/analysis.md not found - running /investigate <ID> from Phase 0` and run `/investigate <ID>`.
 - This is the only case where `/investigate` runs without asking first.
-- Otherwise, read whichever of `analysis.md`, `analysis-full.md` exist, then emit a structured session briefing:
+- Otherwise, read `analysis.md`, then emit a structured session briefing:
 
 ```
 ## Resuming ticket <ID>

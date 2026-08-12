@@ -143,7 +143,7 @@ mirrored, so only patch what's new:
   triggers a one-time full overwrite; it self-migrates from there.
 
 Reuse-safe: only ever writes `hub-thread.md`, never another file in the ticket dir. Record whether
-`analysis.md`/`analysis-full.md` exists there.
+`analysis.md` exists there.
 
 Template (apply the `AGENTS.md` formatting constraints - no em dashes, plain ``` fences):
 

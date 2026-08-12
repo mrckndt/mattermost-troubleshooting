@@ -28,7 +28,7 @@ The engineer reads this to fix the issue fast. Every printed message optimizes f
   - `hub` / `github <repo>` / `jira` (Phase 6): `<verb>: "<query>" - <n>: <up to 3 items>; ... (+N more)` (or `no matches`)
   - `git-switch`/`git-pull` and the Phase 4 hits block already print their own one-line/gate shape - no separate progress line.
 - **Flagged findings:** bullets, not paragraphs, even outside a fixed artifact. No lead-in sentence - open with the fact. Cap 2-4 bullets; longer belongs in Phase 9.
-- The full record lives in `analysis.md`/`analysis-full.md` (Phase 9, own density rule) and the closing digest (Phase 10); the run itself stays terse too.
+- The full record lives in `analysis.md` (Phase 9, own density rule) and the closing digest (Phase 10); the run itself stays terse too.
 
 ## Phase 0 - Setup and argument resolution
 
@@ -330,12 +330,16 @@ Complete this phase before proceeding.
 
 ## Phase 9 - Analysis log (MANDATORY)
 
-Maintain two files per ticket, **written once, at the end of the pipeline** (not incrementally per phase). Ticket mode only - description mode has no ticket directory, skip.
+Maintain one file per ticket, `tickets/<ID>/analysis.md`, **written once, at the end of the pipeline** (not
+incrementally per phase). Ticket mode only - description mode has no ticket directory, skip.
 
-- `tickets/<ID>/analysis.md` - current understanding only. Each section holds the latest state; superseded content is replaced or removed, never left alongside the current answer.
-- `tickets/<ID>/analysis-full.md` - session history. Nothing is ever edited or deleted; each session adds only what's new.
+Two section kinds, never mixed:
+- **Cumulative** (`Evidence collected`, `Artifacts reviewed`, `Steps and outcomes`, `Deployment`, `Ruled out`,
+  `Session log`): append only. Nothing is ever deleted; a stale value is superseded in place, not erased.
+- **Current-state** (`Current hypothesis`, `Correlation`, `Open questions`, `Next steps`): hold the latest
+  answer. A superseded item is annotated in place, never silently dropped - see below.
 
-**Write for AI ingestion, not human prose.** Almost every reader of these files is another LLM session (this
+**Write for AI ingestion, not human prose.** Almost every reader of this file is another LLM session (this
 pipeline resuming, `resume-investigation`, `search-tickets`, or a colleague pasting the file into their own
 session) - optimize for dense, structured parsing, never for cutting a fact, caveat, version boundary, or
 alternative a reader would need:
@@ -347,15 +351,22 @@ alternative a reader would need:
 - No narration of the investigation process (e.g. "Phases 0-9 completed") or of drafting/copying activity (e.g.
   "Drafted + corrected customer reply...", "copied to clipboard") - facts only.
 
-**`analysis.md`:** replace `Current hypothesis`, `Correlation`, `Open questions`, and `Next steps` in place with
-the current answer (move a superseded hypothesis to `Ruled out` with a one-line reason). Append to
-`Evidence collected`, `Artifacts reviewed`, `Steps and outcomes`, and `Deployment` as facts are confirmed. Never
-delete a `Ruled out` entry. **Investigated with:** set once; update only if it changes mid-ticket.
+**Current-state sections:** replace with the current answer, but never erase what it replaced without a
+trace. A superseded *hypothesis* moves to `Ruled out` with reasoning (see below). Anything else superseded -
+a corrected `Correlation` claim, a resolved `Open questions` entry, a completed `Next steps` item, a revised
+`Deployment` fact - stays in place, prefixed `(Session N) <corrected/resolved/superseded>:`, with the old
+value and enough of why it looked right at the time that a later session doesn't re-open it. Drop something
+outright only when it never carried diagnostic value (a typo, an exact duplicate). **Investigated with:**
+set once; update only if it changes mid-ticket.
 
-**`analysis-full.md`:** a "session" is one `/investigate` run, not a turn. Session 1 is identical to `analysis.md`.
-Every later session: add `---` and `## Session YYYY-MM-DD`, then write ONLY what changed this session - new list
-items, or a changed conclusion - under the same heading names as the template. Skip any section that didn't
-change; never restate content already recorded in an earlier session.
+**`Session log` (append-only):** one bullet per `/investigate` run - a "session" is one run, not a turn. Append,
+never rewrite: `<YYYY-MM-DD> - <model, effort/thinking> - <what changed> - <what it superseded, if anything>`.
+This is the session-level index, not the preservation mechanism - the annotate-in-place rule above is what
+keeps reasoning next to the fact it corrects. Node/edge counts live in `Steps and outcomes`, not here.
+
+**`Ruled out` (append-only):** each entry is `<alternative> - disproved by <command + quoted output, or
+file:line> - <1-2 lines: why it looked plausible before the artefact ruled it out>`. That reasoning is what a
+later session needs to avoid re-opening a closed line. Never delete an entry.
 
 Complete this phase before proceeding.
 
@@ -375,7 +386,7 @@ The cap is words per item, not item count: list as many findings as are load-bea
 - **Evidence is a compressed summary, not a file:line list:**
   - Name the *kind* of evidence per bullet (source inspection, PR/commit, docs, historical ticket pattern) and what it shows.
   - Plain behavioral language; inline the `docs.mattermost.com`/`support.mattermost.com` link on any bullet it backs.
-  - Exact locations live in `analysis.md`/`analysis-full.md` only - never repeat file:line in the digest.
+  - Exact locations live in `analysis.md` only - never repeat file:line in the digest.
 - **Advisory / research tickets:** relabel `Root cause` to `Answer`, `Fix` / `Interim` to `Recommendation`.
 
 Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
@@ -412,7 +423,7 @@ Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
 
 ## Analysis log template
 
-Section shape for both files on first creation, populated with real content, not left empty:
+Section shape on first creation, populated with real content, not left empty:
 
 ```markdown
 # Ticket <ID> - Analysis
@@ -449,6 +460,8 @@ Section shape for both files on first creation, populated with real content, not
 ## Next steps
 
 ## Resolution
+
+## Session log
 ```
 
 **Advisory / research mapping.** Headings stay identical regardless of `Ticket type` - `resume-investigation` and
