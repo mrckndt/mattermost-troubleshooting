@@ -212,7 +212,8 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 
 - **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md` if present, then ask before re-running `/investigate`; runs `/investigate` unprompted only if no prior analysis exists.
 - **`/search-tickets <keyword>`** - search across all past ticket files and analysis logs; groups results by ticket ID with context snippets.
-- **`/resolve-ticket-id <reference>`** - normalize a ticket reference (bare number, `zd-`/`ZD-` prefix, Zendesk URL) to a numeric ID; verifies `tickets/<id>/` exists. Returns the ID or `no-match`.
+- **`/resolve-ticket-id [--allow-new] <reference>`** - normalize a ticket reference (bare number, `zd-`/`ZD-` prefix, Zendesk URL) to a numeric ID.
+  Verifies `tickets/<id>/` exists unless `--allow-new`. Returns the ID or `no-match`.
 
 ## Layout
 
