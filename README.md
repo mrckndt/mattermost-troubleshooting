@@ -5,13 +5,16 @@ AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, t
 ## Getting started
 
 Setup at a glance:
-1. Install CLI tools (`fd`, `rg`).
-2. Clone the repo and run `/bootstrap`.
+1. Clone the repo and run `/bootstrap`.
+2. (Optional) Install CLI tools (`fd`, `rg`).
 3. (Optional) Enable integrations: enterprise repo access.
 
-### Recommended CLI tools
+### Recommended CLI tools (optional)
 
-The agent prefers `fd` and `rg` (ripgrep) over `find` and `grep`. Falls back gracefully if not installed, but these tools are strongly recommended.
+Every skill instruction is plain `grep`/`find`, which needs no install. The agent substitutes `fd`/`rg`
+on its own when present: both are Rust, so parsing the untrusted ticket files this pipeline reads (logs,
+config dumps, support packets) isn't exposed to C's memory-corruption bug classes, and both are faster
+on large files. See `AGENTS.md`'s Search tools bullet for the flags that keep them equivalent.
 
 **macOS:**
 ```

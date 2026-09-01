@@ -36,5 +36,5 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
 5. No matches: report it.
    - `codebase-memory-mcp` hardcodes some directories out of indexing entirely, even under `mode: full` (e.g. `vendor`, `vendored`, `node_modules`, `.git`).
    - Before assuming the symbol doesn't exist, check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
-   - Fall back to `rg --no-ignore --hidden -n` or reading the file directly for anything under an excluded path.
+   - Fall back to `grep -rn` or reading the file directly for anything under an excluded path.
    - Otherwise suggest `/cbm-search-code` if the target may be a text literal or a struct field, or broader keywords.
