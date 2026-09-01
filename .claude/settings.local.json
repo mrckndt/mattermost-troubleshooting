@@ -23,6 +23,7 @@
       "Bash(git show:*)",
       "Bash(git status:*)",
       "Bash(git checkout *)",
+      "Bash(codebase-memory-mcp cli:*)",
       "Bash(pbcopy)",
       "Bash(pbcopy:*)",
       "Bash(clip.exe)",
