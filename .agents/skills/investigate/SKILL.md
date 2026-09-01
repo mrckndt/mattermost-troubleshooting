@@ -32,9 +32,14 @@ The engineer reads this to fix the issue fast. Every printed message optimizes f
 
 ## Phase 0 - Setup and argument resolution
 
-Determine mode:
-- If `$ARGUMENTS` is empty: list `tickets/` subdirectories and ask which ticket to investigate.
-- Otherwise: run `/resolve-ticket-id $ARGUMENTS` inline.
+Strip flags from `$ARGUMENTS` first, in any position, and keep the remainder as the ticket reference:
+- `--no-cbm`: run without codebase-memory for the whole investigation, Phase 7 included. Print
+  `mode: codebase-memory off (--no-cbm)`. With the flag absent, print nothing and behave as before.
+
+Determine mode from the remaining text:
+- If it is empty: list `tickets/` subdirectories and ask which ticket to investigate.
+- Otherwise: run `/resolve-ticket-id <remaining text>` inline. Pass the flag-stripped text only, so a flag
+  is never read as a ticket reference.
   - ID returned: **ticket mode** - set `<ID>` to that value.
   - `no-match`: **description mode** - treat the argument as a problem description; skip Phase 1 and file-based version detection in Phase 3.
 
@@ -143,11 +148,9 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 
 `mattermost` and `enterprise` are tightly coupled and must stay on the same ref. If either is in scope, verify **both** even if only one was flagged - a prior ticket may have left them drifted.
 
-1. For each in-scope repo, check current ref:
-   ```
-   git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null || \
-     git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD
-   ```
+1. For each in-scope repo, resolve its current ref as `<REPO_REF>` (see `AGENTS.md` Shell conventions).
+   Compare that value against the detected version; `mattermost` carries several tags per commit, so the
+   `v*` tag is the one a version query resolves.
 2. Run `/git-switch <repo> <version>` (resolves `vX.Y.Z` tags, `X.Y`/`X.Y.Z` queries, and branch names) if:
    - the current ref does not match the detected version (compare explicitly - a valid-looking tag is not proof it is the right one), or
    - `mattermost` and `enterprise` are on different refs from each other; switch the pair together even if only one is off.
@@ -198,21 +201,35 @@ Complete this phase before proceeding.
 ## Phase 5 - Source Code Search
 
 **Step 0: Ensure codebase-memory index.**
+
+**Search-only path.** Enter it immediately when `--no-cbm` is set, and from the graph path below the
+moment `/cbm-index-repository` reports `codebase-memory MCP not present`. Both land here, so the phase
+has one search-only path.
+- Make zero further `/cbm-*` calls for the rest of the run, Phase 7 included, and run the search-only form
+  of every Step 2 angle for every repo, excluded ones included.
+- Log once for the run, since no per-repo state was consulted: `codebase-memory: off (--no-cbm)` or
+  `codebase-memory: off (MCP not present)`. Then continue at Step 1.
+- Traded away: symbol attribution for text matches (angles 1, 2, 4) and call chains (angle 3).
+- Kept: coverage. The exhaustive search pass still finds every occurrence; what goes is the
+  enclosing-function mapping and caller/callee resolution.
+
+**Graph path.** Otherwise:
 - Read `.agents/config/repos.json`; `excluded` = names with `cbm_excluded: true` (currently `enterprise`).
-- Filter before invoking: target list = in-scope repos under `upstream/`, minus `excluded`.
-- Excluded names never appear in any `/cbm-*` invocation, in any phase, including Phase 7.
+- Filter before invoking: target list = in-scope repos under `upstream/`, minus `excluded`. Excluded names
+  stay out of every `/cbm-*` invocation, in every phase, Phase 7 included.
 - For each excluded in-scope repo: skip indexing (zero MCP calls); append to Phase 9's `Steps and outcomes`:
   `codebase-memory: <repo> skipped: excluded (see .agents/config/repos.json) @ <ref>`
-  (`<ref>` via `git -C upstream/<repo> describe --tags --exact-match 2>/dev/null || git -C upstream/<repo> rev-parse --abbrev-ref HEAD`).
-  Grep-only for that repo in Step 2 and Phase 7.
-- Run `/cbm-index-repository` with the surviving (non-excluded) names.
-- If it reports `codebase-memory MCP not present`: state `codebase-memory search skipped: MCP not present` once and run the grep-only form of every Step 2 angle for every repo, excluded ones included.
-- Do not call any other `/cbm-*` skill for the rest of this phase or Phase 7 against a repo that is absent, excluded, or MCP-unavailable.
-- Otherwise codebase-memory is available for that repo; use its `Project` column value as `project` for every codebase-memory query below and in Phase 7.
+  (`<ref>` = `<REPO_REF>`, see `AGENTS.md` Shell conventions).
+  Search-only for that repo in Step 2 and Phase 7.
+- Run `/cbm-index-repository` with the surviving (non-excluded) names, and use its `Project` column value
+  as `project` for every codebase-memory query below and in Phase 7.
+- Reserve the remaining `/cbm-*` skills for repos that came back from that run; a repo that is absent,
+  excluded, or unavailable stays on the search-only form for this phase and Phase 7.
 - **Mandatory log line, one per in-scope repo, every session:** append to Phase 9's `Steps and outcomes`:
-  `codebase-memory: <repo> <state> @ <ref>, <nodes> nodes / <edges> edges`, where `<state>` is
-  `cbm-index-repository`'s reported `reindexed` or `unchanged` for that repo. Excluded repos are logged above.
-- No silent skips. Never merge repos into one line. "Used direct read/grep instead" is not a substitute for running Step 0.
+  `codebase-memory: <repo> <state> @ <ref>`, where `<state>` is `cbm-index-repository`'s reported
+  `reindexed` or `unchanged` for that repo. Excluded repos are logged above.
+- Give each repo its own line, and state a reason on every skip. Running Step 0 is what produces these
+  lines; a direct read or search elsewhere in the phase is a separate thing and does not replace it.
 - This line doubles as the progress line: print it inline here; Phase 9 copies it verbatim rather than restating it.
 
 **Step 1: AppError → i18n key lookup.**
@@ -229,19 +246,30 @@ All five angles below are required, run once per in-scope repo.
 
 Progress line: `search:<angle>` (Output style).
 
-- Where Step 0 found codebase-memory available for that repo: lead each angle with the named skill below, then confirm/cover gaps with the search defined per angle below (or a direct file read).
-- Where absent or excluded (per `.agents/config/repos.json`): that search is the whole angle.
+`rg --no-ignore --hidden` is the exhaustive pass in every angle: it alone covers excluded dirs, i18n JSON
+and non-code files. A `cbm-*` call is warranted only where it answers something `rg` cannot, named per
+angle below. On the search-only path (Step 0), `rg` is the whole angle for every repo.
 
-1. Exact error strings from the Phase 1 error-families list: `/cbm-search-code <repo> "<string>"` for ranked leads.
-   - **Then `rg --no-ignore --hidden -n` as the authoritative exhaustive pass** (search_code caps at 10 results, no offset; bypassing default ignore-file filtering covers excluded dirs, i18n JSON, non-code files).
-2. Config keys from `sanitized_config.json`/`diagnostics.yaml`: `/cbm-search-code <repo> <key>`, then `rg --no-ignore --hidden -n`.
-   - A config key is a struct field; `cbm-search-graph` indexes only the parent struct, not its fields, so a field name returns 0. Use it to locate the parent struct/accessor.
-3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees and `/cbm-get-code-snippet <repo> <fn>` for source, then `rg --no-ignore --hidden -n`.
-4. Feature flag or setting key names: `/cbm-search-graph <repo> <key>` and `/cbm-search-code <repo> <key>`, then `rg --no-ignore --hidden -n`.
-   - Shape is mixed: graph finds gate functions/methods, search-code finds `Features` struct fields, constants, and literals. Run both.
-5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>` (semantic), then `rg --no-ignore --hidden -ni`.
-   - Broad keywords can return large, loosely-ranked result sets - treat the `rg` exhaustive pass as the real filter here, not just confirmation of cbm's top hit.
-   - Keep the semantic query to 2-3 keywords; a broad multi-keyword split can return an oversized response that overflows the tool limit and must be discarded (narrow it, don't blind-retry).
+1. Exact error strings from the Phase 1 error-families list: `rg --no-ignore --hidden -n "<string>"`.
+   - Add `/cbm-search-code <repo> "<string>"` to learn which symbol encloses a match. It returns up to 10
+     ranked leads; cite the `rg` pass for the complete match set.
+2. Config keys from `sanitized_config.json`/`diagnostics.yaml`: `rg --no-ignore --hidden -n <key>`.
+   - Add `/cbm-search-code <repo> <key>` to find which functions read the key. A config key is a struct
+     field, so `search_code` is the tool that resolves it to an enclosing symbol.
+3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees, then
+   `/cbm-get-code-snippet <repo> <fn>` for the source of each hop. Lead with the graph here, since it is
+   the source of call chains. Confirm with `rg --no-ignore --hidden -n`.
+   - `get_code_snippet` supplies the file and line for each hop, which is what makes a chain citable.
+4. Feature flag or setting key names: `/cbm-search-code <repo> <key>`, then `rg --no-ignore --hidden -n`.
+   - Setting and flag keys are struct fields, which `search_code` resolves to the functions that read
+     them (`EnableGuestMagicLink` and `SessionLengthWebInHours` each return the enclosing symbol this way).
+5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>`
+   (semantic), then `rg --no-ignore --hidden -ni`.
+   - Semantic mode means passing `semantic_query` alone; a call carrying `query` returns BM25 results
+     instead.
+   - Keep the semantic query to 2-3 keywords. A broad split returns an oversized, unranked response that
+     overflows the tool limit; narrow the keywords and re-run.
+   - Treat the `rg` exhaustive pass as the real filter here; cbm's top hit is a lead into it.
 
 Complete this phase before proceeding.
 
@@ -284,13 +312,14 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
 - First, scan the Phase 4 hits block and Phase 6 Hub/GitHub/Jira results already in context for a match.
   - No new tool calls. Note it (known issue / workaround / fix version); let it steer the search below.
 - For missing/buggy code-path hypotheses, search for the expected fix in the customer's version: absent confirms, present refutes.
-- If Step 0 (Phase 5) found codebase-memory available for that repo, run `/cbm-search-graph <repo> <symbol>` or `/cbm-query-graph <repo> <cypher>` inline for this search.
-- Never against an excluded repo (see Phase 5 Step 0).
-- For "changed across versions" hypotheses: `base_branch` must be the OLDER tag, checkout (`HEAD`) the NEWER one, or it silently returns 0.
-  - Checking a later release for a fix: temporarily `/git-switch <repo> <newer-version>`, run `/cbm-detect-changes <repo> <customer-version-tag>`, then `/git-switch <repo> <customer-version>` back.
-  - Checking what regressed since an older release: stay on the customer's checkout, run `/cbm-detect-changes <repo> <older-version-tag>` directly.
-  - Start with `scope: files`; a multi-version span can be hundreds of files and the fuller symbol listing has no cap (see the skill's notes).
-- If codebase-memory is unavailable, use `rg`/`git` for the artefact.
+- If Step 0 (Phase 5) took the graph path for that repo, run `/cbm-search-graph <repo> <symbol>`
+  or `/cbm-trace-path <repo> <fn>` inline for this search.
+- Excluded repos stay on the search-only form here too (see Phase 5 Step 0).
+- For "changed across versions" hypotheses use git directly; no checkout switch is needed:
+  - `git -C upstream/<repo> log <older-tag>..<newer-tag> -- <path>` for what landed between two releases.
+  - `git -C upstream/<repo> diff <older-tag> <newer-tag> -- <path>` for the change itself.
+  - Order matters: older ref first. Reversed, the range is empty and reads as "no changes".
+- On the search-only path (unavailable, excluded, or `--no-cbm`), use `rg`/`git` for the artefact.
 - **Commit/PR claimed as fix:** verify before accepting.
   - Search terms come from wording already collected (Phase 1/4/6), not a guessed phrase.
   - Match the commit's description/diff against that exact wording, not just its title or a shared keyword.

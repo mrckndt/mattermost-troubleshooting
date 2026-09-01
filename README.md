@@ -140,10 +140,15 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
 4. Run the investigation pipeline: `/investigate 12345`.
 
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
-   - Searches source code at four angles (exact error strings, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
+   - Searches source code at five angles (exact error strings, config keys, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
    - Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
    - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
+
+   Add `--no-cbm` (e.g. `/investigate 12345 --no-cbm`) to run without the codebase-memory knowledge graph.
+   Source search then uses `rg`/`git` alone: coverage is unchanged, and what you give up is symbol
+   attribution for text matches and call-chain tracing. Useful for config questions and known-issue
+   lookups where speed matters more than structural evidence.
 5. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article 12345` - generate a KB article scoped to this ticket (saves to `tickets/12345/`).
@@ -191,13 +196,14 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 - **`/cbm-index-repository [<repo>...]`** - index one or more repos into the graph.
   - No argument: indexes every non-excluded repo in `.agents/config/repos.json`.
   - `<repo>...`: indexes one or more named repos.
+  - Skips any repo whose graph is already current: clean worktree, `index_mode: full`, and a graph built
+    after `.git/HEAD` last changed. This also detects refreshes made by the `auto_watch` background
+    watcher, which a stored-sha check cannot see.
 
 - **`/cbm-search-graph [<repo>] <query>`** - find a symbol or definition by keyword or natural language.
 - **`/cbm-search-code [<repo>] <pattern>`** - find a string literal, error message, or config value (graph-augmented grep).
 - **`/cbm-trace-path [<repo>] <question or function>`** - trace callers/callees of a function (e.g. "what calls ProcessOrder?").
 - **`/cbm-get-code-snippet [<repo>] <name>`** - pull source for a symbol (qualified or short name).
-- **`/cbm-query-graph [<repo>] <cypher>`** - run a raw Cypher query for multi-hop or aggregation questions.
-- **`/cbm-detect-changes [<repo>] [<compare-ref>]`** - list symbols defined in a diff's changed files.
 
 ### Ticket management
 

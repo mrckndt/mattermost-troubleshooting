@@ -52,6 +52,20 @@ CWD persists across Bash calls; env vars do not. Always use absolute paths. All 
 4. **Before returning:** `cd "$PROJECT_ROOT"` so shell ends at project root.
 5. **Multi-repo loops:** run each per-repo invocation (`git clone`, `git fetch`, etc.) as its own Bash call - never chain with `&&`/`;` or redirect `2>&1`; parallelize across repos in a single message.
 
+**`<REPO_REF>`** - a repo's identity (tag when checked out on one, else branch). Skills write `<REPO_REF>` and
+resolve it with:
+
+```
+ref=$(git -C "$PROJECT_ROOT/upstream/<repo>" tag --points-at HEAD | grep -E '^v[0-9]' | head -1)
+[ -z "$ref" ] && ref=$(git -C "$PROJECT_ROOT/upstream/<repo>" describe --tags --exact-match 2>/dev/null)
+[ -z "$ref" ] && ref=$(git -C "$PROJECT_ROOT/upstream/<repo>" rev-parse --abbrev-ref HEAD)
+```
+
+Prefer the `v*` tag: several repos put multiple tags on one commit, and `describe --tags --exact-match` picks
+among them by its own rules. On `mattermost` at `v11.9.0` five tags share the commit and `describe` returns
+`mattermost-redux@11.9.0`, which no version query resolves. The later lines keep repos with other tag shapes,
+and repos on a branch, behaving as before.
+
 ## Session behavior
 
 - **Clipboard:** invoke `/clipboard` rather than asking the user to copy manually.
