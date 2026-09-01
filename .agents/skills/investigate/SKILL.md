@@ -415,16 +415,23 @@ After Phase 9 writes the files, print ONE digest to the conversation. This is wh
 - **Terse in form:** bullets, one line per item, no block over 2 lines, no prose walls.
 - **Complete in coverage:** include every fact that changes what the engineer does. Omitting a load-bearing detail (a caveat, "not backported", a live alternative) to save space is a defect; brevity must never mislead.
 
-The cap is words per item, not item count: list as many findings as are load-bearing; drop only redundant or decorative ones. The exhaustive record is `analysis.md`; the digest is the actionable subset, never a re-narration.
+- **Prefer cutting a bullet over compressing it:**
+  - Not load-bearing: drop it, don't fold it into another bullet's wording.
+  - Load-bearing but wordy: give it its own bullet instead of packing two facts onto one dense line.
+  - The exhaustive record is `analysis.md`; the digest is the actionable subset, never a re-narration.
 
 - **Line 1 is the whole answer:** an `##` verdict, one sentence carrying outcome and fix.
 - **Fixed order, every time:** Issue, Fix, Next steps, Open/unverified, Ruled out, Evidence, pointer.
   - Never reorder; never drop a heading. Write `N/A` only when genuinely empty, so a blank never hides a fact.
+- **Issue is capped at its 3 template bullets** (ID/version/confidence; cause + tag; backport) - never a 4th.
+  - Mechanism detail, precedence order, or affected-surface breakdown goes in Fix, Next steps, or Evidence.
 - **Every section is bullets, no prose lines:** Issue, Fix, and Evidence use `-` bullets, same as Next steps/Open/Ruled out.
 - **Evidence is a compressed summary, not a file:line list:**
   - Name the *kind* of evidence per bullet (source inspection, PR/commit, docs, historical ticket pattern) and what it shows.
   - Plain behavioral language; inline the `docs.mattermost.com`/`support.mattermost.com` link on any bullet it backs.
   - Exact locations live in `analysis.md` only - never repeat file:line in the digest.
+- **Ruled out lists only alternatives genuinely eliminated**, distinct from the confirmed finding.
+  - A negation of the already-confirmed cause (e.g. "X lacking entirely - present in the tag") is confirmation, not an alternative - drop it or fold it into Evidence.
 - **Advisory / research tickets:** relabel `Root cause` to `Answer`, `Fix` / `Interim` to `Recommendation`.
 
 Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
@@ -448,7 +455,7 @@ Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
 - <unconfirmed detail affecting the action, or "none">
 
 **Ruled out**
-- <alternative> - <why, few words>
+- <alternative genuinely eliminated, not a restatement of Issue> - <why, few words>
 
 **Evidence**
 - <kind of evidence: source inspection, PR/commit, docs, historical pattern> - <what it shows, plain language>
