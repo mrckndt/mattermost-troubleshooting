@@ -12,8 +12,9 @@ Parse args as `[<repo>] <qualified name or short name>`. Determine `<repo>` by c
 - If it matches, that token is `<repo>` and the remaining tokens form the name.
 - Otherwise, `<repo>` defaults to `mattermost` and the entire argument string is the name.
 
-1. Run `/cbm-index-repository <repo>` inline.
-   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+1. Run `/cbm-index-repository <repo>` inline, at most once per repo per session. If it already ran
+   this session for `<repo>`, reuse the `Project` value it reported and skip re-running it.
+   - If it reports MCP not present or the repo excluded, report the same and stop.
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. This is a read tool, not a search tool - it needs an exact or close name.
    - If unsure of the exact qualified name, call `search_graph` with `project` and `query` = `<name>` to find it first.

@@ -17,8 +17,9 @@ Determine `direction` from phrasing, then extract the function name from whateve
 - "what does X call" / "callees of X" -> `outbound`.
 - Unspecified / "trace X" -> `both`.
 
-1. Run `/cbm-index-repository <repo>` inline.
-   - If it reports it cannot proceed (MCP not present, or repo excluded), report the same and stop.
+1. Run `/cbm-index-repository <repo>` inline, at most once per repo per session. If it already ran
+   this session for `<repo>`, reuse the `Project` value it reported and skip re-running it.
+   - If it reports MCP not present or the repo excluded, report the same and stop.
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `trace_path` with `function_name`, `project`, `direction`, `depth: 3`.
    - A bare short name resolves to one node silently and may trace the wrong overload.

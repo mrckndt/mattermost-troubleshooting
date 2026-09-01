@@ -1,1 +1,0 @@
-../../.agents/skills/cbm-query-graph/SKILL.md
