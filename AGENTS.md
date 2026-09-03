@@ -112,13 +112,20 @@ A pasted Hub thread permalink (`.../pl/<postID>`) works too - resolves the ticke
 Given an assignee email instead, `/hub-harvest` harvests every thread assigned to that TSE in a time window and
 also writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`.
 
-Investigation pipeline and analysis log: run `/investigate <ID>`.
+Investigation pipeline and analysis log: run `/investigate <ID>`. If the engineer instead asks to
+pick a ticket back up from a prior session, run `/resume-investigation <ID>` - it reconstructs
+context from an existing `analysis.md` and asks before re-running `/investigate`. Never substitute
+one for the other on your own judgment: an explicit `/investigate <ID>` always runs the full
+pipeline, even if `analysis.md` already exists. `/search-tickets <keyword>` finds related past
+tickets by content, not just by ID.
 
-Ticket-scoped KB articles from `/kb-article <ID>` save to `tickets/<ID>/kb-article.md` +
-`.html`; standalone articles (no ticket in play) save to `kb-articles/<slug>-<date>.md` + `.html`
-at the project root instead.
-
-Once a ticket's root cause is confirmed, `tickets/<ID>/analysis.md` also grounds:
+Once `analysis.md` exists, generate outputs from it:
+- `/draft-reply` - customer reply (email, Zendesk, hub thread).
+- `/kb-article <ID>` - KB article scoped to this ticket, saves to `tickets/<ID>/kb-article.md` +
+  `.html`; without a ticket in play, saves to `kb-articles/<slug>-<date>.md` + `.html` at the
+  project root instead.
+- `/kb-batch <email>` - bulk-draft KB articles across a TSE's assigned tickets in a time window.
+- `/pde-intake` - feature request, bug report, or security issue for PD&E.
 - `/rca <ID>` - customer-facing Root Cause Analysis, saves to `tickets/<ID>/rca.md`.
 - `/eir <ID>` - internal Engineering Incident Report, saves to `tickets/<ID>/eir.md`, plus a
   channel-post summary printed to screen only.
