@@ -156,6 +156,9 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - `/draft-reply` - reply to the customer.
    - `/kb-article 12345` - generate a KB article scoped to this ticket (saves to `tickets/12345/`).
    - `/pde-intake` - create a feature request, bug report, or security issue for sharing with PDE Intake Agent.
+   - `/rca 12345` - customer-facing Root Cause Analysis report.
+   - `/eir 12345` - internal Engineering Incident Report plus a channel-post summary.
+   - `/retro 12345` - post-resolution retrospective, once the root cause is confirmed.
 
 ## Skills / slash commands
 
@@ -171,6 +174,9 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
 - **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `hub-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
 - **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
+- **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
+- **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
+- **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB-ingest decision, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ### Repo management

@@ -118,6 +118,13 @@ Ticket-scoped KB articles from `/kb-article <ID>` save to `tickets/<ID>/kb-artic
 `.html`; standalone articles (no ticket in play) save to `kb-articles/<slug>-<date>.md` + `.html`
 at the project root instead.
 
+Once a ticket's root cause is confirmed, `tickets/<ID>/analysis.md` also grounds:
+- `/rca <ID>` - customer-facing Root Cause Analysis, saves to `tickets/<ID>/rca.md`.
+- `/eir <ID>` - internal Engineering Incident Report, saves to `tickets/<ID>/eir.md`, plus a
+  channel-post summary printed to screen only.
+- `/retro <ID>` - post-resolution retrospective, saves to `tickets/<ID>/retro.md`; requires a
+  confirmed `Current hypothesis` in `analysis.md`.
+
 ## Working with the cloned repos
 
 `upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap`.
