@@ -171,6 +171,10 @@ Complete this phase before proceeding.
 
 ## Phase 4 - Fragment and Upgrade Notes Search
 
+Self-refresh docs before searching: `/git-pull docs`. `docs` tracks its default branch and is never
+version-aligned like the repos in Phase 3, so this is the only point that keeps it current for this
+run; Phase 6's docs search later in this pipeline relies on this same refresh, not a second one.
+
 For each in-scope repo, check whether `fragments/<repo>.md` exists and read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
@@ -282,6 +286,10 @@ Complete this phase before proceeding.
 
 Searches 3-5 leave this workspace: query terms only, no customer hostname/domain/email/username/org/IP/
 token, even quoted from a ticket file (AGENTS.md Boundaries).
+
+Self-refresh `mattermost-developer-documentation` before searching it: `/git-pull mattermost-developer-documentation`.
+Same reasoning as Phase 4's `docs` refresh: it tracks its default branch and is never version-aligned in Phase 3.
+`docs` itself needs no second refresh here; Phase 4 already covers it for this run.
 
 Search all five unconditionally - all are required:
 1. `upstream/docs/source/` (product docs, customer-facing). Search with `grep -rni "<keywords>" upstream/docs/source/`

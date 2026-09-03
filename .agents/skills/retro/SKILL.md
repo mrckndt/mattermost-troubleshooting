@@ -167,8 +167,9 @@ public support knowledge base.
 
 ### a) docs.mattermost.com
 
-Local mirror: `upstream/docs/source/`. Keep it aligned with the ticket's version per `AGENTS.md`;
-use `/git-pull` (not raw git) if it needs refreshing. Public site: https://docs.mattermost.com.
+Local mirror: `upstream/docs/source/`. Self-refresh before use: `/git-pull docs`; this skill can run
+in a session where no prior `/investigate` step has pulled it, so don't assume it's current. Public
+site: https://docs.mattermost.com.
 
 Ask:
 - Is there a config setting, behavior, or deployment pattern in this ticket
