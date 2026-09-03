@@ -136,7 +136,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    claude
    ```
 
-   > Default: a **flagship-tier model** (e.g. **Claude Opus 4.8** or an equivalent model) with **1M context** and **high or xhigh effort/thinking** (xhigh sits one step below Claude's "max" tier, reserved for genuinely stuck sessions, not routine use). A **mid-tier model** (e.g. **Claude Sonnet 5**) at high or xhigh effort/thinking is also worth evaluating for `/investigate` itself - not just a cost fallback, potentially faster or a differently-useful result profile. Auto-mode is recommended once the investigation starts - the skill enforces phase order and search completeness regardless of model.
+   > Default: a **flagship-tier model** (e.g. **Claude Opus 5** or an equivalent model) with **1M context** and **high or xhigh effort/thinking** (xhigh sits one step below Claude's "max" tier, reserved for genuinely stuck sessions, not routine use). A **mid-tier model** (e.g. **Claude Sonnet 5**) at high or xhigh effort/thinking is also worth evaluating for `/investigate` itself - not just a cost fallback, potentially faster or a differently-useful result profile. Auto-mode is recommended once the investigation starts - the skill enforces phase order and search completeness regardless of model.
 
    > `/bootstrap` and `/git-pull` are mechanical shell operations - a mid-tier model at its default effort/thinking (e.g. **Claude Sonnet 5**) is right for these; no need to manually drop it lower.
 
@@ -173,6 +173,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
 - **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `hub-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
+- **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article`, then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
 - **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
@@ -232,6 +233,8 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 ├── tickets/                 # One subfolder per ticket or investigation (e.g. tickets/12345/); tickets/hub-harvest/ holds /hub-harvest assignee-mode indexes
 ├── kb-articles/             # Standalone KB articles from /kb-article when no ticket is in play
 ├── .agents/
+│   ├── config/
+│   │   └── repos.json       # Upstream repo list; cbm_excluded flags repos /cbm-index-repository must skip
 │   └── skills/              # Canonical skill definitions (SKILL.md per skill)
 └── .claude/
     ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
