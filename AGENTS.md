@@ -139,6 +139,10 @@ Once `analysis.md` exists, generate outputs from it:
 - `/retro <ID>` - post-resolution retrospective, saves to `tickets/<ID>/retro.md`; requires a
   confirmed `Current hypothesis` in `analysis.md`.
 
+`/upgrade-advisor [version]` - upgrade recommendation report (security fixes, urgent vs quality-of-life bugs,
+plugin updates) comparing a ticket's support-packet/config version to the latest patch, or an explicit version
+passed as arg. Saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket; does not require `analysis.md`.
+
 ## Working with the cloned repos
 
 `upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap`.

@@ -161,6 +161,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - `/rca 12345` - customer-facing Root Cause Analysis report.
    - `/eir 12345` - internal Engineering Incident Report plus a channel-post summary.
    - `/retro 12345` - post-resolution retrospective, once the root cause is confirmed.
+   - `/upgrade-advisor 12345` - upgrade recommendation report (security fixes, urgent vs quality-of-life bugs, plugin updates); doesn't require `analysis.md`.
 
 ## Skills / slash commands
 
@@ -180,6 +181,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
 - **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB-ingest decision, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
+- **`/upgrade-advisor [ticket-ID|version]`** - generate an upgrade recommendation report comparing a ticket's support-packet/config version (or an explicit version) to the latest patch: security fixes, urgent vs quality-of-life bugs, plugin updates; saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket. Does not require `analysis.md`.
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ### Repo management
