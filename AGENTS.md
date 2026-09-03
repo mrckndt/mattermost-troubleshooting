@@ -80,6 +80,9 @@ and repos on a branch, behaving as before.
 ## Session behavior
 
 - **Clipboard:** invoke `/clipboard` rather than asking the user to copy manually.
+- **Session naming:** at the start of a ticket investigation, rename the session to include the ticket
+  number and customer name (e.g. `/rename Ticket 12345 - Acme Corp`), derived from the ticket directory
+  name (`tickets/<name>/`) or `hub-thread.md` if the customer name isn't in the directory name.
 - **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `fragments/mattermost.md`, `upstream/docs/source/...`, `file:line`).
 - **Search tools:** prefer `rg --no-ignore --hidden` over `grep`, `fd --no-ignore --hidden` over `find`,
   when present. `rg`/`fd` skip `.gitignore`-matched and hidden files by default; `grep`/`find` don't skip

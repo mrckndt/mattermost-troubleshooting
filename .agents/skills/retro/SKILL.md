@@ -49,7 +49,7 @@ then print `Saved to: tickets/<ID>/retro.md`.
 
 Review the investigation as captured in `analysis.md` and assess honestly:
 
-### Blind triage effectiveness
+### Triage effectiveness
 - Did `/investigate`'s Phase 1 file inventory and error-families list surface the error(s) that
   turned out to be the root cause?
 - If not — what was it about the error that made it hard to catch? Was it low
@@ -234,7 +234,7 @@ the support team should check manually.
 
 ## Investigation retrospective
 
-### Blind triage
+### Triage effectiveness
 <!-- Did it catch the root cause? What was missed and why? -->
 
 ### Hypothesis path

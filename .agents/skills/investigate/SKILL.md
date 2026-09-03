@@ -40,7 +40,8 @@ Determine mode from the remaining text:
 - If it is empty: list `tickets/` subdirectories and ask which ticket to investigate.
 - Otherwise: run `/resolve-ticket-id <remaining text>` inline. Pass the flag-stripped text only, so a flag
   is never read as a ticket reference.
-  - ID returned: **ticket mode** - set `<ID>` to that value.
+  - ID returned: **ticket mode** - set `<ID>` to that value. Rename the session per `AGENTS.md`'s
+    Session behavior convention (ticket number + customer name).
   - `no-match`: **description mode** - treat the argument as a problem description; skip Phase 1 and file-based version detection in Phase 3.
 
 Complete this phase before proceeding.
@@ -64,6 +65,15 @@ find "tickets/<ID>/" -type f -exec ls -lh {} +
 
 `tickets/` is gitignored: `fd` here needs `--no-ignore --hidden`, or it silently returns zero files
 (verified: `fd . tickets/<ID>/` -> 0, `fd --no-ignore --hidden . tickets/<ID>/` -> the real count).
+
+**Topology detection.** From the listing above, determine whether `tickets/<ID>/` is single-node or HA.
+HA signature: node-labeled subdirectories (`node-1/`, `node-2/`, etc.) each with their own log file(s).
+Note the node count; carries into Phase 9's `Deployment` field (`Type: single-node | HA (<n> nodes)`).
+
+**Hard stop on unreadable files.** If any file cannot be read or parsed (corrupt archive, unsupported
+binary/unknown format, encoding error, etc.), stop immediately and report which file(s) are inaccessible
+and why. Do not proceed to the inventory output or any hypothesis until this is resolved or the engineer
+explicitly says to proceed without it.
 
 **Customer conversation first.** If `tickets/<ID>/hub-thread.md` exists, read it before any log or config file - it
 carries the customer's own description of the problem and prior TSE context, and frames what to look for in the
@@ -92,7 +102,17 @@ Once all ticket files are read, emit a single fenced block containing:
    - `hub-thread.md`, when present, is always the first item; characterize it as `Customer-reported symptom` and
      carry its narrative into Phase 9's `Reported symptom` field verbatim-adjacent (not paraphrased away).
 
-2. A freeform **error-families list**: distinct error-level messages across all files, deduped.
+2. A freeform **error-families list**: distinct error-level messages across all files, deduped, each with
+   its **first-seen timestamp** (earliest occurrence, all nodes for HA) and, for HA only, **node
+   attribution** (`all nodes` vs `node-1, node-3`). Format: `<message> - first seen <timestamp> (<file>)
+   [- <node attribution>]`. A family confined to one node points to a local cause (hardware, disk,
+   config drift); one on all nodes points to code or applied config.
+
+3. **Timeline check**, once a reported incident start time is known (from `hub-thread.md`, ticket text,
+   or the engineer): flag families whose first-seen timestamp predates that start by hours/days as likely
+   noise unless a stated causal link exists; flag families starting at/after it as candidates for the
+   incident window; if nothing lines up, say so explicitly rather than dropping it. Skip this item if no
+   start time is known yet. Carries into Phase 9's `Timeline` and `Correlation` fields.
 
 This block is the gate. Phase 2 cannot start, no `fragments/` fragment may be opened, and no hypothesis may be stated
 until this block is present in the conversation. Partial inline greps do not satisfy the gate; it must appear as one contiguous artifact.
@@ -279,6 +299,12 @@ search-only path (Step 0), `grep` is the whole angle for every repo.
    - Keep the semantic query to 2-3 keywords. A broad split returns an oversized, unranked response that
      overflows the tool limit; narrow the keywords and re-run.
    - Treat the `rg` exhaustive pass as the real filter here; cbm's top hit is a lead into it.
+
+**Heuristic: browser-side features.** For browser-run features (notifications, downloads, clipboard,
+paste, drag-and-drop, service workers, file uploads, permissions prompts), read the webapp source before
+concluding "no Mattermost-side fix exists" - check whether the webapp's arguments to the browser API
+match its spec (e.g. content landing in a `tag` field or filename). That class of bug is a one-line
+webapp fix invisible to any server log or config. (Source of this heuristic: ticket 51286.)
 
 Complete this phase before proceeding.
 
