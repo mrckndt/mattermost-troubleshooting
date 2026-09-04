@@ -15,7 +15,7 @@ If no argument is provided, ask for a search term before proceeding.
 Run in parallel:
 
 1. Analysis logs: `grep -li "$ARGUMENTS" "$PROJECT_ROOT"/tickets/*/analysis.md`
-2. Raw ticket files: `grep -rli "$ARGUMENTS" "$PROJECT_ROOT/tickets/"`
+2. Raw ticket files: `rg --no-ignore --hidden -li "$ARGUMENTS" "$PROJECT_ROOT/tickets/"` (or `grep -rli "$ARGUMENTS" "$PROJECT_ROOT/tickets/"`)
 
 For each matching file, get a context snippet: `grep -ni "$ARGUMENTS" <file> | head -5`
 

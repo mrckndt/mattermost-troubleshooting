@@ -60,10 +60,11 @@ Skip silently if no archives are present. Do not delete the original archives.
 Then list every file recursively in `tickets/<ID>/` with sizes (unpacked archives from the previous step nest files in subdirectories), then read each one before forming any hypothesis:
 
 ```
-find "tickets/<ID>/" -type f -exec ls -lh {} +
+fd --no-ignore --hidden . "tickets/<ID>/" -x ls -lh
 ```
+(or `find "tickets/<ID>/" -type f -exec ls -lh {} +`)
 
-`tickets/` is gitignored: `fd` here needs `--no-ignore --hidden`, or it silently returns zero files
+`tickets/` is gitignored: a bare `fd` here (no `--no-ignore --hidden`) silently returns zero files
 (verified: `fd . tickets/<ID>/` -> 0, `fd --no-ignore --hidden . tickets/<ID>/` -> the real count).
 
 **Topology detection.** From the listing above, determine whether `tickets/<ID>/` is single-node or HA.
@@ -266,39 +267,39 @@ has one search-only path.
 
 1. Identify server language from the server log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
-3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `grep -rn` the repo source for the call site.
+3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `rg --no-ignore --hidden -n` (or `grep -rn`) the repo source for the call site.
 
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 All five angles below are required, run once per in-scope repo.
 
 Progress line: `search:<angle>` (Output style).
 
-`grep -r` is the exhaustive pass in every angle, covering excluded dirs, i18n JSON and non-code files
-with no special flags needed. Substituting `rg` here needs `--no-ignore --hidden`, or "exhaustive" is
-false: it silently skips gitignored and hidden matches instead of erroring (AGENTS.md Search tools).
-A `cbm-*` call is warranted only where it answers something `grep` cannot, named per angle below. On the
-search-only path (Step 0), `grep` is the whole angle for every repo.
+`rg --no-ignore --hidden` (or `grep -r`) is the exhaustive pass in every angle, covering excluded dirs,
+i18n JSON and non-code files. The flags on `rg` are required, or "exhaustive" is false: it silently skips
+gitignored and hidden matches instead of erroring (AGENTS.md Search tools). A `cbm-*` call is warranted
+only where it answers something `rg`/`grep` cannot, named per angle below. On the search-only path
+(Step 0), `rg --no-ignore --hidden` (or `grep -r`) is the whole angle for every repo.
 
-1. Exact error strings from the Phase 1 error-families list: `grep -rn "<string>" <repo-dir>`.
+1. Exact error strings from the Phase 1 error-families list: `rg --no-ignore --hidden -n "<string>" <repo-dir>` (or `grep -rn "<string>" <repo-dir>`).
    - Add `/cbm-search-code <repo> "<string>"` to learn which symbol encloses a match. It returns up to 10
-     ranked leads; cite the `rg` pass for the complete match set.
-2. Config keys from `sanitized_config.json`/`diagnostics.yaml`: `grep -rn <key> <repo-dir>`.
+     ranked leads; cite the exhaustive pass for the complete match set.
+2. Config keys from `sanitized_config.json`/`diagnostics.yaml`: `rg --no-ignore --hidden -n <key> <repo-dir>` (or `grep -rn <key> <repo-dir>`).
    - Add `/cbm-search-code <repo> <key>` to find which functions read the key. A config key is a struct
      field, so `search_code` is the tool that resolves it to an enclosing symbol.
 3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees, then
    `/cbm-get-code-snippet <repo> <fn>` for the source of each hop. Lead with the graph here, since it is
-   the source of call chains. Confirm with `grep -rn`.
+   the source of call chains. Confirm with `rg --no-ignore --hidden -n` (or `grep -rn`).
    - `get_code_snippet` supplies the file and line for each hop, which is what makes a chain citable.
-4. Feature flag or setting key names: `/cbm-search-code <repo> <key>`, then `grep -rn`.
+4. Feature flag or setting key names: `/cbm-search-code <repo> <key>`, then `rg --no-ignore --hidden -n` (or `grep -rn`).
    - Setting and flag keys are struct fields, which `search_code` resolves to the functions that read
      them (`EnableGuestMagicLink` and `SessionLengthWebInHours` each return the enclosing symbol this way).
 5. Symptom keyword (free-form, drawn from the reported symptom): `/cbm-search-graph <repo> <keyword>`
-   (semantic), then `grep -rni`.
+   (semantic), then `rg --no-ignore --hidden -ni` (or `grep -rni`).
    - Semantic mode means passing `semantic_query` alone; a call carrying `query` returns BM25 results
      instead.
    - Keep the semantic query to 2-3 keywords. A broad split returns an oversized, unranked response that
      overflows the tool limit; narrow the keywords and re-run.
-   - Treat the `rg` exhaustive pass as the real filter here; cbm's top hit is a lead into it.
+   - Treat the exhaustive pass as the real filter here; cbm's top hit is a lead into it.
 
 **Heuristic: browser-side features.** For browser-run features (notifications, downloads, clipboard,
 paste, drag-and-drop, service workers, file uploads, permissions prompts), read the webapp source before
@@ -318,8 +319,8 @@ Same reasoning as Phase 4's `docs` refresh: it tracks its default branch and is 
 `docs` itself needs no second refresh here; Phase 4 already covers it for this run.
 
 Search all five unconditionally - all are required:
-1. `upstream/docs/source/` (product docs, customer-facing). Search with `grep -rni "<keywords>" upstream/docs/source/`
-2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Search with `grep -rni "<keywords>" upstream/mattermost-developer-documentation/site/content/`
+1. `upstream/docs/source/` (product docs, customer-facing). Search with `rg --no-ignore --hidden -ni "<keywords>" upstream/docs/source/` (or `grep -rni "<keywords>" upstream/docs/source/`)
+2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Search with `rg --no-ignore --hidden -ni "<keywords>" upstream/mattermost-developer-documentation/site/content/` (or `grep -rni "<keywords>" upstream/mattermost-developer-documentation/site/content/`)
 3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
    - Use focused 1-2 term queries (stricter AND-matches with more terms often return zero results). Leave `keyword_limit`/`semantic_limit` at their defaults; raising them risks an oversized result truncated to a file.
    - Progress line: `hub` (Output style). If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
@@ -361,7 +362,7 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
   - `git -C upstream/<repo> log <older-tag>..<newer-tag> -- <path>` for what landed between two releases.
   - `git -C upstream/<repo> diff <older-tag> <newer-tag> -- <path>` for the change itself.
   - Order matters: older ref first. Reversed, the range is empty and reads as "no changes".
-- On the search-only path (unavailable, excluded, or `--no-cbm`), use `rg`/`git` for the artefact.
+- On the search-only path (unavailable, excluded, or `--no-cbm`), use `rg` (or `grep`)/`git` for the artefact.
 - **Commit/PR claimed as fix:** verify before accepting.
   - Search terms come from wording already collected (Phase 1/4/6), not a guessed phrase - generalized
     per Phase 6's boundary if drawn from Phase 1.
@@ -383,7 +384,7 @@ Re-validation: <hypothesis>; disproved by <command>:
 
 One line of quoted output max; truncate long command output with `...`.
 
-For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`grep -rn '^type <X> ' upstream/<repo>/\`: <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
+For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' upstream/<repo>/\` (or \`grep -rn '^type <X> ' upstream/<repo>/\`): <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
 
 Complete this phase before proceeding.
 

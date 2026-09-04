@@ -28,12 +28,12 @@ This skill is the codebase-memory tool for that: it greps raw text, then dedupli
    - Report `total_grep_matches` (raw grep hit count) vs `total_results` (deduplicated function count) from the response.
 4. **This tool caps at `limit` (default 10) with no `offset` parameter** - it surfaces ranked leads, not an exhaustive result set.
    - If `total_grep_matches` or `total_results` exceeds what was returned, say so plainly.
-   - Raise `limit`, narrow with `file_pattern`/`path_filter`, or fall back to `grep -rnF` for the exhaustive pass.
+   - Raise `limit`, narrow with `file_pattern`/`path_filter`, or fall back to `rg --no-ignore --hidden -nF` (or `grep -rnF`) for the exhaustive pass.
    - Report this tool's result as ranked leads plus the enclosing symbol for each match.
    - For the complete match set on an exact string (e.g. Phase 5 angle 1 of `/investigate`), cite
-     `grep -rn`.
+     `rg --no-ignore --hidden -n` (or `grep -rn`).
 5. No matches: report it.
    - `codebase-memory-mcp` hardcodes some directories out of indexing entirely, even under `mode: full` (e.g. `vendor`, `vendored`, `node_modules`, `.git`).
    - Check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
    - Non-code files (Dockerfiles, shell scripts, YAML) may also fall outside what got indexed.
-   - Fall back to `grep -rn` or reading the file directly for anything under an excluded path or a non-code file.
+   - Fall back to `rg --no-ignore --hidden -n` (or `grep -rn`) or reading the file directly for anything under an excluded path or a non-code file.

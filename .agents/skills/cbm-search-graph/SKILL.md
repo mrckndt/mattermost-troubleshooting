@@ -23,7 +23,7 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
    - Both modes search **symbol names**. For string literals and error messages, use `/cbm-search-code`.
    - The `query` mode filters out `Variable`/`File`/`Folder`/`Module`-labeled nodes as noise - a named constant or config-struct field can legitimately return 0 hits even though it exists.
    - Config keys, setting names and feature-flag names are struct fields (e.g. `MaxOpenConns`), which this
-     tool reports as 0 hits. Reach for `/cbm-search-code` or `rg` for those.
+     tool reports as 0 hits. Reach for `/cbm-search-code` or `rg --no-ignore --hidden` (or `grep -r`) for those.
 3. Present the top matches from `results`: `name`, `qualified_name`, `file_path:start_line`.
    - On a semantic-only call, read `semantic_results` (each with a `score`) and ignore `results`: with no `query` it
      degrades to an unfiltered match on the whole graph and is pure noise.
@@ -36,5 +36,5 @@ Parse args as `[<repo>] <query>`. Determine `<repo>` by checking whether the fir
 5. No matches: report it.
    - `codebase-memory-mcp` hardcodes some directories out of indexing entirely, even under `mode: full` (e.g. `vendor`, `vendored`, `node_modules`, `.git`).
    - Before assuming the symbol doesn't exist, check the excluded-dirs line from `/cbm-index-repository <repo>`'s output.
-   - Fall back to `grep -rn` or reading the file directly for anything under an excluded path.
+   - Fall back to `rg --no-ignore --hidden -n` (or `grep -rn`) or reading the file directly for anything under an excluded path.
    - Otherwise suggest `/cbm-search-code` if the target may be a text literal or a struct field, or broader keywords.

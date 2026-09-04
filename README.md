@@ -11,8 +11,8 @@ Setup at a glance:
 
 ### Recommended CLI tools (optional)
 
-Every skill instruction is plain `grep`/`find`, which needs no install. The agent substitutes `fd`/`rg`
-on its own when present: both are Rust, so parsing the untrusted ticket files this pipeline reads (logs,
+Skill instructions show `rg`/`fd` first, with the plain `grep`/`find` form in parentheses as a no-install
+fallback: both are Rust, so parsing the untrusted ticket files this pipeline reads (logs,
 config dumps, support packets) isn't exposed to C's memory-corruption bug classes, and both are faster
 on large files. See `AGENTS.md`'s Search tools bullet for the flags that keep them equivalent.
 
@@ -151,7 +151,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
 
    Add `--no-cbm` (e.g. `/investigate 12345 --no-cbm`) to run without the codebase-memory knowledge graph.
-   Source search then uses `rg`/`git` alone: coverage is unchanged, and what you give up is symbol
+   Source search then uses `rg --no-ignore --hidden` (or `grep`)/`git` alone: coverage is unchanged, and what you give up is symbol
    attribution for text matches and call-chain tracing. Useful for config questions and known-issue
    lookups where speed matters more than structural evidence.
 5. When you have a conclusion, generate the customer-facing output:

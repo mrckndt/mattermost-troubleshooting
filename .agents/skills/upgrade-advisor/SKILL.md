@@ -64,8 +64,9 @@ Preference order (first match wins):
 1. **Support packet node config** - inside the support packet, node subdirectories (e.g. `ip-172-16-*`) each
    contain a `sanitized_config.json`. Use the first one - in HA the config is typically identical across nodes.
    ```bash
-   find "$PROJECT_ROOT/tickets/<ID>"/mm_support_packet_*/ -name "sanitized_config.json" 2>/dev/null | head -1
+   fd --no-ignore --hidden -t f "sanitized_config.json" "$PROJECT_ROOT/tickets/<ID>" | head -1
    ```
+   (or `find "$PROJECT_ROOT/tickets/<ID>"/mm_support_packet_*/ -name "sanitized_config.json" 2>/dev/null | head -1`)
 2. **Bare `config.json` in `tickets/<ID>/`** - if there's no support packet, fall back to `tickets/<ID>/config.json`.
 3. **Neither** - stop and tell the user no config was found. Suggest they either re-run with a version argument
    (`/upgrade-advisor 10.11.10`) or drop a `config.json` or support packet into `tickets/<ID>/`.

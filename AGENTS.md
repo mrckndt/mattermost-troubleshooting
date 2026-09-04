@@ -88,14 +88,15 @@ and repos on a branch, behaving as before.
   when present. `rg`/`fd` skip `.gitignore`-matched and hidden files by default; `grep`/`find` don't skip
   anything without being told to. A bare `rg`/`fd` substituted for one of the commands below can silently
   return fewer matches, not an error - always add `--no-ignore --hidden` when substituting one in. Skill
-  instructions below are written as plain `grep`/`find` since that form runs with no flags and no
-  install, on any machine; other flags (`-n`/`-i`/`-l`/`-F`) carry over to `rg`/`fd` unchanged.
+  instructions below show `rg`/`fd` first with `grep`/`find` in parentheses as fallback; other flags
+  (`-n`/`-i`/`-l`/`-F`) carry over to `rg`/`fd` unchanged.
 
 ## Authoritative sources
 
 **Local first:**
 - `fragments/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
-- `upstream/docs/source/` - version-pinned product docs (`.rst`). Search with `rg -ni "<keywords>" upstream/docs/source/`.
+- `upstream/docs/source/` - version-pinned product docs (`.rst`). Search with `rg --no-ignore --hidden -i "<keywords>" upstream/docs/source/`
+  (or `grep -rni "<keywords>" upstream/docs/source/`).
 - `upstream/<repo>/` - source code; authoritative when docs are silent or stale.
 
 **External:**
