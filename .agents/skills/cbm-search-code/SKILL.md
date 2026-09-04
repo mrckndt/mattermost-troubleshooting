@@ -24,7 +24,7 @@ This skill is the codebase-memory tool for that: it greps raw text, then dedupli
    - Default `mode: compact` (signatures + metadata, token-efficient); `mode: full` also pulls source; `mode: files` returns just the file list.
    - Narrow with `file_pattern` (glob, e.g. `*.go`), `path_filter` (regex on result paths, e.g. `^server/`), or `context` (lines of context, compact mode only).
    - Pass `regex: true` to treat `<pattern>` as a regex instead of a literal.
-3. Present the enriched results: function/symbol name, file:line, and (in `full` mode) source.
+3. Present the enriched results: function/symbol name (file), and (in `full` mode) source.
    - Report `total_grep_matches` (raw grep hit count) vs `total_results` (deduplicated function count) from the response.
 4. **This tool caps at `limit` (default 10) with no `offset` parameter** - it surfaces ranked leads, not an exhaustive result set.
    - If `total_grep_matches` or `total_results` exceeds what was returned, say so plainly.

@@ -34,6 +34,7 @@ Optional (never ask; use if known): contact full name + title + email; Jira URL/
 
 Print raw Markdown, not in a code block. Follow the template exactly.
 - Render every URL as a Markdown link; never append the bare URL. Labels: Zendesk `#<ID>` (e.g. `#48217`), Jira key (e.g. `MM-12345`), other: 1-3 word descriptor.
+- Citing a code-level root cause (e.g. from `analysis.md`): use `function:file`, not a raw line number - line numbers drift and outlive this report's accuracy.
 - Never invent or guess a URL, key, or email. Per-field rules for unknowns:
   - **Contact:** omit the line if name unknown. Drop `, Title` or `, email` if unknown. Render email as plain text.
   - **Jira Ticket:** omit the line if URL unknown.

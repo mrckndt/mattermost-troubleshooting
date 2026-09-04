@@ -289,7 +289,7 @@ only where it answers something `rg`/`grep` cannot, named per angle below. On th
 3. Function/method names from stack traces: `/cbm-trace-path <repo> <fn>` for callers/callees, then
    `/cbm-get-code-snippet <repo> <fn>` for the source of each hop. Lead with the graph here, since it is
    the source of call chains. Confirm with `rg --no-ignore --hidden -n` (or `grep -rn`).
-   - `get_code_snippet` supplies the file and line for each hop, which is what makes a chain citable.
+   - `get_code_snippet` supplies the function and file for each hop, which is what makes a chain citable.
 4. Feature flag or setting key names: `/cbm-search-code <repo> <key>`, then `rg --no-ignore --hidden -n` (or `grep -rn`).
    - Setting and flag keys are struct fields, which `search_code` resolves to the functions that read
      them (`EnableGuestMagicLink` and `SessionLengthWebInHours` each return the enclosing symbol this way).
@@ -393,7 +393,7 @@ Complete this phase before proceeding.
 When a customer config issue intersects an upstream defect, state BOTH:
 
 - **Customer remediation:** what to change to unblock (migrate DB, change setting, upgrade).
-- **Upstream bug surface:** code-level defect with `file:line` and conditions under which it affects other deployments.
+- **Upstream bug surface:** code-level defect with `function:file` and conditions under which it affects other deployments.
 
 Config-only answer when a defect was found is a framing violation. If no defect found, state: "No upstream defect identified - configuration is out of contract."
 
@@ -416,7 +416,7 @@ Two section kinds, never mixed:
 pipeline resuming, `resume-investigation`, `search-tickets`, or a colleague pasting the file into their own
 session) - optimize for dense, structured parsing, never for cutting a fact, caveat, version boundary, or
 alternative a reader would need:
-- Dense bullets, not paragraphs; a `file:line` citation beats a prose explanation of what the code does.
+- Dense bullets, not paragraphs; a `function:file` citation beats a prose explanation of what the code does.
 - A sequential/causal chain (call order, read/write routing) compresses to `A -> B -> C`, one hop per arrow,
   instead of a full sentence per hop.
 - Don't restate a fact the file already establishes elsewhere (e.g. don't re-explain `Deployment` inside
@@ -438,7 +438,7 @@ This is the session-level index, not the preservation mechanism - the annotate-i
 keeps reasoning next to the fact it corrects. Node/edge counts live in `Steps and outcomes`, not here.
 
 **`Ruled out` (append-only):** each entry is `<alternative> - disproved by <command + quoted output, or
-file:line> - <1-2 lines: why it looked plausible before the artefact ruled it out>`. That reasoning is what a
+function:file> - <1-2 lines: why it looked plausible before the artefact ruled it out>`. That reasoning is what a
 later session needs to avoid re-opening a closed line. Never delete an entry.
 
 Complete this phase before proceeding.
@@ -461,10 +461,10 @@ After Phase 9 writes the files, print ONE digest to the conversation. This is wh
 - **Issue is capped at its 3 template bullets** (ID/version/confidence; cause + tag; backport) - never a 4th.
   - Mechanism detail, precedence order, or affected-surface breakdown goes in Fix, Next steps, or Evidence.
 - **Every section is bullets, no prose lines:** Issue, Fix, and Evidence use `-` bullets, same as Next steps/Open/Ruled out.
-- **Evidence is a compressed summary, not a file:line list:**
+- **Evidence is a compressed summary, not a function:file list:**
   - Name the *kind* of evidence per bullet (source inspection, PR/commit, docs, historical ticket pattern) and what it shows.
   - Plain behavioral language; inline the `docs.mattermost.com`/`support.mattermost.com` link on any bullet it backs.
-  - Exact locations live in `analysis.md` only - never repeat file:line in the digest.
+  - Exact locations live in `analysis.md` only - never repeat function:file in the digest.
 - **Ruled out lists only alternatives genuinely eliminated**, distinct from the confirmed finding.
   - A negation of the already-confirmed cause (e.g. "X lacking entirely - present in the tag") is confirmation, not an alternative - drop it or fold it into Evidence.
 - **Advisory / research tickets:** relabel `Root cause` to `Answer`, `Fix` / `Interim` to `Recommendation`.
@@ -494,7 +494,7 @@ Skeleton (apply `AGENTS.md` formatting: no em dashes, plain ``` fences):
 
 **Evidence**
 - <kind of evidence: source inspection, PR/commit, docs, historical pattern> - <what it shows, plain language>
-- <2-4 bullets total; inline the docs.mattermost.com/support.mattermost.com link on any bullet it backs, no file:line>
+- <2-4 bullets total; inline the docs.mattermost.com/support.mattermost.com link on any bullet it backs, no function:file>
 
 **Full detail:** tickets/<ID>/analysis.md
 ```

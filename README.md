@@ -148,7 +148,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - Searches source code at five angles (exact error strings, config keys, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
    - Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
-   - Returns a `file:line` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
+   - Returns a `function:file` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
 
    Add `--no-cbm` (e.g. `/investigate 12345 --no-cbm`) to run without the codebase-memory knowledge graph.
    Source search then uses `rg --no-ignore --hidden` (or `grep`)/`git` alone: coverage is unchanged, and what you give up is symbol
