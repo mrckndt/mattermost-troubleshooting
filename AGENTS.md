@@ -83,7 +83,7 @@ and repos on a branch, behaving as before.
 - **Session naming:** at the start of a ticket investigation, rename the session to include the ticket
   number and customer name (e.g. `/rename Ticket 12345 - Acme Corp`), derived from the ticket directory
   name (`tickets/<name>/`) or `hub-thread.md` if the customer name isn't in the directory name.
-- **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `fragments/mattermost.md`, `upstream/docs/source/...`, `function:file`).
+- **Source attribution:** in investigative responses (not generated drafts or artifacts), state claim sources (e.g. `fragments/mattermost.md`, `upstream/docs/docs/...`, `function:file`).
 - **Search tools:** prefer `rg --no-ignore --hidden` over `grep`, `fd --no-ignore --hidden` over `find`,
   when present. `rg`/`fd` skip `.gitignore`-matched and hidden files by default; `grep`/`find` don't skip
   anything without being told to. A bare `rg`/`fd` substituted for one of the commands below can silently
@@ -95,8 +95,8 @@ and repos on a branch, behaving as before.
 
 **Local first:**
 - `fragments/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
-- `upstream/docs/source/` - version-pinned product docs (`.rst`). Search with `rg --no-ignore --hidden -i "<keywords>" upstream/docs/source/`
-  (or `grep -rni "<keywords>" upstream/docs/source/`).
+- `upstream/docs/docs/` - version-pinned product and developer docs. Search with `rg --no-ignore --hidden -i "<keywords>" upstream/docs/docs/`
+  (or `grep -rni "<keywords>" upstream/docs/docs/`).
 - `upstream/<repo>/` - source code; authoritative when docs are silent or stale.
 
 **External:**

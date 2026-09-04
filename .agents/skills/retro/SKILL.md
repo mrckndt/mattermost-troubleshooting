@@ -167,7 +167,7 @@ public support knowledge base.
 
 ### a) docs.mattermost.com
 
-Local mirror: `upstream/docs/source/`. Self-refresh before use: `/git-pull docs`; this skill can run
+Local mirror: `upstream/docs/docs/`. Self-refresh before use: `/git-pull docs`; this skill can run
 in a session where no prior `/investigate` step has pulled it, so don't assume it's current. Public
 site: https://docs.mattermost.com.
 
@@ -179,7 +179,7 @@ Ask:
 - Is there an error message or symptom that doesn't appear anywhere in the
   docs and should?
 
-If yes, propose a specific change: which page, what edit. Grep `upstream/docs/source/` to confirm
+If yes, propose a specific change: which page, what edit. Grep `upstream/docs/docs/` to confirm
 current state before recommending — do not assume a page is missing without checking.
 
 ### b) Public support KB — new article candidate

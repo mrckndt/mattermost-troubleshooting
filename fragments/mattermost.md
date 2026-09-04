@@ -60,3 +60,7 @@ check the manual that corresponds to your MariaDB server version for the right s
 - **Not permissions/license:** failure is the time-limit `AppError` (HTTP 400), not a 403. The pin path checks read-channel permission plus the time limit only; it ignores `AllowEditPost`/`edit_post`, so changing edit permissions does not help.
 
 **Fix:** raise `ServiceSettings.PostEditTimeLimit` in `config.json` to a window that covers expected pinning, or set `-1` for unlimited. Read live via the config watcher; no restart. config.json-only (System Console control deprecated). Tradeoff: the same setting governs message editing, so raising it also widens the edit window.
+
+#### `upstream/docs` is a full monorepo clone pinned to `master`
+
+Docs now live in-tree at `docs/main`/`docs/develop`. `v11.10` is the first release with `docs/` present - older tags have none. Never `/git-switch docs` off `master`. Once every supported version is `>= v11.10`, retire this clone and read docs from the version-aligned `upstream/mattermost` instead.

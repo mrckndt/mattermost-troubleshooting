@@ -104,10 +104,11 @@ Save targets:
   standalone, without a prior `/investigate` in this session, so the local mirror may otherwise be
   arbitrarily stale relative to the live site.
 - **In this repo, `docs.mattermost.com/<path>.html` links are locally checkable:** confirm
-  `upstream/docs/source/<path>.rst` or `<path>.md` exists (both extensions are used), and that
-  any `#<anchor>` matches a real heading in that file (lowercased, punctuation/spaces to hyphens)
-  or an explicit `.. _<anchor>:` label. If the anchor doesn't match, link the page without it -
-  never guess one. If the page itself doesn't exist under either extension, drop the link.
+  `upstream/docs/docs/main/<path>.mdx` exists, and that any `#<anchor>` matches a real heading in
+  that file (lowercased, punctuation/spaces to hyphens; MDX headings may also carry an explicit
+  `{#custom-id}` override - check the file itself when the plain slug doesn't match before dropping
+  the anchor). If the anchor doesn't match, link the page without it - never guess one. If the page
+  itself doesn't exist, drop the link.
 - For `support.mattermost.com`, `developers.mattermost.com`, and `github.com` links, which have
   no local source to check: if web search is available, use it to confirm a link before citing
   it. A single unclear result is not confirmation; don't cite on a weak match.

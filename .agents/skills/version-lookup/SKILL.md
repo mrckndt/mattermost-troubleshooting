@@ -24,8 +24,8 @@ Match `<query>` against these forms, in order:
 
 **`latest esr` / `esr`:**
 1. Self-refresh the source: `/git-pull docs` (finds the current ESR tag *name*).
-2. `grep -m1 "Extended Support Release (ESR)" "$PROJECT_ROOT/upstream/docs/source/product-overview/version-archive.rst" | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*'`
-3. Fallbacks if no match, same directory, in order: `common-esr-support-rst.rst`, then `release-policy.md`.
+2. `grep -m1 "Extended Support Release (ESR)" "$PROJECT_ROOT/upstream/docs/docs/main/product-overview/version-archive.mdx" | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*'`
+3. Fallbacks if no match, same directory, in order: `common-esr-support-rst.mdx`, then `release-policy.mdx`.
 4. Self-refresh the target: `/git-pull <repo>` (fetches the resolved tag into `upstream/<repo>` so the switch does not fail on a missing ref).
 5. Result kind: tag. Applies to both `mattermost` and `enterprise` regardless of which repo was passed; note this in the output.
 
@@ -50,7 +50,7 @@ If `<query>` matches none of the above, treat it as already a concrete ref (tag,
 ## Output
 
 ```
-Resolved "<query>" -> <ref> (<tag|branch|literal>, source: <version-archive.rst | git tags | normalized | origin/HEAD>)
+Resolved "<query>" -> <ref> (<tag|branch|literal>, source: <version-archive.mdx | git tags | normalized | origin/HEAD>)
 ```
 
 For `latest esr`, append: `Applies to mattermost and enterprise.`

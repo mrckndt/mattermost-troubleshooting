@@ -203,11 +203,11 @@ Then search both files for the customer's version range - both are required, not
 
 1. Important upgrade notes:
 ```
-grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/source/administration-guide/upgrade/important-upgrade-notes.rst"
+grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/docs/main/administration-guide/upgrade/important-upgrade-notes.mdx"
 ```
 2. v11 changelog:
 ```
-grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/source/product-overview/mattermost-v11-changelog.md"
+grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/docs/main/product-overview/mattermost-v11-changelog.mdx"
 ```
 
 Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
@@ -217,8 +217,8 @@ Search by server version, affected component, and any config keys or error strin
 Emit a single fenced block, one line per source per repo:
 
 - `fragments/<repo>.md` - `<relevant note quoted verbatim>` (or `no relevant entries`)
-- `important-upgrade-notes.rst` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
-- `mattermost-v11-changelog.md` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
+- `important-upgrade-notes.mdx` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
+- `mattermost-v11-changelog.mdx` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
 
 - Record every hit verbatim, even if it doesn't fit the current theory - no relevance verdicts in this block.
 - Full quote if in the customer's version range or names an in-scope component; else `file:line` + first ~15 words.
@@ -311,27 +311,23 @@ Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
-Searches 3-5 leave this workspace: query terms only, no customer hostname/domain/email/username/org/IP/
+Searches 2-4 leave this workspace: query terms only, no customer hostname/domain/email/username/org/IP/
 token, even quoted from a ticket file (AGENTS.md Boundaries).
 
-Self-refresh `mattermost-developer-documentation` before searching it: `/git-pull mattermost-developer-documentation`.
-Same reasoning as Phase 4's `docs` refresh: it tracks its default branch and is never version-aligned in Phase 3.
-`docs` itself needs no second refresh here; Phase 4 already covers it for this run.
-
-Search all five unconditionally - all are required:
-1. `upstream/docs/source/` (product docs, customer-facing). Search with `rg --no-ignore --hidden -ni "<keywords>" upstream/docs/source/` (or `grep -rni "<keywords>" upstream/docs/source/`)
-2. `upstream/mattermost-developer-documentation/site/content/` (developer docs). Search with `rg --no-ignore --hidden -ni "<keywords>" upstream/mattermost-developer-documentation/site/content/` (or `grep -rni "<keywords>" upstream/mattermost-developer-documentation/site/content/`)
-3. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
+Search all four unconditionally - all are required:
+1. `upstream/docs/docs/` (product docs under `docs/main`, developer docs under `docs/develop`). Search with
+   `rg --no-ignore --hidden -ni "<keywords>" upstream/docs/docs/` (or `grep -rni "<keywords>" upstream/docs/docs/`)
+2. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
    - Use focused 1-2 term queries (stricter AND-matches with more terms often return zero results). Leave `keyword_limit`/`semantic_limit` at their defaults; raising them risks an oversized result truncated to a file.
    - Progress line: `hub` (Output style). If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
    - If unavailable, state `Mattermost Hub search skipped: <reason>`.
-4. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
+3. GitHub issues and PRs per in-scope repo - one search per repo, all repos required:
    - **Preferred:** `mcp__claude_ai_GitHub_MCP__search_issues` and `mcp__claude_ai_GitHub_MCP__search_pull_requests` with symptom keywords and Phase 1 error strings.
    - Pass `perPage: 5` and `minimal_output: true`; default page size and full output overflow the tool limit.
    - Progress line: `github <repo>` (Output style).
    - **Fallback (no GitHub MCP available):** `WebFetch`/`WebSearch` against `https://github.com/mattermost/<repo>/issues`, same progress line from the search URL's top results.
    - If no GitHub MCP is available, state `GitHub MCP skipped: <reason>` and use the WebFetch fallback.
-5. Internal Jira issues per in-scope repo (project `MM` only) - one search per repo, all repos required:
+4. Internal Jira issues per in-scope repo (project `MM` only) - one search per repo, all repos required:
    - **Preferred:** `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`.
    - JQL: `project = MM AND text ~ "<term>"` ORDER BY updated DESC.
    - One exact error string or config/component name per query, not a multi-word phrase.
@@ -342,7 +338,7 @@ Search all five unconditionally - all are required:
    - Discard hits not actually about the symptom, even if the query matched.
    - **No fallback:** not publicly reachable. State `Jira search skipped: <reason>` if unavailable; do not attempt WebFetch.
 
-If searches 3, 4, or 5 cannot run (offline, WebFetch fails, MCP unavailable, Hub result oversized), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
+If searches 2, 3, or 4 cannot run (offline, WebFetch fails, MCP unavailable, Hub result oversized), state `<search> skipped: <reason>` in the conclusion. Do not omit silently.
 
 Complete this phase before proceeding.
 
