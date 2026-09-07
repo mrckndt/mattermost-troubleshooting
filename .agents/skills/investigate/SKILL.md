@@ -158,7 +158,7 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 
 **Detect server version** (check in order; stop at first hit):
 1. `tickets/<ID>/diagnostics.yaml` - `server.version` field
-2. `tickets/<ID>/metadata.yml` - `server_version` field
+2. `tickets/<ID>/metadata.yaml` - `server_version` field
 3. `tickets/<ID>/mattermost.log` - line matching `"Current version is X.Y.Z"`
 4. `tickets/<ID>/analysis.md` - `## Deployment` section
 5. Conversation context or other ticket files
