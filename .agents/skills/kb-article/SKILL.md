@@ -100,7 +100,7 @@ Save targets:
 - Never paste a doc paragraph or leave a sentence truncated.
 
 **Links - check every one before writing, inline and under Additional Resources:**
-- Self-refresh before checking any `docs.mattermost.com` link: `/git-pull docs`. This skill can run
+- Self-refresh before checking any `docs.mattermost.com` link: `/git-pull docs --interval=weekly`. This skill can run
   standalone, without a prior `/investigate` in this session, so the local mirror may otherwise be
   arbitrarily stale relative to the live site.
 - **In this repo, `docs.mattermost.com/<path>.html` links are locally checkable:** confirm

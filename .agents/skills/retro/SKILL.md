@@ -167,7 +167,7 @@ public support knowledge base.
 
 ### a) docs.mattermost.com
 
-Local mirror: `upstream/docs/docs/`. Self-refresh before use: `/git-pull docs`; this skill can run
+Local mirror: `upstream/docs/docs/`. Self-refresh before use: `/git-pull docs --interval=weekly`; this skill can run
 in a session where no prior `/investigate` step has pulled it, so don't assume it's current. Public
 site: https://docs.mattermost.com.
 

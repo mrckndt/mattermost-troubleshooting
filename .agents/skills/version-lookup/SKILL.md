@@ -23,7 +23,7 @@ This skill only resolves a query to a ref; it does not switch. Pass the result t
 Match `<query>` against these forms, in order:
 
 **`latest esr` / `esr`:**
-1. Self-refresh the source: `/git-pull docs` (finds the current ESR tag *name*).
+1. Self-refresh the source: `/git-pull docs --interval=weekly` (finds the current ESR tag *name*).
 2. `grep -m1 "Extended Support Release (ESR)" "$PROJECT_ROOT/upstream/docs/docs/main/product-overview/version-archive.mdx" | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*'`
 3. Fallbacks if no match, same directory, in order: `common-esr-support-rst.mdx`, then `release-policy.mdx`.
 4. Self-refresh the target: `/git-pull <repo>` (fetches the resolved tag into `upstream/<repo>` so the switch does not fail on a missing ref).

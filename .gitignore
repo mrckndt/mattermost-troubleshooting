@@ -11,6 +11,9 @@
 # Track upstream folder
 !upstream/
 
+# Except the local per-machine git-pull cache
+upstream/.last-pull.json
+
 # Track curated per-repo notes (knowledge fragments)
 !fragments/
 !fragments/**
