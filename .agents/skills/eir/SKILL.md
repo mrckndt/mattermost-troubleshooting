@@ -4,8 +4,6 @@ description: Generate an internal Engineering Incident Report for a ticket: full
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Generate an internal Engineering Incident Report (EIR) for a ticket.

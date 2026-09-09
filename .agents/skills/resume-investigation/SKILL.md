@@ -4,8 +4,6 @@ description: Resume a ticket investigation: read analysis.md, ask before running
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 ## Phase 0 - Resolve ticket ID

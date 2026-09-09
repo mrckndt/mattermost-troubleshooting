@@ -4,8 +4,6 @@ description: Switch a cloned repo under upstream/ to a tag, branch, or version q
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Parse args as `<repo> [<ref>]`. Switch `upstream/<repo>` to `<ref>`, or the default branch if `<ref>` is omitted.

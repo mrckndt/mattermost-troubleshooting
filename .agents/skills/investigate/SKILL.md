@@ -4,8 +4,6 @@ description: Run the full investigation pipeline for a ticket or problem descrip
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 **Complete each phase in order. Do not skip ahead, form hypotheses, or run source searches until the phase explicitly permits it.**
@@ -51,8 +49,8 @@ Complete this phase before proceeding.
 Before listing files, unarchive any archives in `tickets/<ID>/` in place:
 
 ```
-for f in tickets/<ID>/*.zip; do unzip -n "$f" -d "tickets/<ID>/$(basename "$f" .zip)"; done
-for f in tickets/<ID>/*.tar.gz tickets/<ID>/*.tgz; do tar -xzf "$f" -C "tickets/<ID>/"; done
+for f in "$PROJECT_ROOT"/tickets/<ID>/*.zip; do unzip -n "$f" -d "$PROJECT_ROOT/tickets/<ID>/$(basename "$f" .zip)"; done
+for f in "$PROJECT_ROOT"/tickets/<ID>/*.tar.gz "$PROJECT_ROOT"/tickets/<ID>/*.tgz; do tar -xzf "$f" -C "$PROJECT_ROOT/tickets/<ID>/"; done
 ```
 
 Skip silently if no archives are present. Do not delete the original archives.
@@ -60,12 +58,9 @@ Skip silently if no archives are present. Do not delete the original archives.
 Then list every file recursively in `tickets/<ID>/` with sizes (unpacked archives from the previous step nest files in subdirectories), then read each one before forming any hypothesis:
 
 ```
-fd --no-ignore --hidden . "tickets/<ID>/" -x ls -lh
+fd --no-ignore --hidden . "$PROJECT_ROOT/tickets/<ID>/" -x ls -lh
 ```
-(or `find "tickets/<ID>/" -type f -exec ls -lh {} +`)
-
-`tickets/` is gitignored: a bare `fd` here (no `--no-ignore --hidden`) silently returns zero files
-(verified: `fd . tickets/<ID>/` -> 0, `fd --no-ignore --hidden . tickets/<ID>/` -> the real count).
+(or `find "$PROJECT_ROOT/tickets/<ID>/" -type f -exec ls -lh {} +`)
 
 **Topology detection.** From the listing above, determine whether `tickets/<ID>/` is single-node or HA.
 HA signature: node-labeled subdirectories (`node-1/`, `node-2/`, etc.) each with their own log file(s).
@@ -268,20 +263,19 @@ has one search-only path.
 - Identify server logs by filename (`mattermost.log`, `*mattermost*.log`, `*mattermost*.txt`) or by content (lines matching `level=(error|warn|info|debug).*msg=`).
 - `<Message>` in `<Where>: <Message>` is almost always a translation key value - grepping it returns the precise call-site key.
 
-1. Identify server language from the server log; check `ls upstream/mattermost/server/i18n/` for `<lang>.json`.
+1. Identify server language from the server log; check `ls "$PROJECT_ROOT/upstream/mattermost/server/i18n/"` for `<lang>.json`.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
-3. `grep -F "<message>" upstream/mattermost/server/i18n/<lang>.json` to get the key; `rg --no-ignore --hidden -n` (or `grep -rn`) the repo source for the call site.
+3. `grep -F "<message>" "$PROJECT_ROOT/upstream/mattermost/server/i18n/<lang>.json"` to get the key; `rg --no-ignore --hidden -n` (or `grep -rn`) the repo source for the call site.
 
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 All five angles below are required, run once per in-scope repo.
 
 Progress line: `search:<angle>` (Output style).
 
-`rg --no-ignore --hidden` (or `grep -r`) is the exhaustive pass in every angle, covering excluded dirs,
-i18n JSON and non-code files. The flags on `rg` are required, or "exhaustive" is false: it silently skips
-gitignored and hidden matches instead of erroring (AGENTS.md Search tools). A `cbm-*` call is warranted
-only where it answers something `rg`/`grep` cannot, named per angle below. On the search-only path
-(Step 0), `rg --no-ignore --hidden` (or `grep -r`) is the whole angle for every repo.
+`rg --no-ignore --hidden` (or `grep -r`) is the exhaustive pass in every angle, covering excluded
+dirs, i18n JSON and non-code files (AGENTS.md Search tools). A `cbm-*` call is warranted only where
+it answers something `rg`/`grep` cannot, named per angle below. On the search-only path (Step 0),
+`rg --no-ignore --hidden` (or `grep -r`) is the whole angle for every repo.
 
 1. Exact error strings from the Phase 1 error-families list: `rg --no-ignore --hidden -n "<string>" <repo-dir>` (or `grep -rn "<string>" <repo-dir>`).
    - Add `/cbm-search-code <repo> "<string>"` to learn which symbol encloses a match. It returns up to 10
@@ -319,7 +313,7 @@ token, even quoted from a ticket file (AGENTS.md Boundaries).
 
 Search all four unconditionally - all are required:
 1. `upstream/docs/docs/` (product docs under `docs/main`, developer docs under `docs/develop`). Search with
-   `rg --no-ignore --hidden -ni "<keywords>" upstream/docs/docs/` (or `grep -rni "<keywords>" upstream/docs/docs/`)
+   `rg --no-ignore --hidden -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/docs/"` (or `grep -rni "<keywords>" "$PROJECT_ROOT/upstream/docs/docs/"`)
 2. Mattermost Hub: `mcp__claude_ai_Mattermost_Hub__search_posts` for symptom keywords and Phase 1 error strings.
    - Use focused 1-2 term queries (stricter AND-matches with more terms often return zero results). Leave `keyword_limit`/`semantic_limit` at their defaults; raising them risks an oversized result truncated to a file.
    - Progress line: `hub` (Output style). If truncated anyway, read via a subagent or state `Mattermost Hub result skipped: <reason>`.
@@ -358,8 +352,8 @@ Phase 8 is blocked until the leading hypothesis **and at least two named alterna
   or `/cbm-trace-path <repo> <fn>` inline for this search.
 - Excluded repos stay on the search-only form here too (see Phase 5 Step 0).
 - For "changed across versions" hypotheses use git directly; no checkout switch is needed:
-  - `git -C upstream/<repo> log <older-tag>..<newer-tag> -- <path>` for what landed between two releases.
-  - `git -C upstream/<repo> diff <older-tag> <newer-tag> -- <path>` for the change itself.
+  - `git -C "$PROJECT_ROOT/upstream/<repo>" log <older-tag>..<newer-tag> -- <path>` for what landed between two releases.
+  - `git -C "$PROJECT_ROOT/upstream/<repo>" diff <older-tag> <newer-tag> -- <path>` for the change itself.
   - Order matters: older ref first. Reversed, the range is empty and reads as "no changes".
 - On the search-only path (unavailable, excluded, or `--no-cbm`), use `rg` (or `grep`)/`git` for the artefact.
 - **Commit/PR claimed as fix:** verify before accepting.
@@ -383,7 +377,7 @@ Re-validation: <hypothesis>; disproved by <command>:
 
 One line of quoted output max; truncate long command output with `...`.
 
-For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' upstream/<repo>/\` (or \`grep -rn '^type <X> ' upstream/<repo>/\`): <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
+For code-location questions: `Re-validation: "no alternative definition of <X> exists"; disproved by \`rg --no-ignore --hidden -n '^type <X> ' "$PROJECT_ROOT/upstream/<repo>/"\` (or \`grep -rn '^type <X> ' "$PROJECT_ROOT/upstream/<repo>/"\`): <output>`. Multiple hits need disambiguation (e.g. struct vs interface).
 
 Complete this phase before proceeding.
 

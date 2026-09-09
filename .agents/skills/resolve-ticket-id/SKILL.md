@@ -4,8 +4,6 @@ description: Normalize a ticket reference (bare number, zd-prefix, ZD- form, Zen
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Strip `--allow-new` from `$ARGUMENTS` first, in any position; keep the remainder as the reference. Resolve it to a Zendesk ticket ID. Apply in order; stop at the first hit.

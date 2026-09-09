@@ -4,8 +4,6 @@ description: Generate a Mattermost upgrade recommendation report: security fixes
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Generate an upgrade recommendation report for a Mattermost customer: find meaningful bug fixes and security

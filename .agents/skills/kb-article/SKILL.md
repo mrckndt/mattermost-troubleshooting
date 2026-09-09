@@ -4,8 +4,6 @@ description: Generate a KB article from the current troubleshooting context. Opt
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Generate a knowledge-base article for the current troubleshooting context, and save it to disk.

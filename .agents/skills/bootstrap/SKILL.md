@@ -4,17 +4,15 @@ description: Clone any missing Mattermost repos into upstream/. Idempotent.
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Read `"$PROJECT_ROOT/.agents/config/repos.json"`'s `repos` array: each entry has `name`, `url`, and
 optionally `cbm_excluded`/`cbm_excluded_reason`. Clone every entry under `upstream/<name>/`:
 
 1. If `upstream/<name>/` already exists, skip and report `already present`.
-2. Otherwise run `git clone <url> upstream/<name>` and report `cloned` or the git error.
+2. Otherwise run `git clone <url> "$PROJECT_ROOT/upstream/<name>"` and report `cloned` or the git error.
 
 Continue on errors; collect failures and surface them at the end.
 
-Ensure important working directories exist: `mkdir -p upstream tickets`.
+Ensure important working directories exist: `mkdir -p "$PROJECT_ROOT/upstream" "$PROJECT_ROOT/tickets"`.
 
 Report a Markdown table: `Repo | Result`, where `Result` is `already present`, `cloned`, or the git error.
 After the table, one line per cloned/present entry with `cbm_excluded: true`:

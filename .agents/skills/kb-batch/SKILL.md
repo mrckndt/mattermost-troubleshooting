@@ -4,8 +4,6 @@ description: Bulk-draft KB articles for a TSE's assigned Zendesk tickets in a ti
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Turn a window of a TSE's assigned tickets into KB-article drafts on disk, then proofread

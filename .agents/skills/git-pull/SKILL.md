@@ -4,8 +4,6 @@ description: Fetch tags and git pull --ff-only for the current branch: one repo 
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: optionally a single `<repo>` name matching a directory under `upstream/`, and optionally `--interval=<name>`.
 
 - Argument given: verify `upstream/<repo>/` exists (if not, list available repos and stop); process that repo only.

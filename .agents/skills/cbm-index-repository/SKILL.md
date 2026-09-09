@@ -4,8 +4,6 @@ description: Index one or more upstream/<repo> clones (or every non-excluded rep
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: zero, one, or several `<repo>` names matching directories under `upstream/`.
 
 If `mcp__codebase_memory_local__*` is absent: report `codebase-memory MCP not present` and stop.
@@ -34,8 +32,9 @@ report row, not two.
 **Filter the target list against `excluded` before any other step, and run everything below only on the
 survivors.** This filter is decided from `repos.json` alone and holds for every argument and phrasing.
 For each name in the target list that is also in `excluded`: report
-`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg/grep against upstream/<repo>/
-directly` and drop it. Excluded names reach zero codebase-memory MCP calls and zero CLI calls.
+`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg/grep against
+"$PROJECT_ROOT/upstream/<repo>/" directly` and drop it. Excluded names reach zero codebase-memory MCP
+calls and zero CLI calls.
 
 ### Freshness gate
 
@@ -120,7 +119,7 @@ Run these in order for each non-excluded target repo.
    `/version-lookup` treat as the repo's identity.
 3. If `state=unchanged`: skip to the next repo. No `index_repository` call.
 4. If `state=probe-failed`: report the line as printed, treat the repo as search-only for the caller
-   (`rg --no-ignore --hidden`, or `grep -r`, against `upstream/<repo>/`), and continue to the next repo.
+   (`rg --no-ignore --hidden`, or `grep -r`, against `"$PROJECT_ROOT/upstream/<repo>/"`), and continue to the next repo.
    No `index_repository` or `delete_project` call: freshness is unknown, so neither a rebuild nor a graph
    query is justified on it.
 5. If `state=reindex`: call `index_repository` with exactly these arguments.
@@ -189,7 +188,8 @@ A Markdown table: `Repo | Project | State | Ref`. `State` is `reindexed`, `uncha
 - **Two different "excluded" concepts, two different report lines.** `cbm_excluded` in `repos.json` is a
   policy decision (whole repo, never MCP-called): `<repo> excluded from codebase-memory (...)`. The
   `Excluded (<repo>): N dirs` Report line above is a tool limitation inside an already-indexed repo
-  (`.git`, `node_modules`, etc.), not a policy choice. Reach for `rg`/`git` against `upstream/<repo>/` in
+  (`.git`, `node_modules`, etc.), not a policy choice. Reach for `rg`/`git` against
+  `"$PROJECT_ROOT/upstream/<repo>/"` in
   both cases.
 - This is the manual equivalent of Phase 5 Step 0 in `/investigate`. Every other `cbm-*` skill calls it as
   its presence check, at most once per repo per session.

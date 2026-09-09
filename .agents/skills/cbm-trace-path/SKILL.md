@@ -4,8 +4,6 @@ description: Trace callers or callees of a function in a codebase-memory-indexed
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Parse args as `[<repo>] <question or function name>`. Determine `<repo>` by checking whether the first token matches an existing `upstream/<token>/` directory:

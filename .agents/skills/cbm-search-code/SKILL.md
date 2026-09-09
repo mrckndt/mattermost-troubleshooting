@@ -4,8 +4,6 @@ description: Find a string literal, error message, or config value in a codebase
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Parse args as `[<repo>] <pattern>`. Determine `<repo>` by checking whether the first token matches an existing `upstream/<token>/` directory:

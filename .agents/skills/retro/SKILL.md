@@ -4,8 +4,6 @@ description: Run a post-resolution retrospective on a resolved ticket - investig
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Run a post-resolution retrospective on a ticket.

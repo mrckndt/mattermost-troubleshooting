@@ -10,7 +10,6 @@
       "Bash(find:*)",
       "Bash(fd:*)",
       "Bash(rg:*)",
-      "Bash(pwd:*)",
       "Bash(cat:*)",
       "Bash(head:*)",
       "Bash(tail:*)",

@@ -4,8 +4,6 @@ description: Fetch a Zendesk ticket thread (by ticket ID, assignee email for a t
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 Fetch Zendesk ticket conversations from the Mattermost Hub and persist each one to disk once,

@@ -4,8 +4,6 @@ description: Search across all past tickets for a keyword, error string, or symp
 user-invocable: true
 ---
 
-Apply the Shell conventions from `AGENTS.md` before continuing (verify project-root CWD, capture `PROJECT_ROOT`, use absolute paths).
-
 Args: $ARGUMENTS
 
 If no argument is provided, ask for a search term before proceeding.
