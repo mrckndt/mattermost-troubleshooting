@@ -61,28 +61,22 @@ print(os.environ["REPO"]+" clean="+os.environ["CLEAN"]+" head="+hm)
 '
 ```
 
-**`.git/HEAD` alone is not enough, and `.git/index` must stay out.** Measured on a fixture clone:
+**`.git/HEAD` alone is not enough, and `.git/index` must stay out.**
 
-- `git pull --ff-only` on a branch advances `refs/heads/<branch>` and appends to `.git/logs/HEAD` but
-  leaves `.git/HEAD` untouched, so a HEAD-only gate calls a repo `unchanged` after `/git-pull` moved it
-  to code the graph has never seen. Repos checked out on a tag are detached, so `.git/HEAD` holds the sha
-  and does move for them; the branch-tracking clones (`calls-recorder`, plugin repos) are the exposed ones.
-- `.git/index` is rewritten by `git status` itself when it refreshes the stat cache (verified: a single
-  `status` run moved its mtime forward to the moment of that run, with no repo change). Including it
-  would peg `head` to now and force a reindex on every invocation, gate logic notwithstanding.
-- `git fetch` without a merge touches only `refs/remotes/*` and `FETCH_HEAD`, neither of which is read
-  here, so a fetch-only `/git-pull` correctly leaves the verdict at `unchanged`.
-- `packed-refs` is read **only** when the repo is on a branch whose loose ref is missing (still packed),
-  never in detached state. `git fetch --tags` rewrites `packed-refs` without moving the worktree:
-  `mattermost-mobile` sits on `v2.43.1` checked out 2026-08-31 but has `packed-refs` from 2026-09-03, and
-  reading it unconditionally would force a 147 MB rebuild of a current graph on every `/git-pull`.
-- Measured on the real clones: `mattermost-plugin-msteams-meetings` (branch `master`) has `.git/HEAD`
-  from `2026-04-30` and `logs/HEAD` from `2026-09-03` carrying `pull: Fast-forward`, four months of code
-  a HEAD-only gate would have called `unchanged`. Detached repos (`mattermost`, `desktop`,
-  `mattermost-mobile`) move `.git/HEAD` on checkout, which is why the trap went unnoticed there. Of 14
-  branch-tracking clones, this signal set corrected the verdict on four whose graphs were already stale
-  (`mattermost-operator`, `mattermost-plugin-calls`, `mattermost-plugin-jira`,
-  `mattermost-plugin-playbooks`: all indexed `2026-09-01`, all pulled `2026-09-03`).
+- Branch-tracked pulls (`git pull --ff-only`) advance the branch ref and append to `.git/logs/HEAD` but
+  leave `.git/HEAD` untouched, so a HEAD-only gate misses them. Confirmed on
+  `mattermost-plugin-msteams-meetings`: `.git/HEAD` from `2026-04-30`, `logs/HEAD` from `2026-09-03`
+  (`pull: Fast-forward`). Detached-HEAD repos (`mattermost`, `desktop`, `mattermost-mobile`) don't have
+  this gap since checkout moves `.git/HEAD` itself.
+- `.git/index` is excluded: `git status` rewrites its mtime on every call regardless of repo change,
+  which would peg `head` to "now" and force a reindex every run.
+- `packed-refs` is read only when on a branch with no loose ref file, never when detached - `git fetch
+  --tags` can rewrite it without moving the worktree (confirmed on `mattermost-mobile`, detached at
+  `v2.43.1`, checkout Aug 31 vs `packed-refs` Sep 3).
+- A fetch-only `/git-pull` (no merge) touches only `refs/remotes/*`/`FETCH_HEAD`, neither read here, so it
+  correctly still reports `unchanged`.
+- This caught 4 of 14 branch-tracking clones with already-stale graphs: `mattermost-operator`,
+  `mattermost-plugin-calls`, `mattermost-plugin-jira`, `mattermost-plugin-playbooks`.
 
 **Step B - graph facts.** Call the MCP tool directly. **Never** `codebase-memory-mcp cli`: it cannot run
 from inside this skill (see Notes' generation-guard entry).
@@ -165,18 +159,15 @@ A Markdown table: `Repo | Project | State | Ref`. `State` is `reindexed`, `uncha
 
 - **Treat a missing graph as "not indexed yet" and fall back to `rg --no-ignore --hidden` (or `grep -r`).**
   Indexing is on demand, so most cloned repos have no graph at any moment. Absence says nothing about the code.
-- **CBM's generation guard blocks the CLI and index workers; what triggers it is not simply another
-  session being connected.** `codebase-memory-mcp cli` and `index_repository`'s worker fail identically
-  (`... could not start because a pre-coordination or unverified CBM generation is active`; `rc=1`, empty
-  stdout for the CLI) whenever the guard is up, hence Step B never uses the CLI and step 6's
-  `index-blocked` state for the worker. CBM's own remedy text is `close all CBM sessions and commands,
-  then retry`, but session coexistence alone is not the trigger: a graph indexed successfully while six
-  other `codebase-memory-mcp` processes were running. `0.10.3` exposes no command to inspect or clear the
-  guard and the message names no owner, so do not guess which process holds it and do not kill processes
-  or ask the engineer to close sessions on this basis. Read-only MCP tools (`check_index_coverage`,
-  `list_projects`) are unaffected, and a shell probe using the CLI is what silently produced `reindex` for
-  every repo before this skill switched every step to the MCP tool. Neither condition appears in the
-  CLI's help text.
+- **CBM's generation guard blocks the CLI and index workers, not read-only MCP tools.** Both
+  `codebase-memory-mcp cli` and `index_repository`'s worker fail identically (`... could not start
+  because a pre-coordination or unverified CBM generation is active`; `rc=1`, empty stdout for the CLI),
+  which is why Step B never shells out to the CLI and step 6 has `index-blocked`. The trigger isn't
+  simply session coexistence (a graph indexed fine alongside six other running `codebase-memory-mcp`
+  processes), and `0.10.3` exposes no way to inspect or clear it - don't guess which process holds it or
+  ask the engineer to close sessions on that basis. `check_index_coverage`/`list_projects` are unaffected;
+  a CLI-based shell probe is what silently produced `reindex` for every repo before this fix. Neither
+  behavior is in the CLI's help text.
 - `mode: full` indexes `server/public` (the `model`/`client4` module in `mattermost`) along with `i18n`
   and `migrations`; `moderate` and `fast` omit those directories. Changing mode on an indexed repo triggers
   a full rebuild regardless, so `full` is the only mode worth running, and Step C's `index_mode` check
