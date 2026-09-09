@@ -20,6 +20,10 @@ Determine `direction` from phrasing, then extract the function name from whateve
 1. Run `/cbm-index-repository <repo>` inline, at most once per repo per session. If it already ran
    this session for `<repo>`, reuse the `Project` value it reported and skip re-running it.
    - If it reports MCP not present or the repo excluded, report the same and stop.
+   - If it reports any state other than `reindexed` or `unchanged` for `<repo>` (`probe-failed`,
+     `index-blocked`, `index-failed`), report that line and fall back to `rg --no-ignore --hidden` (or
+     `grep -r`) against `upstream/<repo>/`; make no graph call. The graph is missing, stale, or of
+     unknown freshness, and none of those support a citable answer.
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. Call `trace_path` with `function_name`, `project`, `direction`, `depth: 3`.
    - A bare short name resolves to one node silently and may trace the wrong overload.

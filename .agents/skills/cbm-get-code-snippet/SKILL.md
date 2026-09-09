@@ -15,6 +15,10 @@ Parse args as `[<repo>] <qualified name or short name>`. Determine `<repo>` by c
 1. Run `/cbm-index-repository <repo>` inline, at most once per repo per session. If it already ran
    this session for `<repo>`, reuse the `Project` value it reported and skip re-running it.
    - If it reports MCP not present or the repo excluded, report the same and stop.
+   - If it reports any state other than `reindexed` or `unchanged` for `<repo>` (`probe-failed`,
+     `index-blocked`, `index-failed`), report that line and fall back to `rg --no-ignore --hidden` (or
+     `grep -r`) against `upstream/<repo>/`; make no graph call. The graph is missing, stale, or of
+     unknown freshness, and none of those support a citable answer.
    - Otherwise, use the `Project` column from its output table as `project` below.
 2. This is a read tool, not a search tool - it needs an exact or close name.
    - If unsure of the exact qualified name, call `search_graph` with `project` and `query` = `<name>` to find it first.

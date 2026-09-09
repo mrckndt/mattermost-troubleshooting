@@ -242,7 +242,8 @@ has one search-only path.
   enclosing-function mapping and caller/callee resolution.
 
 **Graph path.** Otherwise:
-- Read `.agents/config/repos.json`; `excluded` = names with `cbm_excluded: true` (currently `enterprise`).
+- Read `.agents/config/repos.json`; `excluded` = names with `cbm_excluded: true`. The file is the source
+  of truth; do not carry a memorized list (it currently holds more than one name).
 - Filter before invoking: target list = in-scope repos under `upstream/`, minus `excluded`. Excluded names
   stay out of every `/cbm-*` invocation, in every phase, Phase 7 included.
 - For each excluded in-scope repo: skip indexing (zero MCP calls); append to Phase 9's `Steps and outcomes`:
@@ -251,11 +252,13 @@ has one search-only path.
   Search-only for that repo in Step 2 and Phase 7.
 - Run `/cbm-index-repository` with the surviving (non-excluded) names, and use its `Project` column value
   as `project` for every codebase-memory query below and in Phase 7.
-- Reserve the remaining `/cbm-*` skills for repos that came back from that run; a repo that is absent,
-  excluded, or unavailable stays on the search-only form for this phase and Phase 7.
+- Reserve the remaining `/cbm-*` skills for repos that came back `reindexed` or `unchanged` from that run.
+  Any other repo (absent, excluded, unavailable, or reported `probe-failed`, `index-blocked`,
+  `index-failed`) stays on the search-only form for this phase and Phase 7.
 - **Mandatory log line, one per in-scope repo, every session:** append to Phase 9's `Steps and outcomes`:
   `codebase-memory: <repo> <state> @ <ref>`, where `<state>` is `cbm-index-repository`'s reported
-  `reindexed` or `unchanged` for that repo. Excluded repos are logged above.
+  state for that repo verbatim (`reindexed`, `unchanged`, or a failure state such as
+  `probe-failed (<msg>)` or `index-blocked (<msg>)`). Excluded repos are logged above.
 - Give each repo its own line, and state a reason on every skip. Running Step 0 is what produces these
   lines; a direct read or search elsewhere in the phase is a separate thing and does not replace it.
 - This line doubles as the progress line: print it inline here; Phase 9 copies it verbatim rather than restating it.
