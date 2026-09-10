@@ -186,11 +186,9 @@ A Markdown table: `Repo | Project | State | Ref`. `State` is `reindexed`, `uncha
   freshness question and does not replace Step B.
 - Indexing is serialized: a no-arg run over every repo processes them one at a time.
 - **Two different "excluded" concepts, two different report lines.** `cbm_excluded` in `repos.json` is a
-  policy decision (whole repo, never MCP-called): `<repo> excluded from codebase-memory (...)`. The
-  `Excluded (<repo>): N dirs` Report line above is a tool limitation inside an already-indexed repo
-  (`.git`, `node_modules`, etc.), not a policy choice. Reach for `rg`/`git` against
-  `"$PROJECT_ROOT/upstream/<repo>/"` in
-  both cases.
+  policy decision (whole repo, never MCP-called): report the "Filter the target list" line above,
+  verbatim, not a paraphrase. `Excluded (<repo>): N dirs` is a different thing: a tool limitation inside
+  an already-indexed repo (`.git`, `node_modules`, etc.), not a policy choice.
 - This is the manual equivalent of Phase 5 Step 0 in `/investigate`. Every other `cbm-*` skill calls it as
   its presence check, at most once per repo per session.
 - For an index that stays wrong after a reindex, call `delete_project` on the project name and index it
