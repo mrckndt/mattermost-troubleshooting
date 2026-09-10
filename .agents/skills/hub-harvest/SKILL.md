@@ -29,8 +29,8 @@ the Hub.
      `<siteURL>/<team-name>/pl/<postID>`): **link mode**, the captured group is the entry post ID.
    - An `@` token: **assignee mode** (that token is the email, the remainder is the time range).
    - Otherwise **ticket mode**: run `/resolve-ticket-id --allow-new <the remainder>` inline - `--allow-new`
-     since the ticket may have no local directory yet. ID returned: set `<ID>` to that value, continue to
-     Phase 1.
+     since the ticket may have no local directory yet. ID returned: set `<ID>` to that value. Do not stop
+     here - this step isn't done until you proceed to Phase 1, in the same turn.
 
 ## Phase 1 - Locate roots
 
