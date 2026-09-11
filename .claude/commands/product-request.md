@@ -1,0 +1,1 @@
+../../.agents/skills/product-request/SKILL.md

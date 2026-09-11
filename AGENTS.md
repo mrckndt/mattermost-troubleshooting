@@ -134,7 +134,7 @@ Once `analysis.md` exists, generate outputs from it:
   `.html`; without a ticket in play, saves to `kb-articles/<slug>-<date>.md` + `.html` at the
   project root instead.
 - `/kb-batch <email>` - bulk-draft KB articles across a TSE's assigned tickets in a time window.
-- `/pde-intake` - feature request, bug report, or security issue for PD&E.
+- `/product-request` - feature request, bug report, or security issue for PD&E (`/pde-intake` is a deprecated alias).
 - `/rca <ID>` - customer-facing Root Cause Analysis, saves to `tickets/<ID>/rca.md`.
 - `/eir <ID>` - internal Engineering Incident Report, saves to `tickets/<ID>/eir.md`, plus a
   channel-post summary printed to screen only.

@@ -157,7 +157,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
 5. When you have a conclusion, generate the customer-facing output:
    - `/draft-reply` - reply to the customer.
    - `/kb-article 12345` - generate a KB article scoped to this ticket (saves to `tickets/12345/`).
-   - `/pde-intake` - create a feature request, bug report, or security issue for sharing with PDE Intake Agent.
+   - `/product-request` - create a feature request, bug report, or security issue for sharing with PDE Intake Agent (`/pde-intake` is a deprecated alias).
    - `/rca 12345` - customer-facing Root Cause Analysis report.
    - `/eir 12345` - internal Engineering Incident Report plus a channel-post summary.
    - `/retro 12345` - post-resolution retrospective, once the root cause is confirmed.
@@ -177,7 +177,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
 - **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `hub-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
 - **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article`, then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
-- **`/pde-intake [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue).
+- **`/product-request [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue). `/pde-intake [title]` is a deprecated alias.
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
 - **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB-ingest decision, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
