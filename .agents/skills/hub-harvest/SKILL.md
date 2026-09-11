@@ -1,6 +1,6 @@
 ---
 name: hub-harvest
-description: Fetch a Zendesk ticket thread (by ticket ID, assignee email for a time window, or a pasted Hub thread permalink) from the Mattermost Hub into tickets/<zd#>/hub-thread.md. Ready for /investigate.
+description: Fetch a Zendesk ticket thread (by ticket ID, assignee email for a time window, or a pasted Hub thread permalink) from the Mattermost Hub into tickets/<zd#>/zendesk-thread.md (migrates a legacy hub-thread.md). Ready for /investigate.
 user-invocable: true
 ---
 
@@ -122,7 +122,7 @@ signal than a formal assignment and should stay visibly distinguishable from (a)
 
 **Change classification.** Before writing, label each kept thread `new` / `updated` / `unchanged`,
 purely as a reporting signal for downstream consumers; it does not change what this skill writes:
-- No existing `tickets/<zd#>/hub-thread.md` -> `new`.
+- Existing file: `tickets/<zd#>/zendesk-thread.md`, else legacy `hub-thread.md`. Neither -> `new`.
 - Existing file whose `- Last activity:` header line parses and equals the last-activity value
   just derived -> `unchanged`.
 - Existing file whose parsed `Last activity` differs, or whose line is missing/unparseable ->
@@ -131,9 +131,12 @@ purely as a reporting signal for downstream consumers; it does not change what t
 Carry the label into Phase 3. This applies the same way in ticket mode and assignee mode; both
 persist here, per Root ID.
 
-Persist `tickets/<zd#>/hub-thread.md` per kept thread, per label. Posts are immutable once
-mirrored, so only patch what's new:
-- **new** - no existing file; write it in full with the template below.
+Persist `tickets/<zd#>/zendesk-thread.md` per kept thread, per label - always the new name. If the
+existing file located above was the legacy `hub-thread.md`, this write migrates it: a full write
+under the new name regardless of label, folding in its prior content; the old file is then left in
+place, untouched. Posts are immutable once mirrored, so otherwise only patch what's new:
+- **new** - no existing file under either name; write `zendesk-thread.md` in full with the
+  template below.
 - **unchanged** - patch only `- Harvested: <today>` in place.
 - **updated** - patch the header block (`# Ticket ...` through the blank line before
   `## Conversation`) with fresh values, then append one `### <next index>. ...` block per fetched
@@ -142,8 +145,8 @@ mirrored, so only patch what's new:
 - **Migration fallback** - any `### N.` heading missing `(post <id>)`, or an unparseable header,
   triggers a one-time full overwrite; it self-migrates from there.
 
-Reuse-safe: only ever writes `hub-thread.md`, never another file in the ticket dir. Record whether
-`analysis.md` exists there.
+Reuse-safe: only ever writes `zendesk-thread.md` (a legacy `hub-thread.md` is read, never edited or
+deleted). Record whether `analysis.md` exists there.
 
 Template (apply the `AGENTS.md` formatting constraints - no em dashes, plain ``` fences):
 
@@ -199,7 +202,7 @@ Window: <since> to <until> (anchor: last activity). Channel: Zendesk Notificatio
 
 | zd# | Subject | Customer | Last activity | analysis? | Change | Matched via | Thread |
 |---|---|---|---|---|---|---|---|
-| <zd#> | <subject> | <customer> | <last-activity> | yes/no | new/updated/unchanged | assignee/reply, unassigned | tickets/<zd#>/hub-thread.md |
+| <zd#> | <subject> | <customer> | <last-activity> | yes/no | new/updated/unchanged | assignee/reply, unassigned | tickets/<zd#>/zendesk-thread.md |
 ```
 
 Note any threads dropped by the window/assignee filter and any skipped as oversized, so the run

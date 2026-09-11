@@ -29,7 +29,7 @@ proceeding.
 
 Look for existing manifests matching `tickets/kb-batch/<emaillocalpart>-*.md`, regardless of date.
 - **None exist:** **fresh run.** Compute the run key `<emaillocalpart>-<YYYY-MM-DD>` (today) and
-  run `/hub-harvest <assignee email> <range>` inline to populate `tickets/<zd#>/hub-thread.md`
+  run `/hub-harvest <assignee email> <range>` inline to populate `tickets/<zd#>/zendesk-thread.md`
   for every in-window thread and write the harvest index `tickets/hub-harvest/<run key>.md` (mirrors
   how `/tldr` runs `/investigate` first). Then read that harvest index for the ticket list,
   statuses, and `analysis?` flags. If the harvest finds no threads, say so and stop.
@@ -48,7 +48,7 @@ Look for existing manifests matching `tickets/kb-batch/<emaillocalpart>-*.md`, r
   `Window:` header line for the recorded `since`. Echo the actual refresh window (`<since>` to
   today; this may override what Phase 0 echoed from `$ARGUMENTS`, since the refresh window
   always keeps the original `since`). Run `/hub-harvest <assignee email> <since>..<today>`
-  inline (`<today>` is the date from Phase 0) to refresh `tickets/<zd#>/hub-thread.md` for
+  inline (`<today>` is the date from Phase 0) to refresh `tickets/<zd#>/zendesk-thread.md` for
   every in-window thread; this writes a fresh harvest index named by today's date
   (`tickets/hub-harvest/<emaillocalpart>-<today>.md`, which may differ from `<run key>` if the
   manifest predates today) carrying a `Change` column (`new`/`updated`/`unchanged`) per
@@ -119,9 +119,9 @@ Closed). Nothing is skipped for state. A `pending-draft` row may be brand new or
 (reset by Phase 2 reconciliation because its thread changed since a prior terminal decision);
 both are drafted the same way. For each `pending-draft` row, in manifest order:
 
-1. Read `tickets/<zd#>/hub-thread.md` (and check the `analysis? yes/no` flag from the harvest
-   index) only to determine whether this row will classify as `thin` in step 5 below -
-   `/kb-article` independently reads `hub-thread.md`/`analysis.md` itself once it resolves
+1. Read `tickets/<zd#>/zendesk-thread.md` (or legacy `hub-thread.md`) and check the `analysis?
+   yes/no` flag from the harvest index, only to determine whether this row will classify as `thin`
+   in step 5 below - `/kb-article` independently reads it and `analysis.md` once it resolves
    ticket mode, so this step no longer needs to preload context on its behalf.
 2. Invoke `` /kb-article <zd#> `` inline. The bare ticket ID trips `/kb-article`'s own Phase 0
    ticket-mode detection (exact match against `tickets/<zd#>/`), which puts it in that
@@ -136,8 +136,8 @@ both are drafted the same way. For each `pending-draft` row, in manifest order:
    if the source thread had no resolution and no analysis to draw on (flag it so the reviewer
    prioritizes it).
 
-Only ever add `hub-thread.md` / `kb-article.md` / `kb-article.html` to a ticket dir. Never
-edit or delete a pre-existing file there (`analysis*.md`, raw customer files).
+Only ever add `zendesk-thread.md` / `kb-article.md` / `kb-article.html` to a ticket dir. Never
+edit or delete a pre-existing file there (`analysis*.md`, raw customer files, a legacy `hub-thread.md`).
 
 After drafting, do not re-quote the articles in the reply; the files are the record. Report
 a one-line count (drafted / thin) and move to review.
@@ -162,7 +162,7 @@ ticket per step. For each:
      re-presented the next time `/kb-batch <same assignee>` runs (later in a resumed session
      or a future day) - use this to put a ticket off for now rather than decide against it.
    - **recreate** -> redraft via Phase 3 steps 2-4 directly, then re-present. Use when the
-     draft is off but the source material (`hub-thread.md`, existing `analysis.md`) doesn't
+     draft is off but the source material (`zendesk-thread.md`, existing `analysis.md`) doesn't
      need deeper investigation. If the ticket needs a fresh `/investigate` pass, run it
      yourself outside this flow, then choose `recreate` to pick up the refreshed
      `analysis.md`; running `/investigate` inline here would block the review loop for the

@@ -132,7 +132,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    cp ~/Downloads/support_packet.zip tickets/12345/
    ```
 
-   If the ticket is mirrored to the Mattermost Hub from Zendesk, skip the manual copy: run `/hub-harvest 12345` (or paste a Hub thread permalink) to fetch the full thread into `tickets/12345/hub-thread.md`.
+   If the ticket is mirrored to the Mattermost Hub from Zendesk, skip the manual copy: run `/hub-harvest 12345` (or paste a Hub thread permalink) to fetch the full thread into `tickets/12345/zendesk-thread.md`.
 3. Open Claude Code:
    ```
    claude
@@ -169,13 +169,13 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 
 ### Investigation
 
-- **`/hub-harvest <ticket-ID|assignee-email|hub-thread-link> [time-range]`** - fetch a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/hub-thread.md`, ready for `/investigate`. Accepts a pasted Hub thread permalink directly. Given an assignee email instead, harvests every thread assigned to that TSE in the time window (default: last 30 days) and additionally writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`, grouped by status.
+- **`/hub-harvest <ticket-ID|assignee-email|hub-thread-link> [time-range]`** - fetch a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/zendesk-thread.md`, ready for `/investigate`. Accepts a pasted Hub thread permalink directly. Given an assignee email instead, harvests every thread assigned to that TSE in the time window (default: last 30 days) and additionally writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`, grouped by status.
 - **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
 
 ### Output
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
-- **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `hub-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
+- **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `zendesk-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
 - **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article`, then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
 - **`/product-request [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue). `/pde-intake [title]` is a deprecated alias.
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.

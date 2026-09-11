@@ -144,7 +144,7 @@ Decide whether this ticket's root cause belongs in the knowledge base.
 
 ### If creating or updating
 
-Run `/kb-article <ID>` inline - it reads this ticket's `analysis.md`/`hub-thread.md`, resolves
+Run `/kb-article <ID>` inline - it reads this ticket's `analysis.md`/`zendesk-thread.md`, resolves
 ticket mode automatically, and writes/overwrites `tickets/<ID>/kb-article.md` + `.html`. Record in
 `retro.md` which it did (new article vs. updated an existing one) and a one-line summary of the
 pattern captured.

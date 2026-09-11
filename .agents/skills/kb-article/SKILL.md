@@ -32,8 +32,9 @@ Save targets:
 ## KB article format rules (apply these exactly)
 
 **Phase 1 - Gather inputs**
-- In ticket mode (Phase 0 resolved an `<ID>`): always read `tickets/<ID>/hub-thread.md` and
-  `tickets/<ID>/analysis.md`, whichever exist, regardless of what this conversation already covered.
+- In ticket mode (Phase 0 resolved an `<ID>`): always read `tickets/<ID>/zendesk-thread.md` (or legacy
+  `hub-thread.md`) and `tickets/<ID>/analysis.md`, whichever exist, regardless of what this conversation
+  already covered.
 - Check whether the following are known from the conversation:
   - Product and version(s) affected
   - Problem description

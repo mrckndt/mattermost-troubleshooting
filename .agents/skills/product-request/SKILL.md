@@ -28,7 +28,7 @@ Required (ask once, batched, if any are missing):
 - Product tier: Professional / Enterprise / Enterprise Advanced.
 - Urgency / Severity: for bugs, classify severity: S1 - Critical (core workflow unusable, no workaround) / S2 - Serious (significantly impaired or very broad impact, no workaround) / S3 - Moderate (workaround exists) / S4 - Minor (cosmetic); for feature requests, deal/renewal tie-in or none.
 
-Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links; Salesforce Account URL (hub-thread.md).
+Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links; Salesforce Account URL (zendesk-thread.md).
 
 ## Output
 
