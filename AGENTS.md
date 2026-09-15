@@ -114,6 +114,15 @@ and repos on a branch, behaving as before.
 
 ## Ticket data
 
+**ID formats (contract).** Shape decides system; never guess. A bare number is always a Zendesk ticket ID -
+check `tickets/<ID>/` first, never query Jira/GitHub MCP for one.
+
+- **Zendesk:** bare number, 4+ digits (`#`/`zd`/`zd-`/`ZD-` optional), or a
+  `mattermost.zendesk.com/agent/tickets/<n>` URL. Local: `tickets/<ID>/` (`/resolve-ticket-id`), via `/hub-harvest`.
+- **Jira (project `MM` only):** `MM-<n>`, letter-prefixed - never bare.
+- **GitHub issue/PR:** `<owner>/<repo>#<n>`, a `github.com/.../issues|pull/<n>` URL, or `#<n>` only with
+  repo context already established.
+
 Files (logs, config dumps, packets, screenshots) live under `./tickets/<name>/` (Zendesk ID, customer name, or identifier). Check there before asking the engineer to paste.
 
 Pull a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/zendesk-thread.md`: run `/hub-harvest <ID>`.
