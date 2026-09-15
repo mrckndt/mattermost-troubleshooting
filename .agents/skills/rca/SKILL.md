@@ -21,8 +21,7 @@ Save target: `tickets/<ID>/rca.md`.
 
 ## Your task
 
-1. Read `tickets/<ID>/analysis.md` as your primary source of truth. Do not speculate or add
-   information that is not grounded in the analysis or artifacts from this ticket directory.
+1. Read `tickets/<ID>/analysis.md` as primary source of truth, per `AGENTS.md`'s `analysis.md` schema.
 
 2. If `analysis.md` is missing or incomplete, say so and ask whether to run `/investigate <ID>`
    first before proceeding.

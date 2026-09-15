@@ -178,6 +178,9 @@ passed as arg. Saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket
   - `/draft-reply`, `/product-request` - read it only implicitly, as part of "review everything known".
   - `/upgrade-advisor` - does not read it at all.
 
+`version-lookup/SKILL.md` has its own unrelated `## Resolution` heading (output template) - skip it in a
+future grep-driven rename.
+
 Read directly, never through a summarizing layer - it's written for AI ingestion. Ground every claim in it or the
 ticket directory, never speculate.
 
