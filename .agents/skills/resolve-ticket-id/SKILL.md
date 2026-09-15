@@ -20,4 +20,5 @@ Strip `--allow-new` from `$ARGUMENTS` first, in any position; keep the remainder
    - Exists: emit the candidate and stop.
    - Missing: emit `no-match` and stop.
 
-**Output:** exactly one line - the resolved ID (e.g. `51909`) or `no-match`. No other output.
+**Output:** exactly one line - the resolved ID (e.g. `51909`) or `no-match`. No other output when run
+standalone. Called inline by another skill: emit the line and continue that skill's next step, same turn.
