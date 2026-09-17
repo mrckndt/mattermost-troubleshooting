@@ -8,7 +8,12 @@ Args: $ARGUMENTS
 
 ## Phase 0 - Resolve ticket ID
 
-Run `/resolve-ticket-id $ARGUMENTS` inline; ID returned: set `<ID>` to that value. Otherwise list `tickets/` subdirectories and ask which ticket to resume.
+If `$ARGUMENTS` is already a bare ticket number (`^[0-9]+$`, the canonical Zendesk ID shape per
+`AGENTS.md`'s ID format contract) and `tickets/<that number>/` exists, skip `/resolve-ticket-id` and set
+`<ID>` to it directly. Otherwise, apply `/resolve-ticket-id`'s normalization rules (`.agents/skills/resolve-ticket-id/SKILL.md`) to
+`$ARGUMENTS` directly, in this same reasoning step - do not invoke it as a nested skill call. ID
+returned: set `<ID>` to that value. Otherwise list `tickets/` subdirectories and ask which ticket to
+resume.
 
 ## Phase 1 - Reconstruct or start
 

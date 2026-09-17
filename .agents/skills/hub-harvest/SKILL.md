@@ -28,9 +28,12 @@ the Hub.
    - `$ARGUMENTS` matches `https?://\S+/pl/([A-Za-z0-9]{26})` (a Mattermost permalink, any host -
      `<siteURL>/<team-name>/pl/<postID>`): **link mode**, the captured group is the entry post ID.
    - An `@` token: **assignee mode** (that token is the email, the remainder is the time range).
-   - Otherwise **ticket mode**: run `/resolve-ticket-id --allow-new <the remainder>` inline - `--allow-new`
-     since the ticket may have no local directory yet. ID returned: set `<ID>` to that value, continue to
-     Phase 1.
+   - Otherwise **ticket mode**: if `<the remainder>` is already a bare ticket number (`AGENTS.md`'s ID
+     format contract), set `<ID>` to it directly and skip to Phase 1. Otherwise, apply `/resolve-ticket-id`'s
+     normalization rules (steps 1-2 in `.agents/skills/resolve-ticket-id/SKILL.md`) to `<the remainder>`
+     directly, in this same reasoning step - do not invoke it as a nested skill call. A missing
+     `tickets/<candidate>/` is not a failure here (equivalent to that skill's `--allow-new`). Set `<ID>` to
+     the resolved candidate, continue to Phase 1.
 
 ## Phase 1 - Locate roots
 

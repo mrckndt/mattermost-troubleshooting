@@ -10,7 +10,11 @@ Generate a knowledge-base article for the current troubleshooting context, and s
 
 ## Phase 0 - Resolve save location
 
-1. Run `/resolve-ticket-id $ARGUMENTS` inline; ID returned: **ticket mode**, `<ID>` = that value.
+1. If `$ARGUMENTS` is already a bare ticket number (`^[0-9]+$`, the canonical Zendesk ID shape per
+   `AGENTS.md`'s ID format contract) and `tickets/<that number>/` exists, skip `/resolve-ticket-id`:
+   **ticket mode**, `<ID>` = that value directly. Otherwise, apply `/resolve-ticket-id`'s normalization rules (`.agents/skills/resolve-ticket-id/SKILL.md`)
+   to `$ARGUMENTS` directly, in this same reasoning step - do not invoke it as a nested skill call. ID
+   returned: **ticket mode**, `<ID>` = that value.
 2. Otherwise, if `$ARGUMENTS` contains a `tickets/<name>/` path reference and that directory exists: **ticket mode**, `<ID>=<name>`.
 3. Otherwise, if this conversation has already been working a specific ticket (its files were
    read earlier in this session, e.g. via `/investigate`): **ticket mode** with that `<ID>`.

@@ -36,11 +36,15 @@ Strip flags from `$ARGUMENTS` first, in any position, and keep the remainder as 
 
 Determine mode from the remaining text:
 - If it is empty: list `tickets/` subdirectories and ask which ticket to investigate.
-- Otherwise: run `/resolve-ticket-id <remaining text>` inline. Pass the flag-stripped text only, so a flag
-  is never read as a ticket reference.
-  - ID returned: **ticket mode** - set `<ID>` to that value. Rename the session per `AGENTS.md`'s
-    Session behavior convention (ticket number + customer name).
+- Otherwise, if the flag-stripped remaining text is already a bare ticket number (`^[0-9]+$`, the
+  canonical Zendesk ID shape per `AGENTS.md`'s ID format contract) and `tickets/<that number>/` exists:
+  skip `/resolve-ticket-id` - **ticket mode**, set `<ID>` to it directly.
+- Otherwise: apply `/resolve-ticket-id`'s normalization rules (`.agents/skills/resolve-ticket-id/SKILL.md`)
+  to the flag-stripped remaining text directly, in this same reasoning step - do not invoke it as a
+  nested skill call.
+  - ID returned: **ticket mode** - set `<ID>` to that value.
   - `no-match`: **description mode** - treat the argument as a problem description; skip Phase 1 and file-based version detection in Phase 3.
+- **Ticket mode (either way above):** rename the session per `AGENTS.md`'s Session behavior convention (ticket number + customer name).
 
 Complete this phase before proceeding.
 
