@@ -32,8 +32,12 @@ Zendesk reference and org, so there is no no-ticket mode:
 
 - If `tickets/<ID>/gmail-escalation-thread.md` exists, use its `Severity` header value; state it, don't
   re-ask unless the engineer flags a change.
+- Otherwise, if `tickets/<ID>/analysis.md` has a `Severity` field, offer it as a starting point - state its
+  `Inferred`/`Customer-stated` tag - still ask the engineer to confirm or override, never use it silently.
 - Otherwise, ask/confirm Sev1 or Sev2 against `AGENTS.md`'s Defect and incident severity scale (cite it so
   the engineer can self-check). If the engineer states Sev3/Sev4: say this workflow doesn't apply, stop.
+- Once confirmed, patch `analysis.md`'s `Severity` field to `<value> (Confirmed by engineer)`, superseding
+  the prior value in place per `AGENTS.md`'s Current-state convention.
 
 ## Phase 2 - Determine stage
 

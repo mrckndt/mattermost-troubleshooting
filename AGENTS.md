@@ -168,7 +168,10 @@ section below.
 
 ## `analysis.md` schema
 
-- **Writer:** `/investigate` Phase 9 (sole writer). Headings are fixed - renaming one breaks every consumer keyed off it below.
+- **Writer:** `/investigate` Phase 9 (sole writer, except `Severity`: tagged `Inferred`/`Customer-stated`
+  here by default, or `Confirmed by engineer` if the engineer states it during the same run; `/sev-escalation`
+  may also patch it to `Confirmed by engineer` later). Headings are fixed - renaming one breaks every
+  consumer keyed off it below.
 - **Header fields:**
   - `Investigated with`
   - `Ticket type`
@@ -184,14 +187,18 @@ section below.
 - **Current-state** (holds the latest answer, superseded item annotated in place):
   - `Correlation`
   - `Current hypothesis`
+  - `Severity`
   - `Open questions`
   - `Next steps`
   - `Resolution`
 - **Keyed consumers** (a rename breaks these):
   - `/resume-investigation` - whole file; briefing keys off `Ticket type`, `Deployment`, `Reported symptom`,
-    `Artifacts reviewed`, `Current hypothesis`, `Ruled out`, `Open questions`, `Next steps`, plus `Resolution`.
+    `Artifacts reviewed`, `Current hypothesis`, `Severity`, `Ruled out`, `Open questions`, `Next steps`, plus
+    `Resolution`.
   - `/retro` - gates on `Current hypothesis` being populated; `Session log` entry count.
   - `/kb-article` - keys off `Resolution`.
+  - `/sev-escalation` - reads `Severity` as a starting point (still confirms with the engineer), writes back
+    the confirmed value.
 - **Whole-file readers, no heading keyed:** `/rca`, `/eir`.
 - **Existence-only, implicit, or no read:**
   - `/search-tickets` - greps `tickets/*/analysis.md` wholesale, text search only.

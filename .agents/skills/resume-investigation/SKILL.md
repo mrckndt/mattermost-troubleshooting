@@ -25,6 +25,7 @@ resume.
 ## Resuming ticket <ID>
 
 **Ticket type:** <Fault investigation | Advisory / research>
+**Severity:** <value (tag), or N/A>
 **Deployment:** <version, type, DB, method>
 **Reported symptom:** <one line>
 **Artifacts reviewed:** <list>

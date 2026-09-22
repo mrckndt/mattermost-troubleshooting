@@ -429,6 +429,12 @@ value and enough of why it looked right at the time that a later session doesn't
 outright only when it never carried diagnostic value (a typo, an exact duplicate). **Investigated with:**
 set once; update only if it changes mid-ticket.
 
+**`Severity`** (Fault investigation only; `N/A` for Advisory / research - no defect to classify): state the
+read against `AGENTS.md`'s Defect and incident severity scale, tagged `Inferred` (technical evidence, no
+customer statement) or `Customer-stated` (the conversation contains an explicit customer severity/urgency
+claim). Write `Confirmed by engineer` only if the engineer explicitly states the confirmed severity during
+this same run - never assumed from the LLM's own confidence or from silence.
+
 **`Session log` (append-only):** one bullet per `/investigate` run - a "session" is one run, not a turn. Append,
 never rewrite: `<YYYY-MM-DD> - <model, effort/thinking> - <what changed> - <what it superseded, if anything>`.
 This is the session-level index, not the preservation mechanism - the annotate-in-place rule above is what
@@ -528,6 +534,8 @@ Section shape on first creation, populated with real content, not left empty:
 
 ## Current hypothesis
 
+## Severity
+
 ## Steps and outcomes
 
 ## Ruled out
@@ -552,4 +560,4 @@ fault-investigation phrasing:
 - `Ruled out` -> alternatives considered and why rejected.
 
 Sections genuinely not applicable (e.g. `Timeline` for a single-session question) may be written as `N/A`
-instead of forced content.
+instead of forced content. `Severity` is always `N/A` here - no defect to classify.
