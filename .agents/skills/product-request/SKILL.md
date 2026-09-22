@@ -26,7 +26,10 @@ Required (ask once, batched, if any are missing):
 - How often it comes up.
 - Deployment type: Cloud / On-premises / Air-gapped.
 - Product tier: Professional / Enterprise / Enterprise Advanced.
-- Urgency / Severity: for bugs, classify severity: S1 - Critical (core workflow unusable, no workaround) / S2 - Serious (significantly impaired or very broad impact, no workaround) / S3 - Moderate (workaround exists) / S4 - Minor (cosmetic); for feature requests, deal/renewal tie-in or none.
+- Urgency / Severity: for bugs, classify per AGENTS.md's Defect and incident severity scale (Sev1-Sev4); for feature requests, deal/renewal tie-in or none.
+
+A customer-facing Sev1/Sev2 incident also needs `/sev-escalation` (notifies the internal escalation chain
+via email).
 
 Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links; Salesforce Account URL (zendesk-thread.md).
 
@@ -58,6 +61,6 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 **Affected Role:** [affected role]
 **Frequency:** [how often it comes up]
 **Scope:** [UI / API / admin policy / other]
-**Urgency / Severity:** [S1 - Critical / S2 - Serious / S3 - Moderate / S4 - Minor for bugs; deal/renewal tie-in or none for feature requests]
+**Urgency / Severity:** [Sev1 - Critical / Sev2 - Serious / Sev3 - Moderate / Sev4 - Minor for bugs; deal/renewal tie-in or none for feature requests]
 **Problem:** [current behavior → desired behavior]
 ```

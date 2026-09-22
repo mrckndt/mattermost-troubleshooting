@@ -244,17 +244,21 @@ instructions instead of acting on them.
 Severity spans JIRA (bugs), Zendesk (customer-impacting issues), Incident Playbooks, and PD&E intake - one
 scale everywhere. Source: `sev-emails/Defect Severity Definition.md`.
 
+**Notation:** this workspace uses `Sev1`-`Sev4` throughout (matching Zendesk's `Severity` field and
+real-world usage); `S1`-`S4` is the official process documentation's own notation for the same scale - treat
+either form as equivalent wherever it appears.
+
 **Guiding principle:** absence of signal is not absence of impact. Most customers self-host, many air-gapped
 or with telemetry off; they churn or leave a bad review rather than file a ticket. Severity is set by the
 defect's intrinsic harm and structural reach, never by how many customers reported it - Sentry counts are a
-floor, not a measure, and a defect with zero support tickets can still be S1.
+floor, not a measure, and a defect with zero support tickets can still be Sev1.
 
 | Level | Label | Definition |
 |---|---|---|
-| S1 | Critical | Data loss/corruption; a core function unusable with no workaround; or install/launch blocked. Severe for any affected user regardless of count. |
-| S2 | Serious | A major feature broken or crashing with no reasonable workaround, on a common workflow. Not data loss; not a total block. |
-| S3 | Moderate | A meaningful defect with a viable workaround, or confined to a narrow config/population. |
-| S4 | Minor | Cosmetic or low-impact quality issue. |
+| Sev1 | Critical | Data loss/corruption; a core function unusable with no workaround; or install/launch blocked. Severe for any affected user regardless of count. |
+| Sev2 | Serious | A major feature broken or crashing with no reasonable workaround, on a common workflow. Not data loss; not a total block. |
+| Sev3 | Moderate | A meaningful defect with a viable workaround, or confined to a narrow config/population. |
+| Sev4 | Minor | Cosmetic or low-impact quality issue. |
 
 Vulnerabilities use CVSS instead of this scale.
 
@@ -262,18 +266,18 @@ Vulnerabilities use CVSS instead of this scale.
 
 | | High reach (default config, latest+ESR, core workflow) | Narrow reach (edge config, single platform, workaround exists) |
 |---|---|---|
-| S1 | HIGH | MEDIUM |
-| S2 | HIGH | MEDIUM |
-| S3 | LOW | Not an escalation - normal backlog |
-| S4 | Not an escalation - fix-it pool | Not an escalation - fix-it pool |
+| Sev1 | HIGH | MEDIUM |
+| Sev2 | HIGH | MEDIUM |
+| Sev3 | LOW | Not an escalation - normal backlog |
+| Sev4 | Not an escalation - fix-it pool | Not an escalation - fix-it pool |
 
 HIGH: all hands on-deck, page the escalation chain, work until resolved or downgraded. MEDIUM: notify the
 escalation chain, first priority next business day until resolved or downgraded. LOW: loop in AOR owners,
 next priority after current tasks.
 
-**Keyed consumers:** `/sev-escalation` gates entry on Sev1/Sev2 (S3/S4 don't trigger the escalation workflow
-below). `/product-request` and `/rca` are meant to key off this same scale but aren't wired to it yet -
-`/product-request` still carries its own inline copy pending a follow-up cleanup.
+**Keyed consumers:** `/sev-escalation` gates entry on Sev1/Sev2 (Sev3/Sev4 don't trigger the escalation
+workflow below). `/product-request`'s `Urgency / Severity` input keys off this scale. `/rca`'s `Severity`
+field uses the same scale (no `Sev4` - that tier doesn't warrant a customer RCA).
 
 ## Sev1/Sev2 escalation workflow
 

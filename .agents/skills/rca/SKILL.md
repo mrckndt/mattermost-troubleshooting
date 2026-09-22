@@ -42,6 +42,9 @@ Save target: `tickets/<ID>/rca.md`.
 
 ## RCA format
 
+`Severity` uses `AGENTS.md`'s Defect and incident severity scale (Sev1 Critical, Sev2 Serious, Sev3
+Moderate) - Sev4 issues don't warrant a customer RCA.
+
 Use exactly this structure:
 
 ```markdown
@@ -49,7 +52,7 @@ Use exactly this structure:
 
 **Ticket:** <number>
 **Date:** <date of incident>
-**Severity:** <P1 / P2 / P3>
+**Severity:** <Sev1 / Sev2 / Sev3>
 **Status:** <Resolved / Monitoring>
 **Mattermost version:** <version>
 
