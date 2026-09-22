@@ -17,6 +17,8 @@
     { "name": "mattermost-operator", "url": "https://github.com/mattermost/mattermost-operator" },
     { "name": "mattermost-performance-assets", "url": "https://github.com/mattermost/mattermost-performance-assets",
       "cbm_excluded": true, "cbm_excluded_reason": "no indexable code; test fixtures/data only" },
+    { "name": "mattermost-pgloader-docker", "url": "https://github.com/mattermost/mattermost-pgloader-docker",
+      "cbm_excluded": true, "cbm_excluded_reason": "no indexable code; Dockerfiles/pgloader configs only" },
     { "name": "mattermost-plugin-agents", "url": "https://github.com/mattermost/mattermost-plugin-agents" },
     { "name": "mattermost-plugin-boards", "url": "https://github.com/mattermost/mattermost-plugin-boards" },
     { "name": "mattermost-plugin-calls", "url": "https://github.com/mattermost/mattermost-plugin-calls" },
