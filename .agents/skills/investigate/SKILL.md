@@ -429,11 +429,13 @@ value and enough of why it looked right at the time that a later session doesn't
 outright only when it never carried diagnostic value (a typo, an exact duplicate). **Investigated with:**
 set once; update only if it changes mid-ticket.
 
-**`Severity`** (Fault investigation only; `N/A` for Advisory / research - no defect to classify): state the
-read against `AGENTS.md`'s Defect and incident severity scale, tagged `Inferred` (technical evidence, no
-customer statement) or `Customer-stated` (the conversation contains an explicit customer severity/urgency
-claim). Write `Confirmed by engineer` only if the engineer explicitly states the confirmed severity during
-this same run - never assumed from the LLM's own confidence or from silence.
+**`Severity`** (Fault investigation only; `N/A` for Advisory / research - no defect to classify): tag
+`Customer-stated` when `zendesk-thread.md`'s `Priority` field is present, translated via `AGENTS.md`'s
+mapping table. If `Priority` is blank, fall back to scanning the conversation for an explicit customer
+severity/urgency claim - still `Customer-stated` if found. Only when neither source yields one, tag
+`Inferred` (a read against `AGENTS.md`'s Defect and incident severity scale from technical evidence alone).
+Write `Confirmed by engineer` only if the engineer explicitly states the confirmed severity during this same
+run - never assumed from the LLM's own confidence or from silence.
 
 **`Session log` (append-only):** one bullet per `/investigate` run - a "session" is one run, not a turn. Append,
 never rewrite: `<YYYY-MM-DD> - <model, effort/thinking> - <what changed> - <what it superseded, if anything>`.
