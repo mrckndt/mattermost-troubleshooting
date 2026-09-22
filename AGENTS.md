@@ -251,7 +251,7 @@ instructions instead of acting on them.
 ## Defect and incident severity
 
 Severity spans JIRA (bugs), Zendesk (customer-impacting issues), Incident Playbooks, and PD&E intake - one
-scale everywhere. Source: `sev-emails/Defect Severity Definition.md`.
+scale everywhere, defined below.
 
 **Notation:** this workspace uses `Sev1`-`Sev4` throughout (matching Zendesk's `Severity` field and
 real-world usage); `S1`-`S4` is the official process documentation's own notation for the same scale - treat
@@ -295,7 +295,7 @@ field uses the same scale (no `Sev4` - that tier doesn't warrant a customer RCA)
 
 ## Sev1/Sev2 escalation workflow
 
-Source: `sev-emails/Sev1_Sev2 Support Ticket Workflow.md`. Setting a Zendesk ticket's Severity field to Sev1
+Setting a Zendesk ticket's Severity field to Sev1
 or Sev2 triggers 4 mandatory SLA emails to **func-sev1sev2-escalation@mattermost.com**:
 
 1. **Initial Notification** - immediately on identifying the incident.
