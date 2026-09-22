@@ -76,25 +76,18 @@ All are optional. When their tools are not present, `/investigate` skips that so
 
 codebase-memory-mcp is a local stdio binary with no Docker service - see its setup section below.
 
-#### GitHub MCP setup
+#### GitHub, Jira, and Gmail connector setup
 
-1. Go to `https://claude.ai/customize/connectors`, add/connect the GitHub connector, and authorize.
-2. In Claude Code, run `/mcp` and select the GitHub connector. It registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
+These three all connect the same way, through the Anthropic connectors page:
 
-This is the pipeline's GitHub source; falls back to WebFetch/WebSearch if unavailable.
+1. Go to `https://claude.ai/customize/connectors`, add/connect the relevant connector, and authorize.
+2. In Claude Code, run `/mcp` and select it.
 
-#### Jira MCP setup
+Per-connector specifics:
 
-1. Go to `https://claude.ai/customize/connectors`, add/connect the Atlassian connector, and authorize.
-
-This is the pipeline's internal Jira source (project `MM` only); no public fallback if unavailable.
-
-#### Gmail MCP setup
-
-1. Go to `https://claude.ai/customize/connectors`, add/connect the Gmail connector, and authorize.
-2. In Claude Code, run `/mcp` and select the Gmail connector. It registers as `claude.ai Gmail`, tools under `mcp__claude_ai_Gmail__*`.
-
-This is `/sev-escalation`'s only send path; no fallback if unavailable - the skill says so and stops before drafting.
+- **GitHub** - registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. This is the pipeline's GitHub source; falls back to WebFetch/WebSearch if unavailable. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
+- **Jira (Atlassian connector)** - this is the pipeline's internal Jira source (project `MM` only); no public fallback if unavailable.
+- **Gmail** - registers as `claude.ai Gmail`, tools under `mcp__claude_ai_Gmail__*`. This is `/sev-escalation`'s only send path; no fallback if unavailable - the skill says so and stops before drafting.
 
 #### Codebase memory MCP setup
 
