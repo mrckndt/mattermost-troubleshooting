@@ -272,6 +272,11 @@ has one search-only path.
 1. Identify server language from the server log; check `ls "$PROJECT_ROOT/upstream/mattermost/server/i18n/"` for `<lang>.json`.
 2. For any `level=error` line where `msg` is the localized "internal error" string, or any AppError-shaped string `<Where>: <Message>`, extract `<Message>` **exactly** - full punctuation, no paraphrasing, no truncation.
 3. `grep -F "<message>" "$PROJECT_ROOT/upstream/mattermost/server/i18n/<lang>.json"` to get the key; `rg --no-ignore --hidden -n` (or `grep -rn`) the repo source for the call site.
+4. **Zero matches in the server catalog?** Widen in the order below before forming a hypothesis. Which catalog finally matches is itself a finding: it names the layer that raised the error.
+   - `upstream/mattermost/webapp/channels/src/i18n/en.json` (flat key-value). Most likely when the string reached you from a screenshot, a browser console, or the ticket body rather than from a server log line.
+   - `upstream/mattermost-mobile/assets/base/i18n/en.json`, for a string the customer reported from mobile.
+   - The in-scope plugin repos, then `upstream/enterprise/`.
+   - Version drift: the string may postdate the customer's tag. Compare the same catalog on `master`.
 
 **Step 2: Source search.** Always run against `upstream/mattermost/`, `upstream/enterprise/` (if cloned; may be absent if GitHub SSH key not configured), and all other inferred repos.
 All five angles below are required, run once per in-scope repo.
