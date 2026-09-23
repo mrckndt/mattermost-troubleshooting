@@ -64,3 +64,22 @@ check the manual that corresponds to your MariaDB server version for the right s
 #### `upstream/docs` is a full monorepo clone pinned to `master`
 
 Docs now live in-tree at `docs/main`/`docs/develop`. `v11.10` is the first release with `docs/` present - older tags have none. Never `/git-switch docs` off `master`. Once every supported version is `>= v11.10`, retire this clone and read docs from the version-aligned `upstream/mattermost` instead.
+
+#### CVE and dependency findings: the page is core webapp plus one bundle per prepackaged plugin
+
+**Symptom:** a scanner flags a vulnerable JS library against a Mattermost version, but `webapp/package.json` at that tag shows the dependency already patched, so the finding reads as a false positive. It usually is not.
+
+**Cause:** every prepackaged plugin builds its own `webapp/` bundle from its own `node_modules`, and the server serves it from the same origin as the core webapp at `/static/<plugin-id>/<plugin-id>_<hash>_bundle.js` (assembled in `server/public/model/manifest.go:269`; the hash is the FNV-1a hash of the bundle). Separate builds, separate lockfiles, separate repos: patching the core webapp dependency does nothing for the plugin bundles.
+
+**Working one:**
+
+- **Take the plugin list from the customer's tag, never `master`:** `git -C "$PROJECT_ROOT/upstream/mattermost" show v<version>:server/Makefile | grep PLUGIN_PACKAGES`. Pinned versions move between releases. `FIPS_ENABLED=true` replaces the list wholesale with a three-plugin subset (playbooks, agents, boards), so a FIPS build prepackages no calls, github or jira bundle at all.
+- **Map the flagged URL to a real asset:** `GET /api/v4/plugins/webapp` returns `.[].webapp.bundle_path` for every bundle a running server actually serves.
+- **Check the owning plugin at its pinned tag,** not its default branch, and report two facts separately: "fixed in plugin vX.Y.Z" and "first Mattermost version that prepackages it". The second can be "none yet", in which case upgrading does not clear the finding.
+- **Runtime vs build-time:** in the plugin's `webapp/package-lock.json`, an entry with `"dev": true` is reachable only from devDependencies and never reaches a browser. "Present in the lockfile" and "served to users" are different claims; say which one you mean.
+- **Check `webapp/webpack.config.js` `externals`:** plugins externalize react, redux, react-intl and similar to reuse the host webapp's copy. Anything not listed is compiled into the plugin bundle.
+- **CommonJS dependencies are not tree-shaken:** `import {debounce} from 'lodash'` still bundles the whole library, version string included, and that string is what external fingerprinting scanners detect. "We only call one safe function" does not clear the finding; report reachability as a separate, weaker claim, and only after checking the plugin's transitive runtime deps rather than just its own source.
+
+**Trap:** `dataminr` is the only prepackaged plugin with no `upstream/` clone (private repo, see `repos.json`). Reach it through the GitHub MCP instead of concluding it is unaffected.
+
+This generalizes past CVEs. When core webapp source does not explain a reported browser-layer symptom, the plugin bundles are the next place to look, not the last. Found on a ticket where the core webapp lodash bump landed correctly in 11.7.11 while the prepackaged playbooks and boards bundles kept serving the vulnerable copy.
