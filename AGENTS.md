@@ -53,6 +53,8 @@ Applies to this file, `fragments/*.md` fragments, and `.agents/skills/*/SKILL.md
 - **Bullets vs prose:** prose for explanation; bullets/numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead bullets/paragraphs naming concepts or UI paths (e.g. `**System Console > ...**`); avoid general emphasis.
 - **Density:** keep lines under 200 characters; cut redundancy, filler, and excess words. If a sentence grows long, break it into bullets instead.
+- **Positive phrasing:** state the behavior to follow, explicitly. When removing a behavior, delete its instruction; adding a
+  negation in its place makes rules longer without making them clearer. Add a "don't" only when the positive rule proved too weak.
 - **Skill decomposition:** split a skill only when two or more independent entry points need the same behavior. Shared mechanics that belong to one workflow stay in that skill.
 
 ## Shell conventions
