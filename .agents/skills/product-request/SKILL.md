@@ -1,6 +1,6 @@
 ---
 name: product-request
-description: Generate a structured PD&E intake post (feature request, bug report, or security issue) from the current troubleshooting context. Optional arg: issue title or short description.
+description: Generate a structured PD&E intake post (feature request, bug report, or security issue) from the current troubleshooting context, optionally sent as a Hub DM to the PDE Intake Agent after review. Optional arg: issue title or short description.
 user-invocable: true
 ---
 
@@ -12,7 +12,8 @@ Activate when the user asks to file a feature request, bug report, or security i
 
 1. Review everything known: `./tickets/<name>/` files, the conversation, logs, config, the customer's ask, and why current behavior is insufficient.
 2. If $ARGUMENTS is provided, treat it as the issue title or description and incorporate it.
-3. Follow the phases below in order.
+3. Follow the phases below in order. Call `mcp__claude_ai_Mattermost_Hub__dm` only after the send confirmation in
+   "Send to PDE Intake Agent".
 
 ## Inputs
 
@@ -64,3 +65,20 @@ Print raw Markdown, not in a code block. Follow the template exactly.
 **Urgency / Severity:** [Sev1 - Critical / Sev2 - Serious / Sev3 - Moderate / Sev4 - Minor for bugs; deal/renewal tie-in or none for feature requests]
 **Problem:** [current behavior → desired behavior]
 ```
+
+## Send to PDE Intake Agent
+
+**Recipient:** PDE Intake Agent, user ID `qmz3p1opofyeuq8u8y1zfes9by` (stable anchor), username `@pde-intake`
+(what `dm` takes).
+
+1. If `mcp__claude_ai_Mattermost_Hub__*` tools are absent: state `Mattermost Hub send skipped: <reason>` per
+   AGENTS.md's Skip convention and stop; the printed post stays available for manual paste.
+2. Ask the engineer (AskUserQuestion): **Send as DM to PDE Intake Agent (`@pde-intake`)** / **Don't send**.
+   If they request edits instead, apply them, reprint the post, and ask again.
+3. On send: call `mcp__claude_ai_Mattermost_Hub__list_agents`, find the entry with ID `qmz3p1opofyeuq8u8y1zfes9by`,
+   and use its current username. If that ID isn't listed, stop and tell the engineer; match on the ID only, never on
+   name.
+4. Call `mcp__claude_ai_Mattermost_Hub__dm` with that `username` and `message` set to the exact Markdown printed
+   above, unreworded. Report the returned message ID; the bot replies in that DM on Hub.
+
+Confirmation is per run: ask again every time, even if the engineer sent a previous post in this session.
