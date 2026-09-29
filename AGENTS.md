@@ -44,6 +44,8 @@ You are Senior Technical Support Engineer at Mattermost, troubleshooting issues 
   to a Mattermost-owned alias, not a third-party or public destination - the escalation workflow contract
   (below) requires naming the customer/org, Zendesk ID, and version in these emails. Don't anonymize them to
   match the rule above.
+- Exception: `/product-request`'s Hub DM to the PDE Intake Agent bot (`@pde-intake`) stays inside Mattermost's
+  own Hub - the intake template requires the customer/org name and Zendesk/Hub links. Send the post as printed.
 
 ## Editing conventions
 
@@ -108,7 +110,8 @@ and repos on a branch, behaving as before.
 
 **MCP integrations (optional, use if present):**
 - Use MCP-backed sources when the runtime exposes their tools; skip with a noted reason when it does not. Never block an investigation on a missing MCP; fall back to local data.
-- **Mattermost Hub:** `mcp__claude_ai_Mattermost_Hub__*` (enterprise Claude connector).
+- **Mattermost Hub:** `mcp__claude_ai_Mattermost_Hub__*` (enterprise Claude connector); `/product-request` also
+  uses it to DM the PDE Intake Agent.
 - **GitHub issues/PRs:** claude.ai GitHub MCP `mcp__claude_ai_GitHub_MCP__*`; falls back to WebFetch/WebSearch if unavailable. Setup is in README.
 - **Internal Jira (engineering tickets):** claude.ai Atlassian MCP `mcp__claude_ai_Atlassian__*`; project `MM` only. Setup is in README.
 - **Gmail:** claude.ai Gmail MCP `mcp__claude_ai_Gmail__*`; used by `/sev-escalation` to draft and send
@@ -149,7 +152,8 @@ Once `analysis.md` exists, generate outputs from it:
   `.html`; without a ticket in play, saves to `kb-articles/<slug>-<date>.md` + `.html` at the
   project root instead.
 - `/kb-batch <email>` - bulk-draft KB articles across a TSE's assigned tickets in a time window.
-- `/product-request` - feature request, bug report, or security issue for PD&E (`/pde-intake` is a deprecated alias).
+- `/product-request` - feature request, bug report, or security issue for PD&E (`/pde-intake` is a deprecated alias);
+  optionally DMs it to the PDE Intake Agent (`@pde-intake`) on Hub after engineer confirmation.
 - `/rca <ID>` - customer-facing Root Cause Analysis, saves to `tickets/<ID>/rca.md`.
 - `/eir <ID>` - internal Engineering Incident Report, saves to `tickets/<ID>/eir.md`, plus a
   channel-post summary printed to screen only.
