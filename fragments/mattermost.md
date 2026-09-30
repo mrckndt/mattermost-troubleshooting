@@ -89,9 +89,3 @@ for unlimited. The setting is `config.json`-only (System Console control depreca
 watcher; no restart.
 
 **Tradeoff:** the same setting governs message editing, so raising it also widens the edit window.
-
-#### `upstream/docs` is a full monorepo clone pinned to `master`
-
-Docs now live in-tree at `docs/main`/`docs/develop`. `v11.10` is the first release with `docs/` present; older tags have
-none. Never `/git-switch docs` off `master`. Once every supported version is `>= v11.10`, retire this clone and read
-docs from the version-aligned `upstream/mattermost` instead.

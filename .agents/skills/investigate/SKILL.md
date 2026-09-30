@@ -195,9 +195,7 @@ Complete this phase before proceeding.
 
 ## Phase 4 - Fragment and Upgrade Notes Search
 
-Self-refresh docs before searching: `/git-pull docs --interval=weekly`. `docs` tracks its default branch and is never
-version-aligned like the repos in Phase 3, so this is the only point that keeps it current for this
-run; Phase 6's docs search later in this pipeline relies on this same refresh, not a second one.
+Self-refresh docs before searching: `/git-pull docs --interval=weekly`. Phase 6's docs search reuses this refresh.
 
 For each in-scope repo, check whether `fragments/<repo>.md` exists and read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
