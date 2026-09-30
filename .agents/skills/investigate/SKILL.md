@@ -153,7 +153,7 @@ Complete this phase before proceeding.
 
 ## Phase 3 - Version alignment
 
-Before Tier 2 source reads, verify each in-scope repo is on the customer's version.
+Before Tier 2 source reads, verify each in-scope repo and the `mattermost`/`enterprise` pair is on the customer's version.
 
 When reading `mattermost.log`, always use the bottom-most matching entry; the log is append-only and upgrades and node restarts produce multiple identical-looking startup lines.
 
@@ -171,9 +171,11 @@ When reading `mattermost.log`, always use the bottom-most matching entry; the lo
 
 **Align repos:**
 
-`mattermost` and `enterprise` are tightly coupled and must stay on the same ref. If either is in scope, verify **both** even if only one was flagged - a prior ticket may have left them drifted.
+`mattermost` and `enterprise` are tightly coupled and must stay on the same ref. Verify **both** on every ticket, in
+scope or not (`enterprise` only if cloned): Phase 5 searches both, and a prior ticket may have left them drifted.
 
-1. For each in-scope repo, resolve its current ref as `<REPO_REF>` (see `AGENTS.md` Shell conventions).
+1. For each in-scope repo, plus `mattermost` and `enterprise`, resolve its current ref as `<REPO_REF>` (see `AGENTS.md`
+   Shell conventions).
    Compare that value against the detected version; `mattermost` carries several tags per commit, so the
    `v*` tag is the one a version query resolves.
 2. Run `/git-switch <repo> <version>` (resolves `vX.Y.Z` tags, `X.Y`/`X.Y.Z` queries, and branch names) if:
