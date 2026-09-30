@@ -54,6 +54,11 @@ Applies to this file, `fragments/*.md` fragments, and `.agents/skills/*/SKILL.md
 - **Bullets vs prose:** prose for explanation; bullets/numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead bullets/paragraphs naming concepts or UI paths (e.g. `**System Console > ...**`); avoid general emphasis.
 - **Density:** keep lines under 200 characters; cut redundancy, filler, and excess words. If a sentence grows long, break it into bullets instead.
+- **Placement:** state each rule or fact once, in its home file; elsewhere, reference it.
+  - `AGENTS.md`: workspace-wide rules and mechanics (boundaries, repo handling, conventions, schemas).
+  - `fragments/<repo>.md`: troubleshooting knowledge that docs and source cannot reproduce (symptoms, causes,
+    fixes, misleading signatures, license-tier traps).
+  - `.agents/skills/*/SKILL.md`: that skill's process; product facts only where a step depends on them.
 - **Positive phrasing:** state the behavior to follow, explicitly. When removing a behavior, delete its instruction; adding a
   negation in its place makes rules longer without making them clearer. Add a "don't" only when the positive rule proved too weak.
 - **Skill decomposition:** split a skill only when two or more independent entry points need the same behavior. Shared mechanics that belong to one workflow stay in that skill.
