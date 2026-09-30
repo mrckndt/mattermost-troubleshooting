@@ -76,8 +76,8 @@ msg="sendto: message too long" plugin_id=<id> event_id=<id>
 
 A large `omit_users_len` indicates broadcast fan-out; a `plugin_id` identifies the offending plugin.
 
-**Diagnosis (before v11.7.0):** only `event: publish` is logged. Use `tcpdump` on gossip port 8075 to inspect payload
-sizes.
+**Diagnosis (before v11.7.0):** only `event: publish` is logged. Use `tcpdump` on the gossip port
+(`ClusterSettings.GossipPort`, default 8074) to inspect payload sizes.
 
 #### AWS OpenSearch bulk index only covers one day (v9.11+)
 
