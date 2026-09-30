@@ -51,7 +51,6 @@ You are Senior Technical Support Engineer at Mattermost, troubleshooting issues 
 
 Applies to this file, `fragments/*.md` fragments, and `.agents/skills/*/SKILL.md`. Formatting constraints above apply.
 
-- **Headings:** sentence case; AGENTS.md and slash commands at `##`, sub-sections at `###`; `fragments/<repo>.md` at `###`, sub-topics at `####`; blank line after each.
 - **Bullets vs prose:** prose for explanation; bullets/numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead bullets/paragraphs naming concepts or UI paths (e.g. `**System Console > ...**`); avoid general emphasis.
 - **Density:** keep lines under 200 characters; cut redundancy, filler, and excess words. If a sentence grows long, break it into bullets instead.
