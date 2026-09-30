@@ -29,16 +29,17 @@ Re-apply after every upgrade; package upgrades replace the binary and drop the c
 
 #### Database connection pool sizing
 
-- Keep `SqlSettings.MaxOpenConns` and `MaxIdleConns` at a 2:1 ratio (e.g. 100 and 50).
-- `MaxOpenConns` must not exceed the database's `max_connections` limit.
-- In a cluster, each node opens its own pool and the database must accommodate their sum. For a 3-node cluster with
-  `MaxOpenConns=100` per node, PostgreSQL needs `max_connections >= 300` plus headroom for superuser, replication, and
-  other clients.
+- **Ratio:** keep `SqlSettings.MaxOpenConns` and `MaxIdleConns` at 2:1 (e.g. 100 and 50).
+- **Per pool:** `MaxOpenConns` sizes one pool, not a total. Each node opens a separate pool for the master, each
+  `DataSourceReplicas` entry, and each `DataSourceSearchReplicas` entry.
+- **Sizing:** possible connections = `MaxOpenConns` x (data sources per node) x (app nodes). Example: 3 nodes, master +
+  1 replica + 1 search replica, `MaxOpenConns=100`: 3 x 3 x 100 = 900.
 
 **Pool-exhaustion signature:** `context deadline exceeded` on store calls. Two causes:
 
 - **Pool oversubscribed:** `MaxOpenConns` exceeds the database's `max_connections` (e.g. 300 vs. the PostgreSQL default
-  100), saturating the pool. Fix: raise `max_connections` to the sum of `MaxOpenConns` across all nodes plus headroom.
+  100), saturating the pool. Fix: raise `max_connections` accordingly, plus headroom for superuser, replication, and
+  other clients.
 - **Pool too small:** `MaxOpenConns` is too low for the workload. Fix: raise `MaxOpenConns` accordingly.
 
 **Query-timeout signature:** when `SqlSettings.QueryTimeout` is exceeded, the `pq` driver logs
