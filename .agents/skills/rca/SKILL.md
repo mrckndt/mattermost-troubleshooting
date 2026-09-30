@@ -48,7 +48,7 @@ Moderate) - Sev4 issues don't warrant a customer RCA.
 Use exactly this structure:
 
 ```markdown
-# Root Cause Analysis — <one line description>
+# Root Cause Analysis - <one line description>
 
 **Ticket:** <number>
 **Date:** <date of incident>
@@ -61,7 +61,7 @@ Use exactly this structure:
 ## Summary
 
 Two to three sentences. What happened, what was the impact, and what was
-done to resolve it. Clear and direct — the customer should understand this
+done to resolve it. Clear and direct - the customer should understand this
 without reading further if they choose not to.
 
 ---
@@ -121,19 +121,19 @@ Mattermost to the customer. It should feel like it came from a team that
 knows its product deeply and handled the situation competently.
 
 **Specific tone guidance:**
-- Factual and measured — describe what happened without dramatizing it
-- Resolution-focused — emphasize what was done and what was learned, not
+- Factual and measured - describe what happened without dramatizing it
+- Resolution-focused - emphasize what was done and what was learned, not
   what went wrong
-- Avoid language that implies negligence, carelessness, or surprise —
+- Avoid language that implies negligence, carelessness, or surprise:
   prefer "a condition was identified" over "we missed" or "we failed to"
-- Avoid overly defensive or apologetic language — one brief acknowledgment
+- Avoid overly defensive or apologetic language - one brief acknowledgment
   of impact is sufficient, do not repeat it
-- Do not editorialize — stick to facts, avoid phrases like "unfortunately"
+- Do not editorialize - stick to facts, avoid phrases like "unfortunately"
   or "regrettably" repeated throughout
-- Use passive or system-focused framing for the root cause where appropriate
-  — "a misconfiguration in the TLS settings caused..." rather than
+- Use passive or system-focused framing for the root cause where appropriate:
+  "a misconfiguration in the TLS settings caused..." rather than
   "Mattermost incorrectly configured..."
-- Active and confident voice for the resolution — "The support team
+- Active and confident voice for the resolution - "The support team
   identified and resolved..." not "it was eventually determined..."
 
 **What to leave out:**
@@ -148,7 +148,7 @@ knows its product deeply and handled the situation competently.
   will be fixed in the next release") unless that is confirmed in the
   analysis
 - Do not assign blame to the customer's environment or configuration without
-  being tactful — "the observed behavior was consistent with a
+  being tactful - "the observed behavior was consistent with a
   configuration where X is set to Y" rather than "the customer
   misconfigured..."
 - Do not include customer-identifying information

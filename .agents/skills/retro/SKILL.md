@@ -26,7 +26,7 @@ Save target: `tickets/<ID>/retro.md`.
 
 ## Prerequisites
 
-This command runs **after** the investigation is complete — the root cause must be confirmed or
+This command runs **after** the investigation is complete - the root cause must be confirmed or
 the ticket otherwise resolved. If `tickets/<ID>/analysis.md` is missing or its `Current hypothesis`
 section is empty/says "unknown", stop and tell the engineer the ticket doesn't appear to be
 resolved yet.
@@ -36,10 +36,10 @@ resolved yet.
 Read `tickets/<ID>/analysis.md` and all other artifacts in the ticket directory. If `rca.md` or
 `eir.md` exist, read those too. Then produce a retrospective that covers four areas:
 
-1. **Investigation retrospective** — how did the investigation go?
-2. **Follow-up actions** — what needs to happen now?
-3. **KB ingest** — does this pattern belong in the knowledge base?
-4. **Public docs & KB review** — should anything change at docs.mattermost.com
+1. **Investigation retrospective** - how did the investigation go?
+2. **Follow-up actions** - what needs to happen now?
+3. **KB ingest** - does this pattern belong in the knowledge base?
+4. **Public docs & KB review** - should anything change at docs.mattermost.com
    or in the public support KB?
 
 Write the output to `tickets/<ID>/retro.md`. After writing, print the full contents to the screen,
@@ -47,14 +47,14 @@ then print `Saved to: tickets/<ID>/retro.md`.
 
 ---
 
-## Part 1 — Investigation retrospective
+## Phase 1 - Investigation retrospective
 
 Review the investigation as captured in `analysis.md` and assess honestly:
 
 ### Triage effectiveness
 - Did `/investigate`'s Phase 1 file inventory and error-families list surface the error(s) that
   turned out to be the root cause?
-- If not — what was it about the error that made it hard to catch? Was it low
+- If not - what was it about the error that made it hard to catch? Was it low
   volume, an unusual format, or buried in noise?
 - Were there error patterns that dominated the triage but turned out to be
   irrelevant? Would a known-noise list have helped?
@@ -85,12 +85,12 @@ Review the investigation as captured in `analysis.md` and assess honestly:
 - Are there improvements to `/investigate`'s Phase 9 analysis-log template that would have helped?
 - Should `/investigate`'s Phase 0-1 setup and inventory check for additional artifact types?
 
-Be specific and evidence-based. Don't say "the investigation went well" — say
+Be specific and evidence-based. Don't say "the investigation went well" - say
 *what* went well and *why*. Cite sections of the analysis.
 
 ---
 
-## Part 2 — Follow-up actions
+## Phase 2 - Follow-up actions
 
 Identify concrete follow-ups that should happen as a result of this ticket.
 For each one, state clearly what the action is and why.
@@ -104,10 +104,7 @@ For each one, state clearly what the action is and why.
 
 Use `mcp__claude_ai_Atlassian__*` (project `MM` only) to check for existing tickets before
 recommending a new one. Use `mcp__claude_ai_GitHub_MCP__*` to check for existing issues or PRs.
-Per `AGENTS.md`'s boundary: query both with generic technical terms only (error message templates,
-function/symbol names, config keys) - never a customer's hostname, domain, email, username, org
-name, or other identifying detail pulled from the ticket. If a tool is absent, state `GitHub search
-skipped: MCP not available` / `Jira search skipped: MCP not available` and continue; never block.
+Query terms per `AGENTS.md` Boundaries; absent tools per its Skip convention - never block.
 
 ### Documentation
 - Was there a config value that behaves differently than documented or expected?
@@ -130,7 +127,7 @@ pad with "none identified" sections.
 
 ---
 
-## Part 3 — KB ingest
+## Phase 3 - KB ingest
 
 Decide whether this ticket's root cause belongs in the knowledge base.
 
@@ -157,13 +154,13 @@ pattern captured.
 
 State why the pattern is not reusable. This goes in `retro.md` so the decision is recorded.
 
-**Do NOT delete or modify the ticket's `analysis.md` — the KB distills it, does not replace it.**
+**Do NOT delete or modify the ticket's `analysis.md` - the KB distills it, does not replace it.**
 
 ---
 
-## Part 4 — Public docs & KB review
+## Phase 4 - Public docs & KB review
 
-Separate from the internal KB ingest in Part 3, evaluate whether this ticket
+Separate from the internal KB ingest in Phase 3, evaluate whether this ticket
 points to changes that should land in customer-facing documentation or the
 public support knowledge base.
 
@@ -182,9 +179,9 @@ Ask:
   docs and should?
 
 If yes, propose a specific change: which page, what edit. Grep `upstream/docs/docs/` to confirm
-current state before recommending — do not assume a page is missing without checking.
+current state before recommending - do not assume a page is missing without checking.
 
-### b) Public support KB — new article candidate
+### b) Public support KB - new article candidate
 
 Public KB: https://support.mattermost.com.
 
@@ -195,13 +192,13 @@ Ask:
 - Would a public article reduce future ticket volume for this pattern?
 
 Before searching `support.mattermost.com` (WebFetch/WebSearch), apply the same generic-terms-only
-query boundary from `AGENTS.md` as Part 2's Jira/GitHub lookups.
+query boundary from `AGENTS.md` as Phase 2's Jira/GitHub lookups.
 
 If yes, draft a proposed title and a 2-3 sentence summary of what the article should cover. The
-actual article goes through the support team's normal publishing process — the retro just
+actual article goes through the support team's normal publishing process - the retro just
 identifies the candidate.
 
-### c) Public support KB — existing article check
+### c) Public support KB - existing article check
 
 Search the public KB for the error signature, symptom, or feature area (same query-boundary rule
 as (b)).
@@ -209,7 +206,7 @@ as (b)).
 - If an article already exists: does it match what was actually found in this
   ticket? Are there missing error variants, missing version coverage, or an
   out-of-date fix? Propose specific edits.
-- If no article exists: this loops back to (b) — note it as a candidate.
+- If no article exists: this loops back to (b) - note it as a candidate.
 
 If you cannot access the public KB directly, say so and flag the search terms
 the support team should check manually.
@@ -219,7 +216,7 @@ the support team should check manually.
 - Issue was a one-off product bug already filed and being fixed (no customer
   workaround worth documenting)
 - Root cause was customer-environment specific with no transferable guidance
-- Pattern is already well-covered in both docs and KB (note this — it's a
+- Pattern is already well-covered in both docs and KB (note this - it's a
   positive signal worth recording)
 
 ---
@@ -227,7 +224,7 @@ the support team should check manually.
 ## retro.md format
 
 ```markdown
-# Ticket <number> — Retrospective
+# Ticket <number> - Retrospective
 
 **Date:** <today's date>
 **Resolution:** <one-line summary of root cause and fix>
@@ -258,13 +255,13 @@ the support team should check manually.
 <!-- Only include categories that have actual items -->
 
 ### Jira tickets
-- [ ] <action> — <reason>
+- [ ] <action> - <reason>
 
 ### Documentation
-- [ ] <action> — <reason>
+- [ ] <action> - <reason>
 
 ### Process improvements
-- [ ] <action> — <reason>
+- [ ] <action> - <reason>
 
 ---
 
@@ -280,10 +277,10 @@ the support team should check manually.
 ### docs.mattermost.com
 <!-- Specific page + proposed edit, or "no changes needed" with brief reason -->
 
-### Public KB — new article candidate
+### Public KB - new article candidate
 <!-- Proposed title + 2-3 sentence scope, or "not a candidate" with brief reason -->
 
-### Public KB — existing article
+### Public KB - existing article
 <!-- Article URL/title found + proposed edits, or "no existing article" / "existing article is accurate" -->
 ```
 
