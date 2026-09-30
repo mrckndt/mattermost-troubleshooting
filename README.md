@@ -147,7 +147,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
 
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
    - Searches source code at five angles (exact error strings, config keys, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
-   - Searches important upgrade notes, the v11 changelog, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
+   - Searches important upgrade notes, all server changelogs, product docs, developer docs, Mattermost Hub, and GitHub issues per repo - all required.
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
    - Returns a `function:file` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
 
