@@ -44,16 +44,6 @@ Re-apply after every upgrade; package upgrades replace the binary and drop the c
 **Query-timeout signature:** when `SqlSettings.QueryTimeout` is exceeded, the `pq` driver logs
 `pq: canceling statement due to user request`. Distinct from pool exhaustion.
 
-#### Cluster gossip: `model.ClusterMessage.LogFields()`
-
-Added in v11.7.0 (PR #36214). It partially unmarshals message `Data` on error paths only (no performance impact on
-normal traffic) to surface:
-
-- **Publish events:** `ws_event`, `channel_id`, `team_id`, `omit_users_len`.
-- **Plugin events:** `plugin_id`, `event_id`.
-
-For troubleshooting `sendto: message too long` errors, see "Cluster gossip drop" in the enterprise notes.
-
 #### MariaDB is not a supported backend
 
 MariaDB is not supported. It diverges from MySQL enough that queries can fail in different places as the codebase
