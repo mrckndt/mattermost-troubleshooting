@@ -200,26 +200,26 @@ Self-refresh docs before searching: `/git-pull docs --interval=weekly`. Phase 6'
 For each in-scope repo, check whether `fragments/<repo>.md` exists and read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
 
-Then search both files for the customer's version range - both are required, not alternatives:
+Then search the upgrade notes and every server changelog - all are required, not alternatives:
 
 1. Important upgrade notes:
 ```
 grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/docs/main/administration-guide/upgrade/important-upgrade-notes.mdx"
 ```
-2. v11 changelog:
+2. All server changelogs (one file per major version):
 ```
-grep -ni "<keywords>" "$PROJECT_ROOT/upstream/docs/docs/main/product-overview/mattermost-v11-changelog.mdx"
+grep -ni "<keywords>" "$PROJECT_ROOT"/upstream/docs/docs/main/product-overview/mattermost-v*-changelog.mdx
 ```
 
 Search by server version, affected component, and any config keys or error strings from the inventory. If a version is known, also read the surrounding lines for each hit to capture the full note.
 
 ### Phase 4 hits block (required)
 
-Emit a single fenced block, one line per source per repo:
+Emit a single fenced block, one line per hit (or per source when it has none):
 
 - `fragments/<repo>.md` - `<relevant note quoted verbatim>` (or `no relevant entries`)
 - `important-upgrade-notes.mdx` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
-- `mattermost-v11-changelog.mdx` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
+- `mattermost-v<major>-changelog.mdx` - `<line#>`: `"<verbatim quote>"` (or `no matches`)
 
 - Record every hit verbatim, even if it doesn't fit the current theory - no relevance verdicts in this block.
 - Full quote if in the customer's version range or names an in-scope component; else `file:line` + first ~15 words.
