@@ -63,19 +63,14 @@ print(os.environ["REPO"]+" clean="+os.environ["CLEAN"]+" head="+hm)
 **`.git/HEAD` alone is not enough, and `.git/index` must stay out.**
 
 - Branch-tracked pulls (`git pull --ff-only`) advance the branch ref and append to `.git/logs/HEAD` but
-  leave `.git/HEAD` untouched, so a HEAD-only gate misses them. Confirmed on
-  `mattermost-plugin-msteams-meetings`: `.git/HEAD` from `2026-04-30`, `logs/HEAD` from `2026-09-03`
-  (`pull: Fast-forward`). Detached-HEAD repos (`mattermost`, `desktop`, `mattermost-mobile`) don't have
-  this gap since checkout moves `.git/HEAD` itself.
+  leave `.git/HEAD` untouched, so a HEAD-only gate misses them. Detached-HEAD repos don't have this gap
+  since checkout moves `.git/HEAD` itself.
 - `.git/index` is excluded: `git status` rewrites its mtime on every call regardless of repo change,
   which would peg `head` to "now" and force a reindex every run.
 - `packed-refs` is read only when on a branch with no loose ref file, never when detached - `git fetch
-  --tags` can rewrite it without moving the worktree (confirmed on `mattermost-mobile`, detached at
-  `v2.43.1`, checkout Aug 31 vs `packed-refs` Sep 3).
+  --tags` can rewrite it without moving the worktree.
 - A fetch-only `/git-pull` (no merge) touches only `refs/remotes/*`/`FETCH_HEAD`, neither read here, so it
   correctly still reports `unchanged`.
-- This caught 4 of 14 branch-tracking clones with already-stale graphs: `mattermost-operator`,
-  `mattermost-plugin-calls`, `mattermost-plugin-jira`, `mattermost-plugin-playbooks`.
 
 **Step B - graph facts.** Call the MCP tool directly. **Never** `codebase-memory-mcp cli`: it cannot run
 from inside this skill (see Notes' generation-guard entry).
@@ -174,7 +169,7 @@ A Markdown table: `Repo | Project | State | Ref`. `State` is `reindexed`, `uncha
 - `persistence: false` leaves the working tree and the clone's git config untouched, keeping
   `/git-switch` free to operate. If `upstream/<repo>/.codebase-memory/` ever appears, delete it.
 - A reindex rebuilds the whole graph (similarity, semantic edges, search index) at a cost that scales
-  with repo size; `mattermost` is a 980 MB graph. Reindex when the gate asks for it.
+  with repo size, so reindex when the gate asks for it.
 - **`auto_watch` reindexes in the background after a checkout moves; Step A's mtime comparison sees those
   refreshes and skips the redundant rebuild.** See Step A above for which git files carry that signal and
   why HEAD alone doesn't. The `clean` check separately covers uncommitted edits, which move no git ref.
