@@ -305,13 +305,6 @@ it answers something `rg`/`grep` cannot, named per angle below. On the search-on
      overflows the tool limit; narrow the keywords and re-run.
    - Treat the exhaustive pass as the real filter here; cbm's top hit is a lead into it.
 
-**Heuristic: dependency and CVE findings.** A scanner finding against a Mattermost version is not answered
-by `upstream/mattermost/webapp/` alone. The loaded page is the core webapp plus one bundle per prepackaged
-plugin, each built from its own `node_modules` and served from the same origin, so the core dependency can
-be patched while the plugin bundles keep serving the vulnerable copy. Take the release's plugin list from
-`PLUGIN_PACKAGES` in `server/Makefile` at the customer's tag, then check the owning plugin repo at its
-pinned tag. Full checklist in `fragments/mattermost.md`.
-
 Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
