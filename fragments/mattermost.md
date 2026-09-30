@@ -107,24 +107,30 @@ already has the patched dependency. The finding looks like a false positive; usu
 
 **Cause:** each prepackaged plugin builds its own webapp bundle from its own `node_modules`. The server serves it from the
 same origin as the core webapp, at `/static/<plugin-id>/<plugin-id>_<hash>_bundle.js` (`ClientManifest` in
-`server/public/model/manifest.go`). Patching the core webapp dependency leaves the plugin bundles unchanged.
+`server/public/model/manifest.go`; the hash is the FNV-1a hash of the bundle). Separate builds, lockfiles and repos:
+patching the core webapp dependency does nothing for the plugin bundles.
 
 **Diagnosis:**
 
 - **Plugin list:** read it from the customer's tag, never `master`; pinned versions move between releases:
   `git -C "$PROJECT_ROOT/upstream/mattermost" show v<version>:server/Makefile | grep PLUGIN_PACKAGES`.
-  With `FIPS_ENABLED=true` the list is replaced by playbooks, agents and boards only.
-- **Flagged URL:** `GET /api/v4/plugins/webapp` lists `.[].webapp.bundle_path` for every bundle the server serves.
-- **Owning plugin:** check it at its pinned tag. Report "fixed in plugin vX.Y.Z" and "first Mattermost version that
-  prepackages it" separately; if the second is "none yet", upgrading does not clear the finding.
-- **Runtime vs build-time:** a `webapp/package-lock.json` entry with `"dev": true` never reaches a browser. State whether
-  a library is in the lockfile or served to users.
-- **Bundled vs external:** anything missing from `externals` in `webapp/webpack.config.js` is compiled into the bundle.
-- **Tree-shaking:** CommonJS dependencies are bundled whole, version string included, which is what fingerprinting
-  scanners detect. "Only one safe function is called" does not clear the finding; reachability is a separate, weaker
-  claim that requires checking the plugin's transitive runtime deps.
+  `FIPS_ENABLED=true` replaces the list wholesale with playbooks, agents and boards, so a FIPS build prepackages no
+  calls, github or jira bundle at all.
+- **Flagged URL:** map it to a real asset; `GET /api/v4/plugins/webapp` lists `.[].webapp.bundle_path` for every bundle
+  the server actually serves.
+- **Owning plugin:** check it at its pinned tag, not its default branch. Report "fixed in plugin vX.Y.Z" and "first
+  Mattermost version that prepackages it" separately; if the second is "none yet", upgrading does not clear the finding.
+- **Runtime vs build-time:** a `webapp/package-lock.json` entry with `"dev": true` is reachable only from devDependencies
+  and never reaches a browser. "Present in the lockfile" and "served to users" are different claims; say which one.
+- **Bundled vs external:** plugins list react, redux, react-intl and similar in `externals` (`webapp/webpack.config.js`)
+  to reuse the host webapp's copy; anything else is compiled into the bundle.
+- **Tree-shaking:** CommonJS dependencies are not tree-shaken. `import {debounce} from 'lodash'` bundles the whole library,
+  version string included, and that string is what fingerprinting scanners detect. "Only one safe function is called"
+  does not clear the finding; report reachability as a separate, weaker claim, and only after checking the plugin's
+  transitive runtime deps rather than just its own source.
 
-**Trap:** `dataminr` is prepackaged from v12.0 but has no `upstream/` clone (not in `.agents/config/repos.json`). Check it
-through the GitHub MCP.
+**Trap:** `dataminr` is prepackaged from v12.0 and is the only prepackaged plugin with no `upstream/` clone (not in
+`.agents/config/repos.json`). Check it through the GitHub MCP instead of concluding it is unaffected.
 
-When core webapp source does not explain a browser-side symptom, check the plugin bundles next.
+This generalizes past CVEs: when core webapp source does not explain a browser-side symptom, the plugin bundles are the
+next place to look, not the last.
