@@ -191,8 +191,7 @@ Ask:
 - Is the diagnostic path generic enough that other customers would benefit?
 - Would a public article reduce future ticket volume for this pattern?
 
-Before searching `support.mattermost.com` (WebFetch/WebSearch), apply the same generic-terms-only
-query boundary from `AGENTS.md` as Phase 2's Jira/GitHub lookups.
+Before searching `support.mattermost.com` (WebFetch/WebSearch): query terms per `AGENTS.md` Boundaries.
 
 If yes, draft a proposed title and a 2-3 sentence summary of what the article should cover. The
 actual article goes through the support team's normal publishing process - the retro just

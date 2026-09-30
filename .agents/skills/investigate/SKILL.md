@@ -314,8 +314,7 @@ Complete this phase before proceeding.
 
 ## Phase 6 - Docs and Issues Search
 
-Searches 2-4 leave this workspace: query terms only, no customer hostname/domain/email/username/org/IP/
-token, even quoted from a ticket file (AGENTS.md Boundaries).
+Searches 2-4 leave this workspace: query terms per `AGENTS.md` Boundaries.
 
 Search all four unconditionally - all are required:
 1. `upstream/docs/docs/` (product docs under `docs/main`, developer docs under `docs/develop`). Search with
