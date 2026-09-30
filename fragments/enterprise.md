@@ -62,7 +62,8 @@ Two common sources:
   see `mattermost-plugin-github` notes).
 
 **Diagnosis (v11.7.0+):** `model.ClusterMessage.LogFields()` (PR #36214) logs event-specific context on cluster errors.
-For WebSocket broadcast events (`ClusterEventPublish`):
+It partially unmarshals message `Data` on error paths only (no performance impact on normal traffic). For WebSocket
+broadcast events (`ClusterEventPublish`):
 
 ```
 msg="sendto: message too long" ws_event=<type> channel_id=<id> team_id=<id> omit_users_len=<n>
