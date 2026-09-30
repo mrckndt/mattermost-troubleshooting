@@ -106,7 +106,7 @@ and repos on a branch, behaving as before.
 
 **Local first:**
 - `fragments/<repo>.md` - TSE-curated patterns, misleading signatures, license-tier traps.
-- `upstream/docs/docs/` - version-pinned product and developer docs. Search with `rg --no-ignore --hidden -i "<keywords>" upstream/docs/docs/`
+- `upstream/docs/docs/` - product and developer docs from `master`. Search with `rg --no-ignore --hidden -i "<keywords>" upstream/docs/docs/`
   (or `grep -rni "<keywords>" upstream/docs/docs/`).
 - `upstream/<repo>/` - source code; authoritative when docs are silent or stale.
 
@@ -339,7 +339,13 @@ Each entry stores the sent email verbatim, not a summary.
 
 `upstream/<name>/` are read-only. Keep aligned with the ticket's version before quoting code. Use `/bootstrap`, `/git-pull`, `/git-switch` over raw git. Missing repo: run `/bootstrap`.
 
-Prefer log/diff over checkout for multi-version comparisons:
+- **Switching:** `/investigate` Phase 3 (or an explicit engineer request) switches repos to the ticket's version.
+  Everywhere else, leave checkouts as they are and read other versions without a checkout (below).
+- **`upstream/docs`:** stays on `master`; never `/git-switch` it. All docs searches run against it. Refresh with
+  `/git-pull docs --interval=weekly`.
+
+Read other versions, and compare versions, without a checkout:
+- `git -C "$PROJECT_ROOT/upstream/<repo>" show <ref>:<path>` (a file as of `<ref>`)
 - `git -C "$PROJECT_ROOT/upstream/<repo>" log <refA>..<refB> -- <path>`
 - `git -C "$PROJECT_ROOT/upstream/<repo>" diff <refA> <refB> -- <path>`
 
