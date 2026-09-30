@@ -1,6 +1,6 @@
 ---
 name: upgrade-advisor
-description: Generate a Mattermost upgrade recommendation report: security fixes, urgent bugs, quality-of-life fixes, plugin updates. Optional arg: ticket ID (auto-detects) or an explicit version (e.g. 10.11.10).
+description: Generate a Mattermost upgrade recommendation report: security fixes, urgent bugs, quality-of-life fixes, plugin updates. Optional arg: ticket ID (auto-detects) or an explicit version (e.g. vX.Y.Z).
 user-invocable: true
 ---
 
@@ -9,6 +9,8 @@ Args: $ARGUMENTS
 Generate an upgrade recommendation report for a Mattermost customer: find meaningful bug fixes and security
 patches between their current version and the latest available patch in the same minor series, then explain
 each one in plain language.
+
+Write every version as `vX.Y.Z` (the git tag form); add the `v` to a bare `X.Y.Z`, e.g. `metadata.yaml`'s `server_version`.
 
 ## Phase 0 - Resolve mode and ticket
 
@@ -28,14 +30,14 @@ Resolve `<ID>`:
 2. Otherwise, if `$ARGUMENTS` contains a `tickets/<name>/` path reference and that directory exists: `<ID>=<name>`.
 3. Otherwise, if this conversation has already been working a specific ticket (its files were read earlier in
    this session, e.g. via `/investigate`): use that `<ID>`.
-4. Otherwise: ask the engineer for the ticket ID, or to pass a version directly (e.g. `/upgrade-advisor 10.11.10`).
+4. Otherwise: ask the engineer for the ticket ID, or to pass a version directly (e.g. `/upgrade-advisor vX.Y.Z`).
 
 Save target: `tickets/<ID>/upgrade-advisor.md`. Follow Phase 1A.
 
 ### Mode 2 - Version only (version passed as argument)
 
-If `$ARGUMENTS` contains a version number (e.g. `10.11.10`, or freeform text like "no support packet,
-10.11.10"), extract the version and skip directly to Phase 2. You won't have a config, plugin list, or instance
+If `$ARGUMENTS` contains a version number (e.g. `vX.Y.Z`, or freeform text like "no support packet,
+vX.Y.Z"), extract the version and skip directly to Phase 2. You won't have a config, plugin list, or instance
 URL - that's fine. Generate the report without config-specific relevance tagging and without plugin filtering.
 Note in the report header that no support packet was available. There is no ticket directory in this mode;
 nothing is saved to disk.
@@ -63,7 +65,7 @@ doesn't expose a version, ask the user for it.
 
 Preference order (first match wins):
 
-1. **Support packet node config** - inside the support packet, node subdirectories (e.g. `ip-172-16-*`) each
+1. **Support packet node config** - inside the support packet, node subdirectories (one per node, named after its hostname) each
    contain a `sanitized_config.json`. Use the first one - in HA the config is typically identical across nodes.
    ```bash
    fd --no-ignore --hidden -t f "sanitized_config.json" "$PROJECT_ROOT/tickets/<ID>" | head -1
@@ -71,7 +73,7 @@ Preference order (first match wins):
    (or `find "$PROJECT_ROOT/tickets/<ID>"/mm_support_packet_*/ -name "sanitized_config.json" 2>/dev/null | head -1`)
 2. **Bare `config.json` in `tickets/<ID>/`** - if there's no support packet, fall back to `tickets/<ID>/config.json`.
 3. **Neither** - stop and tell the user no config was found. Suggest they either re-run with a version argument
-   (`/upgrade-advisor 10.11.10`) or drop a `config.json` or support packet into `tickets/<ID>/`.
+   (`/upgrade-advisor vX.Y.Z`) or drop a `config.json` or support packet into `tickets/<ID>/`.
 
 ### Get installed plugins
 
@@ -197,8 +199,8 @@ If the customer is already on the latest patch, tell the user and stop.
 
 **Local:**
 ```bash
-git -C "$PROJECT_ROOT/upstream/mattermost" log -1 --format="%ai" v<current_version>
-git -C "$PROJECT_ROOT/upstream/mattermost" log -1 --format="%ai" v<target_version>
+git -C "$PROJECT_ROOT/upstream/mattermost" log -1 --format="%ai" <current_version>
+git -C "$PROJECT_ROOT/upstream/mattermost" log -1 --format="%ai" <target_version>
 ```
 
 **GitHub MCP:** call `mcp__claude_ai_GitHub_MCP__get_tag` for each version to get the tagged commit, then
@@ -235,35 +237,35 @@ Check **both** repos for commits:
 
 Both repos use the same version tags. Use the source you selected in Phase 1B for each repo independently.
 
-Determine the patch versions in the range. For example, if the customer is on 10.11.8 and the target is
-10.11.13, the intermediate versions are 10.11.9, 10.11.10, 10.11.11, 10.11.12, 10.11.13. Use the tag list you
+Determine the patch versions in the range. For example, if the customer is on vX.Y.8 and the target is
+vX.Y.13, the intermediate versions are vX.Y.9, vX.Y.10, vX.Y.11, vX.Y.12, vX.Y.13. Use the tag list you
 already fetched in Phase 2, filtered to versions *after* the customer's current version and up to (including)
 the target.
 
 ### Get commits between two tags
 
-For each consecutive pair of versions (e.g. v10.11.8 → v10.11.9), get the list of commits introduced in the
+For each consecutive pair of versions (e.g. vX.Y.8 → vX.Y.9), get the list of commits introduced in the
 later version from each repo:
 
 **Local git:**
 ```bash
-git -C "$PROJECT_ROOT/upstream/mattermost" log v10.11.8..v10.11.9 --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%n---END---"
-git -C "$PROJECT_ROOT/upstream/enterprise" log v10.11.8..v10.11.9 --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%n---END---"
+git -C "$PROJECT_ROOT/upstream/mattermost" log <earlier_tag>..<later_tag> --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%n---END---"
+git -C "$PROJECT_ROOT/upstream/enterprise" log <earlier_tag>..<later_tag> --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%n---END---"
 ```
 
 **GitHub MCP:** the MCP doesn't expose a direct "compare two tags" call, so use either of these patterns:
 
-1. **Preferred** - `get_file_contents` doesn't apply here; instead use `list_commits` with `sha=v<later_tag>`
-   to walk commits backwards in time, stopping when you hit the SHA of `v<earlier_tag>`. Request a reasonable
+1. **Preferred** - `get_file_contents` doesn't apply here; instead use `list_commits` with `sha=<later_tag>`
+   to walk commits backwards in time, stopping when you hit the SHA of `<earlier_tag>`. Request a reasonable
    `perPage` (e.g. 100) and paginate until you find the boundary SHA.
 
    ```
-   mcp__claude_ai_GitHub_MCP__list_commits owner=mattermost repo=mattermost sha=v10.11.9 perPage=100
+   mcp__claude_ai_GitHub_MCP__list_commits owner=mattermost repo=mattermost sha=<later_tag> perPage=100
    ```
 
 2. **Or** fall back to scraping the compare page via WebFetch:
    ```
-   WebFetch: https://github.com/mattermost/mattermost/compare/v10.11.8...v10.11.9
+   WebFetch: https://github.com/mattermost/mattermost/compare/<earlier_tag>...<later_tag>
    Prompt: "Return the list of commit SHAs and subjects between these two tags."
    ```
    Use this only if `list_commits` pagination is impractical for the range.
@@ -336,7 +338,7 @@ do not invent a priority.
 
 ## Phase 5b - Build the security fixes summary
 
-Do NOT list individual security commits. Instead, for each patch release in the range (10.11.9, 10.11.10,
+Do NOT list individual security commits. Instead, for each patch release in the range (vX.Y.9, vX.Y.10,
 etc.), determine:
 
 1. **Approximate count** of security fixes in that patch
@@ -406,7 +408,7 @@ These are functional improvements and minor bug fixes.
 
 ## Plugin Updates
 
-- **<Plugin name> updated to v<new>** - _<Plugin name> (currently v<installed>)_ - _Introduced in <version>_ <1-2 sentence description.> PR: [#<number>](https://github.com/mattermost/mattermost/pull/<number>)
+- **<Plugin name> updated to <new>** - _<Plugin name> (currently <installed>)_ - _Introduced in <version>_ <1-2 sentence description.> PR: [#<number>](https://github.com/mattermost/mattermost/pull/<number>)
 
 > **Note:** Plugin updates listed here only cover pre-packaged plugins that ship with the Mattermost server package. Custom plugins or plugins installed independently from the Mattermost Plugin Marketplace are not included in this analysis.
 
@@ -420,7 +422,7 @@ These are functional improvements and minor bug fixes.
 - **Header line** is a single paragraph combining Instance, Current Version, and Recommended Version with bolded labels - NOT a three-line list.
 - **Arrow in title** uses the Unicode `→` character, not `->`.
 - **Bullet entries** are a single paragraph: bold title, then Jira metadata in parentheses (if any), ` - `, italic `_Introduced in <version>_` (using underscores, not asterisks), then the description sentences, then config relevance inline (if any), then PR link at the end. No line break in the middle of the bullet.
-- **Plugin entries** have a second italic segment `_<Plugin name> (currently v<version>)_` between the title and the "Introduced in" fragment.
+- **Plugin entries** have a second italic segment `_<Plugin name> (currently <version>)_` between the title and the "Introduced in" fragment.
 - **SiteURL in header** is a linked markdown URL, not bare text.
 - **Config relevance is inline**, never a separate section. Use language like "Your instance has X enabled (`SettingName: true`), making this directly relevant." when it applies, and omit entirely when it doesn't.
 
@@ -436,21 +438,21 @@ Compare your output against the reference example below. Your section names, hea
 ### Reference example (the canonical format)
 
 ````markdown
-# Upgrade Recommendation: 10.11.8 → 10.11.13
+# Upgrade Recommendation: vX.Y.8 → vX.Y.13
 
-**Instance:** [https://mattermost.example.com](https://mattermost.example.com/) **Current Version:** 10.11.8 (released November 21, 2025) **Recommended Version:** 10.11.13 (released March 16, 2026)
+**Instance:** [https://mattermost.example.com](https://mattermost.example.com/) **Current Version:** vX.Y.8 (released <date>) **Recommended Version:** vX.Y.13 (released <date>)
 
 ## Security Fixes
 
-Patch releases 10.11.9 through 10.11.13 collectively include **~30 security fixes** ranging from **low to high severity**. Per Mattermost's [responsible disclosure policy](https://mattermost.com/security-updates/), specific vulnerability details are not included here.
+Patch releases vX.Y.9 through vX.Y.13 collectively include **~30 security fixes** ranging from **low to high severity**. Per Mattermost's [responsible disclosure policy](https://mattermost.com/security-updates/), specific vulnerability details are not included here.
 
-| Patch    | Severity Range | Approx. Count |
-| -------- | -------------- | ------------- |
-| 10.11.9  | Low to Medium  | 0             |
-| 10.11.10 | Low to Medium  | 5             |
-| 10.11.11 | Low to High    | 18            |
-| 10.11.12 | Low to High    | 6             |
-| 10.11.13 | Low to Medium  | 2             |
+| Patch   | Severity Range | Approx. Count |
+| ------- | -------------- | ------------- |
+| vX.Y.9  | Low to Medium  | 0             |
+| vX.Y.10 | Low to Medium  | 5             |
+| vX.Y.11 | Low to High    | 18            |
+| vX.Y.12 | Low to High    | 6             |
+| vX.Y.13 | Low to Medium  | 2             |
 
 For full details on disclosed vulnerabilities (including CVE and MMSA identifiers), see: [https://mattermost.com/security-updates/](https://mattermost.com/security-updates/)
 
@@ -458,30 +460,30 @@ For full details on disclosed vulnerabilities (including CVE and MMSA identifier
 
 These fixes address server crashes or significant functional breakage.
 
-- **Server panic when bot posts trigger persistent notifications** (MM-65575, Jira priority: High) - _Introduced in 10.11.10_ Fixed a server crash that occurred when a bot posted in a channel where persistent notifications were configured. The panic causes the server to crash every ~5 minutes until the post is acknowledged. Your instance has persistent notifications enabled (`AllowPersistentNotifications: true`), making this directly relevant. PR: [#34174](https://github.com/mattermost/mattermost/pull/34174)
-- **Plugin config wiped on re-enablement** - _Introduced in 10.11.13_ Re-enabling a plugin would lose its custom configuration, reverting to defaults. With your many active plugins (Jira, GitHub, GitLab, Confluence, Zoom, etc.), toggling a plugin off and back on would silently wipe its settings and break integrations. PR: [#35545](https://github.com/mattermost/mattermost/pull/35545)
+- **Server panic when bot posts trigger persistent notifications** (MM-65575, Jira priority: High) - _Introduced in vX.Y.10_ Fixed a server crash that occurred when a bot posted in a channel where persistent notifications were configured. The panic causes the server to crash every ~5 minutes until the post is acknowledged. Your instance has persistent notifications enabled (`AllowPersistentNotifications: true`), making this directly relevant. PR: [#34174](https://github.com/mattermost/mattermost/pull/34174)
+- **Plugin config wiped on re-enablement** - _Introduced in vX.Y.13_ Re-enabling a plugin would lose its custom configuration, reverting to defaults. With your many active plugins (Jira, GitHub, GitLab, Confluence, Zoom, etc.), toggling a plugin off and back on would silently wipe its settings and break integrations. PR: [#35545](https://github.com/mattermost/mattermost/pull/35545)
 
 ## Quality of life - could be annoying for a subset of users
 
 These are functional improvements and minor bug fixes.
 
-- **Postgres full-text search performance regression reverted** (MM-66782, Jira priority: Medium) - _Introduced in 10.11.11_ Reverted a prior change that caused Postgres full-text search queries (e.g. "Recent mentions") to time out and return empty results. Your instance uses Elasticsearch with `DisableDatabaseSearch: true`, so this is low relevance unless database search is re-enabled. PR: [#35063](https://github.com/mattermost/mattermost/pull/35063)
-- **Login flow fix for SSO-only environments** - _Introduced in 10.11.10_ When email and username sign-in are both disabled (as in your environment), the server no longer attempts an unnecessary username/email lookup before falling through to SAML. Eliminates a needless error path during login. PR: [#34441](https://github.com/mattermost/mattermost/pull/34441)
-- **Channel settings modal URL regression** (MM-64725, Jira priority: Medium) - _Introduced in 10.11.11_ After renaming a channel, search using `in:[channel name]` would show the new display name instead of the original channel handle. Regression since v10.8. PR: [#33500](https://github.com/mattermost/mattermost/pull/33500)
-- **Keyboard focus wrong when using Shift-Up to reply in thread** (MM-65186, Jira priority: High) - _Introduced in 10.11.9_ When pressing Shift+Up to reply in a thread, keyboard focus stayed in the main compose box instead of moving to the thread reply panel. PR: [#34627](https://github.com/mattermost/mattermost/pull/34627)
-- **Group member pagination fix** - _Introduced in 10.11.12_ Group member lists were loaded all at once instead of being paginated, which could cause performance issues for large groups. PR: [#35172](https://github.com/mattermost/mattermost/pull/35172)
-- **Reduced unnecessary rerenders on shared channels tooltip** - _Introduced in 10.11.9_ Performance improvement that eliminates unnecessary client-side rerenders. PR: [#34336](https://github.com/mattermost/mattermost/pull/34336)
+- **Postgres full-text search performance regression reverted** (MM-66782, Jira priority: Medium) - _Introduced in vX.Y.11_ Reverted a prior change that caused Postgres full-text search queries (e.g. "Recent mentions") to time out and return empty results. Your instance uses Elasticsearch with `DisableDatabaseSearch: true`, so this is low relevance unless database search is re-enabled. PR: [#35063](https://github.com/mattermost/mattermost/pull/35063)
+- **Login flow fix for SSO-only environments** - _Introduced in vX.Y.10_ When email and username sign-in are both disabled (as in your environment), the server no longer attempts an unnecessary username/email lookup before falling through to SAML. Eliminates a needless error path during login. PR: [#34441](https://github.com/mattermost/mattermost/pull/34441)
+- **Channel settings modal URL regression** (MM-64725, Jira priority: Medium) - _Introduced in vX.Y.11_ After renaming a channel, search using `in:[channel name]` would show the new display name instead of the original channel handle. Regression since an earlier minor release. PR: [#33500](https://github.com/mattermost/mattermost/pull/33500)
+- **Keyboard focus wrong when using Shift-Up to reply in thread** (MM-65186, Jira priority: High) - _Introduced in vX.Y.9_ When pressing Shift+Up to reply in a thread, keyboard focus stayed in the main compose box instead of moving to the thread reply panel. PR: [#34627](https://github.com/mattermost/mattermost/pull/34627)
+- **Group member pagination fix** - _Introduced in vX.Y.12_ Group member lists were loaded all at once instead of being paginated, which could cause performance issues for large groups. PR: [#35172](https://github.com/mattermost/mattermost/pull/35172)
+- **Reduced unnecessary rerenders on shared channels tooltip** - _Introduced in vX.Y.9_ Performance improvement that eliminates unnecessary client-side rerenders. PR: [#34336](https://github.com/mattermost/mattermost/pull/34336)
 
 ## Plugin Updates
 
-- **Zoom plugin updated to v1.12.0** - _Zoom (currently v1.8.0)_ - _Introduced in 10.11.10 (v1.11.0), 10.11.12 (v1.12.0)_ The bundled Zoom plugin was updated through two releases. Your instance is on v1.8.0, so this upgrade brings four minor versions of fixes and improvements. PR: [#34734](https://github.com/mattermost/mattermost/pull/34734), [#35167](https://github.com/mattermost/mattermost/pull/35167)
-- **Jira plugin updated to v4.5.0** - _Jira (currently v4.4.1)_ - _Introduced in 10.11.10_ The bundled Jira plugin was updated from v4.4.1 to v4.5.0. PR: [#34803](https://github.com/mattermost/mattermost/pull/34803)
+- **Zoom plugin updated to v1.12.0** - _Zoom (currently v1.8.0)_ - _Introduced in vX.Y.10 (v1.11.0), vX.Y.12 (v1.12.0)_ The bundled Zoom plugin was updated through two releases. Your instance is on v1.8.0, so this upgrade brings four minor versions of fixes and improvements. PR: [#34734](https://github.com/mattermost/mattermost/pull/34734), [#35167](https://github.com/mattermost/mattermost/pull/35167)
+- **Jira plugin updated to v4.5.0** - _Jira (currently v4.4.1)_ - _Introduced in vX.Y.10_ The bundled Jira plugin was updated from v4.4.1 to v4.5.0. PR: [#34803](https://github.com/mattermost/mattermost/pull/34803)
 
 > **Note:** Plugin updates listed here only cover pre-packaged plugins that ship with the Mattermost server package. Custom plugins or plugins installed independently from the Mattermost Plugin Marketplace are not included in this analysis.
 
 ---
 
-**Summary:** This upgrade from 10.11.8 to 10.11.13 includes approximately 30 security fixes across five patch releases, with severities ranging up to high. The bulk of security fixes landed in 10.11.11. On the stability side, the most urgent fix is a server panic triggered by bots posting in channels with persistent notifications (10.11.10) - which can crash the server every ~5 minutes. The plugin config loss on re-enablement (10.11.13) is also significant given your many active integrations. The remaining bug fixes are minor quality-of-life improvements. Given the volume and severity of the security fixes alone, upgrading is strongly recommended.
+**Summary:** This upgrade from vX.Y.8 to vX.Y.13 includes approximately 30 security fixes across five patch releases, with severities ranging up to high. The bulk of security fixes landed in vX.Y.11. On the stability side, the most urgent fix is a server panic triggered by bots posting in channels with persistent notifications (vX.Y.10) - which can crash the server every ~5 minutes. The plugin config loss on re-enablement (vX.Y.13) is also significant given your many active integrations. The remaining bug fixes are minor quality-of-life improvements. Given the volume and severity of the security fixes alone, upgrading is strongly recommended.
 ````
 
 ## Save and print
