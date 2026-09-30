@@ -89,3 +89,13 @@ for unlimited. The setting is `config.json`-only (System Console control depreca
 watcher; no restart.
 
 **Tradeoff:** the same setting governs message editing, so raising it also widens the edit window.
+
+#### Browser-API bugs leave no server-side trace
+
+**Symptom:** a browser-run feature (notifications, downloads, clipboard, paste, drag-and-drop, uploads, service workers,
+permission prompts) misbehaves, but server logs and config are clean.
+
+**Possible cause:** the webapp passes wrong arguments to the browser API (e.g. content landing in a notification `tag` or a
+download filename). Nothing reaches the server, so no log line or config key points at it.
+
+**Diagnosis:** read the webapp call site against the browser API spec before concluding no Mattermost-side fix exists.

@@ -199,6 +199,7 @@ Self-refresh docs before searching: `/git-pull docs --interval=weekly`. Phase 6'
 
 For each in-scope repo, check whether `fragments/<repo>.md` exists and read it.
 `mattermost` and `enterprise` always pair: if either is in scope, read both fragments.
+Always read `fragments/mattermost.md`.
 
 Then search the upgrade notes and every server changelog - all are required, not alternatives:
 
@@ -303,12 +304,6 @@ it answers something `rg`/`grep` cannot, named per angle below. On the search-on
    - Keep the semantic query to 2-3 keywords. A broad split returns an oversized, unranked response that
      overflows the tool limit; narrow the keywords and re-run.
    - Treat the exhaustive pass as the real filter here; cbm's top hit is a lead into it.
-
-**Heuristic: browser-side features.** For browser-run features (notifications, downloads, clipboard,
-paste, drag-and-drop, service workers, file uploads, permissions prompts), read the webapp source before
-concluding "no Mattermost-side fix exists" - check whether the webapp's arguments to the browser API
-match its spec (e.g. content landing in a `tag` field or filename). That class of bug is a one-line
-webapp fix invisible to any server log or config. (Source of this heuristic: ticket 51286.)
 
 Complete this phase before proceeding.
 
