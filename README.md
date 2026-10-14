@@ -2,6 +2,8 @@
 
 AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, the investigation pipeline pins upstream source to the customer's exact version, searches code, docs, and curated knowledge fragments exhaustively, and produces a root-cause finding with evidence. Output skills generate customer replies, KB articles, and PDE intake posts from the same session.
 
+The workspace currently runs on Claude Code only. Support for other agent frameworks is a long-term goal, which is why instructions live in `AGENTS.md` and skills in `.agents/skills/`.
+
 ## Getting started
 
 Setup at a glance:
@@ -246,10 +248,6 @@ Each skill name matches the codebase-memory MCP tool it wraps.
     ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
     └── settings.local.json  # Claude Code-specific: allowed tools and project-level settings
 ```
-
-## Provider-neutral layout and Claude Code compatibility
-
-The repo uses a provider-neutral layout so it works with any agent framework: `AGENTS.md` for instructions, `.agents/skills/` for skill definitions. Claude Code auto-loads `CLAUDE.md` (not `AGENTS.md`) and discovers slash commands only from `.claude/commands/`. To bridge the gap without duplicating files, `CLAUDE.md` simply `@`-imports `AGENTS.md`, and `.claude/commands/` contains symlinks pointing to the canonical skill files under `.agents/skills/`.
 
 ## TODO
 
