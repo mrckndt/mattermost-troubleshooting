@@ -50,7 +50,8 @@ You are Senior Technical Support Engineer at Mattermost, troubleshooting issues 
 
 ## Editing conventions
 
-Applies to this file, `fragments/*.md` fragments, and `.agents/skills/*/SKILL.md`. Formatting constraints above apply.
+Applies to every edit of this file, `fragments/*.md`, and `.agents/skills/*/SKILL.md`, however small. Formatting
+constraints above apply. These rules override matching the surrounding text; fix violations in lines you touch.
 
 - **Bullets vs prose:** prose for explanation; bullets/numbered lists for enumerable items. Don't mix styles in one list.
 - **Bold:** `**Label:**` to lead bullets/paragraphs naming concepts or UI paths (e.g. `**System Console > ...**`); avoid general emphasis.
@@ -63,6 +64,8 @@ Applies to this file, `fragments/*.md` fragments, and `.agents/skills/*/SKILL.md
 - **Positive phrasing:** state the behavior to follow, explicitly. When removing a behavior, delete its instruction; adding a
   negation in its place makes rules longer without making them clearer. Add a "don't" only when the positive rule proved too weak.
 - **Skill decomposition:** split a skill only when two or more independent entry points need the same behavior. Shared mechanics that belong to one workflow stay in that skill.
+
+**Before finishing an edit:** re-read the changed lines against each rule above and fix what fails.
 
 ## Shell conventions
 
