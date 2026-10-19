@@ -7,6 +7,7 @@
 # Track top-level docs
 !AGENTS.md
 !README.md
+!LICENSE
 
 # Track upstream folder
 !upstream/
