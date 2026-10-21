@@ -29,7 +29,7 @@ Required (ask once, batched, if any are missing):
 - Product tier: Professional / Enterprise / Enterprise Advanced.
 - Urgency / Severity: for bugs, classify per AGENTS.md's Defect and incident severity scale (Sev1-Sev4); for feature requests, deal/renewal tie-in or none.
 
-A customer-facing Sev1/Sev2 incident also needs `/sev-escalation` (notifies the internal escalation chain
+A customer-facing Sev1/Sev2 incident also needs `/sev-email` (notifies the internal escalation chain
 via email).
 
 Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links; Salesforce Account URL (zendesk-thread.md).
@@ -82,3 +82,10 @@ Print raw Markdown, not in a code block. Follow the template exactly.
    above, unreworded. Report the returned message ID; the bot replies in that DM on Hub.
 
 Confirmation is per run: ask again every time, even if the engineer sent a previous post in this session.
+
+## Track the Jira ticket
+
+When a Jira key for this request is known during this run (an input, or the engineer gives the one PD&E created)
+and `./tickets/<name>/analysis.md` exists, append it to `Tracking` in the format from `AGENTS.md`'s `analysis.md`
+schema (its skip and `none` rules apply): URL `https://mattermost.atlassian.net/browse/<key>`, date recorded = today. Heading missing: add it before
+`## Session log`. Print the appended line.
