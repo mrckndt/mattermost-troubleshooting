@@ -44,7 +44,6 @@ Determine mode from the remaining text:
   nested skill call.
   - ID returned: **ticket mode** - set `<ID>` to that value.
   - `no-match`: **description mode** - treat the argument as a problem description; skip Phase 1 and file-based version detection in Phase 3.
-- **Ticket mode (either way above):** rename the session per `AGENTS.md`'s Session behavior convention (ticket number + customer name).
 
 Complete this phase before proceeding.
 
