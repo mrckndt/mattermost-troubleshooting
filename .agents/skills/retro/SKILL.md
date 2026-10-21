@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Run a post-resolution retrospective on a resolved ticket - investigation retrospective, follow-up actions, KB-ingest decision, and public docs/KB review. Optional arg: ticket ID.
+description: Run a post-resolution retrospective on a resolved ticket - investigation retrospective, follow-up actions, KB article, and public docs/KB review. Optional arg: ticket ID.
 user-invocable: true
 ---
 
@@ -38,7 +38,7 @@ Read `tickets/<ID>/analysis.md` and all other artifacts in the ticket directory.
 
 1. **Investigation retrospective** - how did the investigation go?
 2. **Follow-up actions** - what needs to happen now?
-3. **KB ingest** - does this pattern belong in the knowledge base?
+3. **KB article** - create or update it.
 4. **Public docs & KB review** - should anything change at docs.mattermost.com
    or in the public support KB?
 
@@ -127,32 +127,12 @@ pad with "none identified" sections.
 
 ---
 
-## Phase 3 - KB ingest
-
-Decide whether this ticket's root cause belongs in the knowledge base.
-
-### Decision criteria
-
-**Create or update a KB entry when:**
-- A bug in Mattermost code was found (will recur until fixed)
-- A common misconfiguration was identified (multiple customers will hit it)
-- A misleading error message was diagnosed (the diagnostic path is reusable)
-
-**Skip KB ingest when:**
-- The issue was purely customer-specific with no reusable diagnostic path
-- The root cause is obvious from the error message alone (no diagnostic
-  value in documenting the path)
-
-### If creating or updating
+## Phase 3 - KB article
 
 Run `/kb-article <ID>` inline - it reads this ticket's `analysis.md`/`zendesk-thread.md`, resolves
 ticket mode automatically, and writes/overwrites `tickets/<ID>/kb-article.md` + `.html`. Record in
 `retro.md` which it did (new article vs. updated an existing one) and a one-line summary of the
 pattern captured.
-
-### If skipping
-
-State why the pattern is not reusable. This goes in `retro.md` so the decision is recorded.
 
 **Do NOT delete or modify the ticket's `analysis.md` - the KB distills it, does not replace it.**
 
@@ -160,7 +140,7 @@ State why the pattern is not reusable. This goes in `retro.md` so the decision i
 
 ## Phase 4 - Public docs & KB review
 
-Separate from the internal KB ingest in Phase 3, evaluate whether this ticket
+Separate from the KB article in Phase 3, evaluate whether this ticket
 points to changes that should land in customer-facing documentation or the
 public support knowledge base.
 
@@ -181,42 +161,24 @@ Ask:
 If yes, propose a specific change: which page, what edit. Grep `upstream/docs/docs/` to confirm
 current state before recommending - do not assume a page is missing without checking.
 
-### b) Public support KB - new article candidate
-
-Public KB: https://support.mattermost.com.
-
-Ask:
-- Is the resolution something a customer could self-serve on if they hit it
-  again? (config fix, known limitation, version-specific gotcha)
-- Is the diagnostic path generic enough that other customers would benefit?
-- Would a public article reduce future ticket volume for this pattern?
-
-Before searching `support.mattermost.com` (WebFetch/WebSearch): query terms per `AGENTS.md` Boundaries.
-
-If yes, draft a proposed title and a 2-3 sentence summary of what the article should cover. The
-actual article goes through the support team's normal publishing process - the retro just
-identifies the candidate.
-
-### c) Public support KB - existing article check
-
-Search the public KB for the error signature, symptom, or feature area (same query-boundary rule
-as (b)).
-
-- If an article already exists: does it match what was actually found in this
-  ticket? Are there missing error variants, missing version coverage, or an
-  out-of-date fix? Propose specific edits.
-- If no article exists: this loops back to (b) - note it as a candidate.
-
-If you cannot access the public KB directly, say so and flag the search terms
-the support team should check manually.
-
-### Skip when
-
+Skip docs changes when:
 - Issue was a one-off product bug already filed and being fixed (no customer
   workaround worth documenting)
 - Root cause was customer-environment specific with no transferable guidance
-- Pattern is already well-covered in both docs and KB (note this - it's a
-  positive signal worth recording)
+- Pattern is already well-covered in the docs (note this - it's a positive
+  signal worth recording)
+
+### b) Public support KB - existing article check
+
+Public KB: https://support.mattermost.com. Before searching it (WebFetch/WebSearch): query terms per
+`AGENTS.md` Boundaries.
+
+Search the public KB for the error signature, symptom, or feature area. If an article already exists: does
+it match what was actually found in this ticket? Are there missing error variants, missing version coverage,
+or an out-of-date fix? Propose specific edits.
+
+If you cannot access the public KB directly, say so and flag the search terms
+the support team should check manually.
 
 ---
 
@@ -264,10 +226,10 @@ the support team should check manually.
 
 ---
 
-## KB ingest
+## KB article
 
-**Decision:** <added via /kb-article / updated via /kb-article / skipped>
-<!-- If added/updated: what was changed. If skipped: why. -->
+**Result:** <added via /kb-article / updated via /kb-article>
+<!-- What was changed. -->
 
 ---
 
@@ -275,9 +237,6 @@ the support team should check manually.
 
 ### docs.mattermost.com
 <!-- Specific page + proposed edit, or "no changes needed" with brief reason -->
-
-### Public KB - new article candidate
-<!-- Proposed title + 2-3 sentence scope, or "not a candidate" with brief reason -->
 
 ### Public KB - existing article
 <!-- Article URL/title found + proposed edits, or "no existing article" / "existing article is accurate" -->
