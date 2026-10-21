@@ -71,7 +71,7 @@ Set these up after the repo is cloned. The investigation pipeline consults these
 - **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
 - **GitHub issues/PRs** - `github.com/mattermost/*`, via the claude.ai GitHub MCP connector; falls back to WebFetch/WebSearch if unavailable.
 - **Internal Jira (engineering tickets)** - project `MM` only, via the claude.ai Atlassian MCP connector.
-- **Gmail** - drafts and sends Sev1/Sev2 escalation-workflow emails (`/sev-escalation`), via the claude.ai Gmail connector.
+- **Gmail** - drafts and sends Sev1/Sev2 escalation-workflow emails (`/sev-email`), via the claude.ai Gmail connector.
 - **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally.
 
 All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
@@ -89,7 +89,7 @@ Per-connector specifics:
 
 - **GitHub** - registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. This is the pipeline's GitHub source; falls back to WebFetch/WebSearch if unavailable. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
 - **Jira (Atlassian connector)** - this is the pipeline's internal Jira source (project `MM` only); no public fallback if unavailable.
-- **Gmail** - registers as `claude.ai Gmail`, tools under `mcp__claude_ai_Gmail__*`. This is `/sev-escalation`'s only send path; no fallback if unavailable - the skill says so and stops before drafting.
+- **Gmail** - registers as `claude.ai Gmail`, tools under `mcp__claude_ai_Gmail__*`. This is `/sev-email`'s only send path; no fallback if unavailable - the skill says so and stops before drafting.
 
 #### Codebase memory MCP setup
 
@@ -183,9 +183,10 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/product-request [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue). After printing, asks whether to send it as a Hub DM to the PDE Intake Agent (`@pde-intake`, requires the Mattermost Hub connector). `/pde-intake [title]` is a deprecated alias.
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
-- **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB-ingest decision, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
+- **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB article, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
 - **`/upgrade-advisor [ticket-ID|version]`** - generate an upgrade recommendation report comparing a ticket's support-packet/config version (or an explicit version) to the latest patch: security fixes, urgent vs quality-of-life bugs, plugin updates; saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket. Does not require `analysis.md`.
-- **`/sev-escalation <ticket-ID> [stage]`** - draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email: Initial Notification, Workaround Guidance, Resolution & De-escalation, or Postmortem Information. Tracks the Gmail thread in `tickets/<ID>/gmail-escalation-thread.md`.
+- **`/sev-email <ticket-ID> [stage]`** - draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email: Initial Notification, Workaround Guidance, Resolution & De-escalation, or Postmortem Information. `/sev-escalation` is a deprecated alias. Tracks the Gmail thread in `tickets/<ID>/gmail-escalation-thread.md`.
+- **`/escalation-helper <ticket-ID> [packet | postmortem]`** - show where a ticket stands in the escalation process (path, Technical Escalation Playbook checklist, #radar emails, optionally the run channel's posts via Hub): done and missing, then runs the chosen item's skill (`/sev-email`, `/kb-article`, `/investigate`) on confirmation. `packet` exports the Escalation Packet (Support to Engineering Escalation Template) from `analysis.md` to `tickets/<ID>/escalation-packet.md` and, on confirmation, posts it to the run channel. `postmortem` drafts `tickets/<ID>/postmortem.md` from the playbook's retrospective template.
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ### Repo management
