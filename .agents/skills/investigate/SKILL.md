@@ -438,20 +438,16 @@ mapping table. If `Priority` is blank, fall back to scanning the conversation fo
 severity/urgency claim - still `Customer-stated` if found. Only when neither source yields one, tag
 `Inferred` (a read against `AGENTS.md`'s Defect and incident severity scale from technical evidence alone).
 Write `Confirmed by engineer` only if the engineer explicitly states the confirmed severity during this same
-run - never assumed from the LLM's own confidence or from silence. Reach (`High` / `Narrow`, against the reach
-definitions in `AGENTS.md`'s Reach x severity table): tag `Inferred`, or `Confirmed by engineer` if the engineer
-states it. Priority is not tagged: look it up from that table for the written severity and reach. A part already
-`Confirmed by engineer` (e.g. by `/sev-email` or `/escalation-helper`) carries forward unchanged unless the
-engineer changes it in this run.
+run - never assumed from the LLM's own confidence or from silence. Reach (per `AGENTS.md`'s Reach x severity
+table): `Inferred`, or `Confirmed by engineer` if the engineer states it. Priority: untagged, looked up from that
+table. A part already `Confirmed by engineer` carries forward unless the engineer changes it this run.
 
 **`Workaround`** and **`Scope`** (Fault investigation): fill from evidence (customer confirmation, KB article,
-internal repro, `/search-tickets` hits for other customers, `Timeline` for recent changes). Every `unknown`
-sub-key shows up as missing in the Escalation Packet.
+internal repro, `/search-tickets` hits for other customers, `Timeline` for recent changes).
 
-**`Tracking` (append-only):** every Jira ticket that tracks this ticket's issue (the bug, a follow-up), found in the
-thread, ticket files, or a Jira search, one line per ticket in the `Tracking` format from `AGENTS.md`'s
-`analysis.md` schema (its skip and `none` rules apply). Related or causing tickets stay in `Evidence collected`.
-None yet: `none`.
+**`Tracking` (append-only):** Jira tickets tracking this issue, from the thread, ticket files, or a Jira search,
+per `AGENTS.md`'s `analysis.md` schema (format, skip and `none` rules). Related or causing tickets stay in
+`Evidence collected`.
 
 **`Session log` (append-only):** one bullet per `/investigate` run - a "session" is one run, not a turn. Append,
 never rewrite: `<YYYY-MM-DD> - <model, effort/thinking> - <what changed> - <what it superseded, if anything>`.
@@ -583,7 +579,7 @@ Section shape on first creation, populated with real content, not left empty:
 ## Resolution
 
 ## Tracking
-- (one line per ticket, format: Jira: MM-<n> - <URL> - <what it tracks>, <date recorded>; none yet: none)
+- Jira: MM-<n> - <URL> - <what it tracks>, <date recorded> (none yet: `none`)
 
 ## Session log
 ```
@@ -599,5 +595,4 @@ fault-investigation phrasing:
 - `Ruled out` -> alternatives considered and why rejected.
 
 Sections genuinely not applicable (e.g. `Timeline` for a single-session question) may be written as `N/A`
-instead of forced content. `Severity`, `Workaround`, `Scope`, and the `Reported symptom` sub-keys are always
-`N/A` here - no defect to classify.
+instead of forced content. Defect fields are `N/A` per `AGENTS.md`'s `analysis.md` schema.

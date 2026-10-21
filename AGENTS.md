@@ -149,8 +149,8 @@ body owns its arguments and output paths. Cross-skill workflow rules:
 - **Order:** `/hub-harvest <ID>` pulls the Zendesk thread, `/investigate <ID>` writes `analysis.md`, and the
   output skills build on it (see `analysis.md` schema consumers). `/upgrade-advisor` and `/sev-email`
   also run without it.
-- **Escalations:** `/escalation-helper <ID>` reports where a ticket stands in the escalation process (Technical
-  escalation process below) and invokes the skill for the next step; `/sev-email` sends the #radar emails.
+- **Escalations:** `/escalation-helper <ID>` tracks a ticket through the Technical escalation process (below) and
+  runs the chosen step's skill; `/sev-email` sends the #radar emails.
 - **Resume vs. investigate:** run `/resume-investigation <ID>` when the engineer asks to pick a ticket back up.
   An explicit `/investigate <ID>` always runs the full pipeline, even if `analysis.md` exists. Never substitute
   one for the other on your own judgment.
@@ -174,9 +174,8 @@ body owns its arguments and output paths. Cross-skill workflow rules:
   - `Reported symptom`
   - `Steps and outcomes`
   - `Ruled out`
-  - `Tracking` - one line per Jira ticket tracking this ticket's issue (bug, follow-up):
-    `Jira: MM-<n> - <URL> - <what it tracks>, <date recorded>`. A key already listed is skipped; the first real
-    entry replaces `none`.
+  - `Tracking` - one line per Jira ticket (bug, follow-up): `Jira: MM-<n> - <URL> - <what it tracks>, <date
+    recorded>`. Skip a key already listed; the first real entry replaces `none`.
   - `Session log`
 - **Current-state** (holds the latest answer, superseded item annotated in place):
   - `Correlation`
@@ -201,16 +200,14 @@ body owns its arguments and output paths. Cross-skill workflow rules:
     `Next steps`, plus `Resolution`.
   - `/retro` - gates on `Current hypothesis` being populated; `Session log` entry count.
   - `/kb-article` - keys off `Resolution`.
-  - `/sev-email` - reads `Severity` as a starting point (re-confirmed unless already `Confirmed by engineer`),
-    writes back the confirmed value; reads `Workaround` for the email's `Workaround:` line, and `Reported
-    symptom`, `Current hypothesis`, `Next steps`, `Deployment`, `Correlation`, `Resolution` for its other fields.
+  - `/sev-email` - reads `Severity` as a starting point (re-confirmed unless already `Confirmed by engineer`);
+    `Workaround` for the email's `Workaround:` line; `Reported symptom`, `Current hypothesis`, `Next steps`,
+    `Deployment`, `Correlation`, `Resolution` for its other fields.
   - `/escalation-helper` - whole file; maps `Severity`, the `Deployment`/`Reported symptom` sub-keys,
     `Workaround`, `Scope`, `Steps and outcomes`, `Correlation`, `Current hypothesis`, `Artifacts reviewed`,
     and `Evidence collected` onto the Escalation Packet; reads `Timeline`, `Resolution`, `Next steps`, `Open
-    questions`, and `Tracking` for the status report and the post-mortem; writes back the confirmed `Severity`
-    and appends to `Tracking`.
-  - `/product-request` - appends the Jira ticket to `Tracking` once its key is known; otherwise reads the file only
-    implicitly, as part of "review everything known".
+    questions`, and `Tracking` for the status report and the post-mortem.
+  - `/product-request` - appends to `Tracking` (Writer above); otherwise reads it only implicitly.
 - **Whole-file readers, no heading keyed:** `/rca`, `/eir`.
 - **Existence-only, implicit, or no read:**
   - `/search-tickets` - greps `tickets/*/analysis.md` wholesale, text search only.
@@ -271,10 +268,7 @@ scale everywhere, defined below.
 
 **Notation:** this workspace uses `Sev1`-`Sev4` throughout (matching Zendesk's `Severity` field and
 real-world usage); `S1`-`S4` is the official process documentation's own notation for the same scale - treat
-either form as equivalent wherever it appears. The Technical Escalation Playbook's run fields use `Severity`
-`SEV1`-`SEV4`, `Reach` `High | Narrow`, `Priority` `HIGH | MEDIUM | LOW`. The Support to Engineering
-Escalation Template labels Sev1/Sev2 `Blocker`/`Major` instead of `Critical`/`Serious`: render the template
-as written and flag the mismatch to the engineer.
+either form as equivalent wherever it appears.
 
 **Guiding principle:** absence of signal is not absence of impact. Most customers self-host, many air-gapped
 or with telemetry off; they churn or leave a bad review rather than file a ticket. Severity is set by the
@@ -326,13 +320,12 @@ or Sev2 triggers 4 mandatory SLA emails to **func-sev1sev2-escalation@mattermost
 4. **Postmortem Information** - detailing the postmortem process and findings, with the finalized postmortem
    document as an attachment.
 
-All four use the same `Sev1_2 #radar Email Template`; the process documents (Sev1/Sev2 Support Ticket
-Workflow, Technical Escalation, Support Escalation) define no separate follow-up format.
+All four use the `Sev1_2 #radar Email Template`.
 
 The Technical Escalation Playbook task "Share any material updates to the #radar email thread" is optional
 (workspace convention); `/sev-email` has no stage for it. Regular progress updates go into the Playbook run
-(Sev1/Sev2 Support Ticket Workflow step 7). Playbook run creation and postmortem-meeting scheduling are non-email steps no skill
-performs; `/escalation-helper` tracks them.
+(Sev1/Sev2 Support Ticket Workflow step 7). Playbook run creation and postmortem-meeting scheduling are
+non-email steps no skill performs; `/escalation-helper` tracks them.
 
 `/sev-email` drafts these emails and sends each only after explicit engineer review.
 
@@ -341,8 +334,8 @@ performs; `/escalation-helper` tracks them.
 - **Header fields:** `Severity`, `Gmail thread ID`, `Zendesk reference`, `Escalation alias`, `Opened`,
   `Last stage sent`.
 - **Body:** append-only, numbered `## Stages sent` entries, one per stage sent, never rewritten.
-- **Keyed consumers:** `/sev-email`; `/escalation-helper` (`Severity`, `Last stage sent`, the stage entries for
-  Track C, and their send times for the post-mortem timeline).
+- **Keyed consumers:** `/sev-email`; `/escalation-helper` (`Severity`, `Last stage sent`, stage entries and their
+  send times).
 
 Each entry stores the sent email verbatim, not a summary.
 
@@ -353,8 +346,8 @@ Technical Escalation Playbook (run prefix `TESC`).
 
 - **Ownership:** Support owns intake, triage, the ticket and the customer relationship for the full lifecycle;
   escalating never transfers it.
-- **Run fields:** `Severity`, `Reach`, `Priority` (Defect and incident severity above), `Technical Owner`,
-  `Customer Owner`.
+- **Run fields:** `Severity` (`SEV1`-`SEV4`), `Reach` (`High | Narrow`), `Priority` (`HIGH | MEDIUM | LOW`; Defect
+  and incident severity above), `Technical Owner`, `Customer Owner`.
 - **Roles (HIGH and MEDIUM runs, both named in the channel):**
   - **Customer owner (Support):** status updates internally to stakeholders and externally to customers.
   - **Technical owner (L2 CSE or L3 Engineering):** drives to technical resolution.
@@ -369,8 +362,8 @@ Technical Escalation Playbook (run prefix `TESC`).
     Incident Response Team. Sev3/Sev4: Jira ticket or designated Mattermost channels.
 - **Response:** the L2/L3 responder confirms severity. False positive: say so in the channel, close the run.
   Responder downgrades to LOW: file Jira, route to the AOR owner, close the run.
-- **Resolved:** permanent fix, or the customer accepts the workaround. Either one closes the loop: Resolution &
-  De-escalation email, close-out.
+- **Resolved:** permanent fix or a customer-accepted workaround; either triggers the Resolution & De-escalation
+  email and close-out.
 - **Close-out:** resolution posted in the channel with a customer-facing summary; Support confirms with affected
   customers; KB updated; outstanding work tracked in Jira by the technical owner.
 - **KB article:** every escalation gets one, posted after the initial assessment and updated with the resolution.
@@ -381,11 +374,12 @@ Technical Escalation Playbook (run prefix `TESC`).
 - **Writer:** `/escalation-helper`, into `tickets/<ID>/escalation-packet.md`, rendered 1:1 from the Support to
   Engineering Escalation Template.
 - **Header fields:** `Escalation Date`, `Escalation Priority / Severity`, `Assigned Support Escalation Owner`.
+  `Escalation Priority / Severity` is `Sev1 - Blocker | Sev2 - Major | Sev3 | Sev4` (template labels, not
+  `Critical`/`Serious`; `Sev2` and Sev3/Sev4 are workspace conventions).
 - **Headings (fixed, the template's own):** `1. Escalation Overview`, `2. Environment & Deployment
   Configuration`, `3. Problem Statement & Behavior`, `4. Investigation & Findings`, `5. Supporting Artifacts &
   Attachments`.
-- **Sources:** `analysis.md` (see its sub-keys) plus the `zendesk-thread.md` header; a field neither holds is
-  written `[unknown - <who to ask>]`.
+- **Placeholders:** a field with no source is `[unknown - <who to ask>]`.
 - **Keyed consumers:** `/escalation-helper` only (existence check for the playbook's packet task).
 
 **`postmortem.md` schema:**
@@ -393,8 +387,7 @@ Technical Escalation Playbook (run prefix `TESC`).
   Playbook's retrospective template; a draft the post-mortem session completes.
 - **Headings (fixed, the template's own):** `1. Incident Summary`, `2. Incident Timeline`, `3. Root Cause
   Analysis`, `Action Items`, `Open Questions`.
-- **Sources:** `analysis.md`, `gmail-escalation-thread.md` send times, the run channel; session content is written
-  `[to fill in the post-mortem session]`, other gaps `[unknown - <who to ask>]`.
+- **Placeholders:** session content `[to fill in the post-mortem session]`, other gaps `[unknown - <who to ask>]`.
 - **Keyed consumers:** `/escalation-helper` (existence check for the post-mortem task); `/sev-email` attaches it to
   Postmortem Information.
 

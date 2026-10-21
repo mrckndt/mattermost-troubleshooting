@@ -30,23 +30,17 @@ Zendesk reference and org, so there is no no-ticket mode:
 
 ## Phase 1 - Confirm severity
 
-- If `tickets/<ID>/gmail-escalation-thread.md` exists, use its `Severity` header value; state it, don't
-  re-ask unless the engineer flags a change.
-- Otherwise, if the severity part of `tickets/<ID>/analysis.md`'s `Severity` is `Sev1`/`Sev2 (Confirmed by
-  engineer)`, use it; state it, don't re-ask unless the engineer flags a change. A confirmed Sev3/Sev4: say this
-  workflow doesn't apply, stop.
-- Otherwise, if `tickets/<ID>/analysis.md` has a `Severity` field, offer it as a starting point - state its
-  `Inferred`/`Customer-stated` tag - still ask the engineer to confirm or override, never use it silently.
-- Otherwise, if `tickets/<ID>/zendesk-thread.md` has a `Priority` field, offer its `AGENTS.md`-mapped
-  equivalent as a starting point - still ask the engineer to confirm or override, never use it silently.
-- Otherwise, ask/confirm Sev1 or Sev2 against `AGENTS.md`'s Defect and incident severity scale (cite it so
-  the engineer can self-check). If the engineer states Sev3/Sev4: say this workflow doesn't apply, stop.
+- Use `gmail-escalation-thread.md`'s `Severity` header, else the severity part of `analysis.md`'s `Severity` when
+  `Confirmed by engineer`; state it, re-ask only if the engineer flags a change.
+- Otherwise offer a starting point the engineer confirms or overrides, never used silently: `analysis.md`'s
+  `Severity` (state its `Inferred`/`Customer-stated` tag), else `zendesk-thread.md`'s `Priority` mapped per
+  `AGENTS.md`, else ask against `AGENTS.md`'s Defect and incident severity scale (cite it so the engineer can
+  self-check).
+- Sev3/Sev4, confirmed or stated by the engineer: say this workflow doesn't apply, stop.
 - Once confirmed, if `tickets/<ID>/analysis.md` exists, patch the severity part of its `Severity` field to
   `<value> (Confirmed by engineer)`, keeping Reach (none recorded: ask for it) and re-reading Priority from
   `AGENTS.md`'s Reach x severity table, superseding the prior value in place per `AGENTS.md`'s Current-state
-  sections. No
-  `analysis.md` yet: nothing to patch - the confirmed value is already captured in `gmail-escalation-thread.md`
-  (Phase 8).
+  sections. No `analysis.md`: skip; Phase 8 records the value.
 
 ## Phase 2 - Determine stage
 
@@ -85,8 +79,7 @@ don't collapse one into the other.
 | Workaround | `Workaround`; Workaround Guidance details below; later stages carry forward the `Workaround:` line of the last sent entry in `gmail-escalation-thread.md` when it has one |
 | Next update | Engineer's free text - no built-in SLA/timing logic |
 
-Every stage renders the same template; the stage only adds the content the Sev1/Sev2 Support Ticket
-Workflow requires of that email:
+Per-stage content the Sev1/Sev2 Support Ticket Workflow requires:
 
 | Stage | Required content (workflow step) |
 |---|---|
@@ -166,17 +159,15 @@ Organization: <Zendesk Organization URL>
   `search_threads` scoped to the escalation alias, matching `Zendesk Reference ID: #<n>` in the body.
   - Exactly one match: use its thread ID, offer to recreate `gmail-escalation-thread.md` from it: header per the
     template in Phase 8 (`Opened` = first message date, `Last stage sent` = the latest stage found), one
-    `## Stages sent` entry per message already in the thread, verbatim. Declined: Phase 8 then writes a fresh
-    file holding only this stage.
+    `## Stages sent` entry per message already in the thread, verbatim.
   - Zero or multiple matches: show what was found, ask the engineer how to proceed. Never guess.
 
 ## Phase 6 - Create draft
 
 Print the email for review first, rendered readably (bold labels, clickable links), not the raw HTML body -
 then call `mcp__claude_ai_Gmail__create_draft` (`replyToMessageId` set for replies; `attachments` carries the
-postmortem document on Postmortem Information, base64 `content` with `filename` and `mimeType`). This order
-matters: the tool-call permission prompt shows the raw HTML regardless, so the readable version needs to be seen first,
-not buried after it.
+postmortem document on Postmortem Information, base64 `content` with `filename` and `mimeType`). The order
+matters: the permission prompt shows only the raw HTML.
 
 ## Phase 7 - Confirm and send
 

@@ -170,10 +170,8 @@ Skip docs changes when:
 
 ### b) Public support KB - existing article check
 
-Public KB: https://support.mattermost.com. Before searching it (WebFetch/WebSearch): query terms per
-`AGENTS.md` Boundaries.
-
-Search the public KB for the error signature, symptom, or feature area. If an article already exists: does
+Search the public KB (https://support.mattermost.com, WebFetch/WebSearch, query terms per `AGENTS.md`
+Boundaries) for the error signature, symptom, or feature area. If an article already exists: does
 it match what was actually found in this ticket? Are there missing error variants, missing version coverage,
 or an out-of-date fix? Propose specific edits.
 
@@ -228,8 +226,7 @@ the support team should check manually.
 
 ## KB article
 
-**Result:** <added via /kb-article / updated via /kb-article>
-<!-- What was changed. -->
+**Result:** <added | updated> via /kb-article - <what was changed>
 
 ---
 

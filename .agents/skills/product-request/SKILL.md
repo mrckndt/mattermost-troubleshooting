@@ -85,7 +85,7 @@ Confirmation is per run: ask again every time, even if the engineer sent a previ
 
 ## Track the Jira ticket
 
-When a Jira key for this request is known during this run (an input, or the engineer gives the one PD&E created)
-and `./tickets/<name>/analysis.md` exists, append it to `Tracking` in the format from `AGENTS.md`'s `analysis.md`
-schema (its skip and `none` rules apply): URL `https://mattermost.atlassian.net/browse/<key>`, date recorded = today. Heading missing: add it before
-`## Session log`. Print the appended line.
+When this run learns the request's Jira key (an input, or the one PD&E created, from the engineer) and
+`./tickets/<name>/analysis.md` exists, append it to `Tracking` per `AGENTS.md`'s `analysis.md` schema (format,
+skip and `none` rules), URL `https://mattermost.atlassian.net/browse/<key>`, date recorded today. No heading: add
+it before `## Session log`. Print the appended line.

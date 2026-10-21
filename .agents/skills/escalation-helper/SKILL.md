@@ -17,6 +17,8 @@ documents are silent, say so and ask the engineer.
 3. Evidence comes from ticket files, the run channel's posts when the engineer opts in (Phase 2 step 3), and the
    engineer; checked checklist items and calls come from the engineer only. Never infer a task as done from
    silence.
+4. Packet and Postmortem phases: overwrite an existing output file only after showing what changed and the
+   engineer confirms.
 
 ## Phase 0 - Resolve ticket
 
@@ -32,17 +34,16 @@ Read whichever exist under `tickets/<ID>/`:
 - `gmail-escalation-thread.md` - `Severity`, `Last stage sent`.
 - `escalation-packet.md`, `kb-article.md`, `postmortem.md`.
 
-No `analysis.md`: say so and offer `/investigate <ID>` before continuing; severity, reach and the packet all
-depend on it. `analysis.md` without the `Workaround`/`Scope` headings or the `Deployment`/`Reported symptom`
-sub-keys (`AGENTS.md` schema): say the packet would be mostly `[unknown]` and offer `/investigate <ID>` first.
+No `analysis.md`, or one missing the `Workaround`/`Scope` headings or the `Deployment`/`Reported symptom`
+sub-keys (`AGENTS.md` schema): say so (partial: the packet would be mostly `[unknown]`) and offer
+`/investigate <ID>` before continuing.
 
 ## Phase 2 - Classify and place
 
 1. **Severity, reach, priority:** take them from `analysis.md`'s `Severity`. Any part `Inferred`/
    `Customer-stated` or missing: show the value with its source and ask the engineer to confirm (cite
-   `AGENTS.md`'s Defect and incident severity scale and Reach x severity table). Priority is the table lookup,
-   never a judgment call. Once confirmed, patch `analysis.md`'s `Severity` to the `AGENTS.md` format, each
-   confirmed part tagged `Confirmed by engineer`, superseding the prior value in place.
+   `AGENTS.md`'s Defect and incident severity scale and Reach x severity table). Once confirmed, patch
+   `analysis.md`'s `Severity` to the `AGENTS.md` format, each confirmed part tagged `Confirmed by engineer`, superseding the prior value in place.
 2. **Path:** ask which applies, offering the `AGENTS.md` criteria for each: L1 only (Support resolves), L2 CSE,
    or L3 Engineering. L1 only or L2 at priority HIGH: point out that `AGENTS.md`'s L3 criteria include HIGH.
 3. **Playbook run:** required per `AGENTS.md`'s Playbook run rule. Ask whether the run (`TESC-<n>`) exists;
@@ -73,7 +74,7 @@ here - ask in one batched question at the end, not item by item).
 - L2 CSE: internal note with context and the specific ask; `Escalated To` = Ben or Vishal - ask.
 - L3 Engineering Sev1/Sev2: `Escalated To` = Incident Response Team - ask.
 - L3 Engineering Sev3/Sev4: Jira ticket or designated channel - a key in `analysis.md` `Tracking`, else ask.
-- L2 or L3: Escalation Packet - `escalation-packet.md`.
+- L2 or L3: Escalation Packet - `escalation-packet.md`; next skill the Packet phase.
 
 **Track B - Technical Escalation Playbook checklist (when the run exists or is required):** `[SEV1/2]` items
 only appear when the run's Severity is SEV1 or SEV2. Due times are relative to run start.
@@ -81,12 +82,12 @@ only appear when the run's Severity is SEV1 or SEV2. Due times are relative to r
 | # | Phase | Task | Owner | Due | Evidence here | Next skill |
 |---|---|---|---|---|---|---|
 | 1 | Triage | Review the reported issue (goal: estimate severity and reach) | Run creator | 15 min | `analysis.md` exists | `/investigate` |
-| 2 | Triage | Assign severity, reach and priority (based on the definitions) | Run creator | 30 min | `analysis.md` `Severity`: severity and reach `Confirmed by engineer`, priority matching the table; run fields: playbooks bot posts in the run channel, else ask | - |
+| 2 | Triage | Assign severity, reach and priority (based on the definitions) | Run creator | 30 min | `analysis.md` `Severity`: severity and reach `Confirmed by engineer`, priority matching the table; run fields: playbooks bot posts in channel, else ask | - |
 | 3 | Escalate | Based on the priority and type of issue, escalate to CSE or Engineering | Run creator | 35 min | ask | - |
 | 4 | Escalate | [SEV1/2] Send a #radar email to `func-sev1sev2-escalation@mattermost.com` | Run creator | 45 min | `gmail-escalation-thread.md` has Initial Notification | `/sev-email <ID> initial` |
-| 5 | Escalate | Prepare the Escalation Packet and post it in channel | Run creator | - | `escalation-packet.md` exists; packet post in the run channel | Packet phase |
-| 6 | Escalate | Assign the Customer Owner and Technical Owner roles in the run | Run creator | - | owners named in the run channel, else ask | - |
-| 7 | Investigate | Review the Escalation Packet and provide an initial assessment in channel | Technical Owner | - | assessment post in the run channel, else ask | - |
+| 5 | Escalate | Prepare the Escalation Packet and post it in channel | Run creator | - | `escalation-packet.md` exists; packet post in channel | Packet phase |
+| 6 | Escalate | Assign the Customer Owner and Technical Owner roles in the run | Run creator | - | owners named in channel, else ask | - |
+| 7 | Investigate | Review the Escalation Packet and provide an initial assessment in channel | Technical Owner | - | assessment post in channel, else ask | - |
 | 8 | Investigate | Post a public KB article based on the initial assessment | Customer Owner | - | `kb-article.md` exists; published: ask | `/kb-article <ID>` |
 | 9 | Investigate | Drive to a technical resolution (share findings and workarounds in channel) | Technical Owner | - | `analysis.md` `Resolution`, `Workaround` | - |
 | 10 | Investigate | [SEV1/2] Start a MM call to coordinate investigation (optional, workspace convention) | Customer Owner | - | ask | - |
@@ -114,11 +115,9 @@ End the report with:
 ## Phase 4 - Hand off
 
 Ask (AskUserQuestion): which `missing` item to run now, or stop.
-- Run: invoke the skill inline with the ticket ID (`/sev-email <ID> <stage>`, `/kb-article <ID>`,
-  `/investigate <ID>`, `/draft-reply`, the Packet phase, or the Postmortem phase). The invoked skill keeps its own review and
-  confirmation gates; `/sev-email` still sends nothing without its own explicit confirmation.
-- Afterwards, re-run Phase 1, Phase 2 steps 4-5 (when the channel was read), and Phase 3 so the report reflects
-  the new state.
+- Run: invoke the item's skill (as listed under **Missing**) inline with the ticket ID. The invoked skill keeps
+  its own review and confirmation gates; `/sev-email` still sends nothing without its own explicit confirmation.
+- Afterwards, re-run Phase 1, Phase 2 steps 4-5 (when the channel was read), and Phase 3.
 
 ## Packet phase
 
@@ -128,17 +127,16 @@ headings, labels, order, and table. Sources: `AGENTS.md`'s `analysis.md` schema 
 
 - A field with no source value, or `unknown`, is written `[unknown - <who to ask: customer | engineer |
   /investigate>]` and listed as missing after the file is written.
-- `Escalation Priority / Severity`: `Sev1 - Blocker` or `Sev2 - Major` per `AGENTS.md`'s Notation, flagging the
-  mismatch with `Critical`/`Serious` to the engineer (the template's `Sev - Major` gets the `2`, workspace
-  convention); Sev3/Sev4 render as `Sev3`/`Sev4` without a label, flagged to the engineer as outside the template.
+- `Escalation Priority / Severity`: the template's `Sev1 - Blocker` or `Sev2 - Major` (its `Sev - Major` gets the
+  `2`, workspace convention), flagging the mismatch with `AGENTS.md`'s `Critical`/`Serious` labels to the
+  engineer; Sev3/Sev4 render as `Sev3`/`Sev4` without a label, flagged as outside the template.
 - `Customer Name / Org`: adds the `Zendesk Organization` URL (workspace convention).
 - `Escalation Date`: today unless the engineer gives another. `Assigned Support Escalation Owner`: ask
   (`git config user.name` as the suggested default).
-- File already exists: show what changed and overwrite only after the engineer confirms.
 - After writing, print `Saved to: tickets/<ID>/escalation-packet.md`. Run existence unknown (invoked with
-  `packet`): ask. A run exists: ask whether to post it to the run channel (Phase 2 step 4; not read: find it the
-  same way), listing the remaining `[unknown]` fields in the question. Post with `create_post` only after an explicit yes, the file content as written; the engineer attaches
-  the support packet and artifacts it references.
+  `packet`): ask. A run exists: ask whether to post it to the run channel (find it per Phase 2 step 4), listing
+  the remaining `[unknown]` fields in the question. Post with `create_post` only after an explicit yes, the file
+  content as written; the engineer attaches the support packet and artifacts it references.
 
 <escalation_packet_template>
 # Support to Engineering Escalation
@@ -221,7 +219,6 @@ dashes become hyphens.
 - Session content (Date, Session Participants, the process contributing factors, What went well, Action Items,
   Open Questions) is written `[to fill in the post-mortem session]`.
 - Any other field with no source value is written `[unknown - <who to ask>]`.
-- File already exists: show what changed and overwrite only after the engineer confirms.
 - After writing, print `Saved to: tickets/<ID>/postmortem.md`. Once the session has completed it,
   `/sev-email <ID> postmortem` attaches it.
 
