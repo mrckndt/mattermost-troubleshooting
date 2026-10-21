@@ -1,6 +1,6 @@
 ---
 name: sev-escalation
-description: Draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email - a mandatory workflow stage or an optional status update. Args: ticket ID [stage].
+description: Draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email - one of the four mandatory workflow stages. Args: ticket ID [stage].
 user-invocable: true
 ---
 
@@ -15,7 +15,7 @@ Phase 4 - there's no fallback send path.
 ## How to reason
 
 1. Parse `$ARGUMENTS`: first token is the ticket reference, second (optional) token is the stage
-   (`initial | workaround | resolution | postmortem | status-update`).
+   (`initial | workaround | resolution | postmortem`).
 2. Follow the phases below in order. Never call `send_message` before Phase 7's explicit confirmation.
 
 ## Phase 0 - Resolve ticket
@@ -57,8 +57,6 @@ Zendesk reference and org, so there is no no-ticket mode:
 | Resolution & De-escalation | Postmortem Information |
 | Postmortem Information | workflow complete - ask what they want |
 
-Interim Status Update is never suggested; only used when the engineer explicitly names it.
-
 ## Phase 3 - Gather content
 
 Always re-read from disk, never trust session memory.
@@ -70,17 +68,27 @@ hand-fill it - never guess. `Customer` is the human-readable name; `Zendesk Orga
 URL, `"unknown"` when not present - keep them as two separate fields in the email (see the template below),
 don't collapse one into the other.
 
-**Narrative fields** (Description, Current Status, Resolution): `analysis.md`'s `Reported symptom`,
-`Correlation`, `Current hypothesis`, `Resolution` first. If `analysis.md` doesn't exist, fall back to
+**Narrative fields** (template in Phase 4): `analysis.md` first. If it doesn't exist, fall back to
 `zendesk-thread.md`'s raw conversation; still missing, ask the engineer instead of guessing.
 
-| Stage | Content rules |
+| Field | Source |
 |---|---|
-| Initial Notification | Description from `Reported symptom` + `Correlation`/`Current hypothesis`. `Next Update` is the engineer's free text - no built-in SLA/timing logic. |
-| Workaround Guidance | KB-article check plus workaround wording rules - see below. |
-| Resolution & De-escalation | Source from `analysis.md`'s `Resolution` field; confirm/edit with the engineer. |
-| Postmortem Information | Ask the engineer for the postmortem doc link or attachment - not derivable from ticket data. |
-| Interim Status Update (optional) | Draft from `analysis.md`'s latest `Steps and outcomes`/`Open questions`/`Next steps`; confirm before drafting. |
+| Summary (1-3 sentences) | `Reported symptom` + `Current hypothesis` |
+| Status, Next steps | `Current hypothesis`, `Next steps`, plus the stage content below |
+| Declared | Initial Notification: ask the engineer (time the issue was verified as real). Later stages: copy from `gmail-escalation-thread.md`'s first entry. |
+| Customer impact | `Deployment` (env, version, tier) + `Reported symptom` |
+| Workaround | Workaround Guidance details below; carried forward on later stages |
+| Next update | Engineer's free text - no built-in SLA/timing logic |
+
+Every stage renders the same template; the stage only adds the content the Sev1/Sev2 Support Ticket
+Workflow requires of that email:
+
+| Stage | Required content (workflow step) |
+|---|---|
+| Initial Notification | Notification on identifying the incident (step 3). |
+| Workaround Guidance | Workaround plus KB article link, confirming it was shared with the customer (step 5). |
+| Resolution & De-escalation | Resolution details from `analysis.md`'s `Resolution`; confirm/edit with the engineer (step 8). |
+| Postmortem Information | Finalized postmortem document as an attachment; ask the engineer for the file (step 10). |
 
 **Workaround Guidance details:**
 - Check `tickets/<ID>/kb-article.md` exists. If not, remind the engineer (the workflow requires it) and ask:
@@ -101,47 +109,42 @@ don't collapse one into the other.
 ## Phase 4 - Render
 
 - `To: func-sev1sev2-escalation@mattermost.com`, `Cc: dept-customer-support@mattermost.com`.
-- Subject, Initial Notification only: `<Severity> #Radar - <short description> (<Customer, name only, no
-  parenthetical>)`. Later stages inherit `Re:` via Gmail threading - no new subject needed.
+- One template for every stage: the `Sev1_2 #radar Email Template`, plus the Zendesk identity fields
+  appended after the template's own fields. The template's `Subject:`/`Body:` are labels, not email content:
+  the subject goes in `subject`, the summary sentences open the body unlabeled.
+- Subject is set on Initial Notification; later stages inherit `Re:` via Gmail threading.
+- `Workaround:` (from the template's example) and `Organization:` are omitted when empty/`"unknown"`.
 - Render both `body` (plain text, flat `Label: value` lines, no Markdown) and `htmlBody` (same content,
   field labels wrapped in `<b>...</b>`) - `body` becomes the plain-text alternative when both are given.
+- No hand-written sign-off; set `includeSignature: true` on `create_draft`.
 - Include the customer/org name, Zendesk ID, and version - required by the workflow, not a Boundaries
   violation (see `AGENTS.md` Boundaries).
 
-<initial_notification_template>
-Severity: <Sev1 | Sev2>
+<radar_template>
+Subject: <Sev1 | Sev2> #radar: <short one-line summary> - <Customer, name only>
 
-Date/Time: <date, time UTC>
+<1-3 sentences concisely describing the issue>
+
+Severity: <Sev1 | Sev2> - <label and definition from AGENTS.md's severity scale>
+
+Status: <current status>
+
+Declared: <time the issue was verified as real, UTC>
+
+Customer impact: <any known customer impact>
+
+Workaround: <workaround and KB article link>
+
+Next steps: <active next steps>
+
+Next update: <when the next update is expected>
 
 Zendesk Reference ID: #<n>
 
 Customer: <human-readable name, per the identity-fields precedence above>
 
-Organization: <Zendesk Organization URL - omit this line entirely if "unknown">
-
-Description: <what happened, root cause hypothesis so far, customer's env/version/tier, what they're asking for>
-
-Current Status: <what support is waiting on>
-
-Next Update: <engineer's free text>
-
-Best Regards,
-<engineer name>
-<title>, Mattermost, Inc.
-<engineer email> | mattermost.com
-</initial_notification_template>
-
-Workaround Guidance / Resolution & De-escalation / Postmortem Information / Interim Status Update: reply
-body, no repeated header fields (severity/org/Zendesk ID already established in the thread) -
-
-| Stage | Body sections |
-|---|---|
-| Workaround Guidance | Workaround description, KB article link, Current Status, Next Update |
-| Resolution & De-escalation | Summary, Current Status (resolved bullets), Next Steps & Mitigations, explicit Escalation Closure statement |
-| Postmortem Information | Short note plus the postmortem doc link or attachment |
-| Interim Status Update | Current Status, Risks (optional), Next Steps |
-
-All replies close with the same sign-off block as the template above.
+Organization: <Zendesk Organization URL>
+</radar_template>
 
 ## Phase 5 - Resolve Gmail thread
 
@@ -156,7 +159,8 @@ All replies close with the same sign-off block as the template above.
 ## Phase 6 - Create draft
 
 Print the email for review first, rendered readably (bold labels, clickable links), not the raw HTML body -
-then call `mcp__claude_ai_Gmail__create_draft` (`replyToMessageId` set for replies). This order matters: the
+then call `mcp__claude_ai_Gmail__create_draft` (`replyToMessageId` set for replies; `attachments` carries the
+postmortem document on Postmortem Information). This order matters: the
 tool-call permission prompt shows the raw HTML regardless, so the readable version needs to be seen first,
 not buried after it.
 

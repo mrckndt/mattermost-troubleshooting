@@ -288,13 +288,17 @@ or Sev2 triggers 4 mandatory SLA emails to **func-sev1sev2-escalation@mattermost
    "document the workaround in a KB article, then email to confirm it was shared" step is this same email's
    operational mechanics, not a separate 5th email.
 3. **Resolution & De-escalation** - once resolved or de-escalated.
-4. **Postmortem Information** - the postmortem findings, once available.
+4. **Postmortem Information** - the finalized postmortem document, as an attachment.
+
+All four use the same `Sev1_2 #radar Email Template`; the process documents (Sev1/Sev2 Support Ticket
+Workflow, Technical Escalation, Support Escalation, Major Incident Management) define no separate follow-up
+format.
 
 Once a stable workaround ships, the ticket's Playbook severity drops to Sev3; the Zendesk Severity field
 itself stays Sev1/Sev2 (it keeps driving the mandatory emails above, not just at intake).
 
-Playbook run creation/updates and postmortem-meeting scheduling are separate, non-email steps in the source
-workflow - no skill here handles them.
+Playbook run creation, ongoing status updates (posted in the Playbook run, not emailed), and postmortem-meeting
+scheduling are separate, non-email steps in the source workflow - no skill here handles them.
 
 `/sev-escalation` drafts these emails and sends each only after explicit engineer review.
 

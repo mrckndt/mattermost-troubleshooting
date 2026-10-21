@@ -185,7 +185,7 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
 - **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB-ingest decision, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
 - **`/upgrade-advisor [ticket-ID|version]`** - generate an upgrade recommendation report comparing a ticket's support-packet/config version (or an explicit version) to the latest patch: security fixes, urgent vs quality-of-life bugs, plugin updates; saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket. Does not require `analysis.md`.
-- **`/sev-escalation <ticket-ID> [stage]`** - draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email: Initial Notification, Workaround Guidance, Resolution & De-escalation, Postmortem Information, or an optional Interim Status Update. Tracks the Gmail thread in `tickets/<ID>/gmail-escalation-thread.md`.
+- **`/sev-escalation <ticket-ID> [stage]`** - draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email: Initial Notification, Workaround Guidance, Resolution & De-escalation, or Postmortem Information. Tracks the Gmail thread in `tickets/<ID>/gmail-escalation-thread.md`.
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
 
 ### Repo management
