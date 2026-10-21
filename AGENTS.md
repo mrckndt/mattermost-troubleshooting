@@ -192,8 +192,6 @@ body owns its arguments and output paths. Cross-skill workflow rules:
   - `Deployment`: `Version`, `Type`, `Database`, `Deployment method`, `Hardware`, `License`, `Scale` (channels,
     teams, active users, posts), `Search engine`, `Plugins` (with versions).
   - `Reported symptom`: `Customer impact`, `Steps to reproduce`, `Expected`, `Actual`, before the narrative.
-  - Together with `Workaround` and `Scope`, these carry every field of the Escalation Packet (see
-    `escalation-packet.md` schema).
 - **Keyed consumers** (a rename breaks these):
   - `/resume-investigation` - whole file; briefing keys off `Ticket type`, `Deployment`, `Reported symptom`,
     `Artifacts reviewed`, `Current hypothesis`, `Severity`, `Workaround`, `Ruled out`, `Open questions`,
@@ -322,11 +320,6 @@ or Sev2 triggers 4 mandatory SLA emails to **func-sev1sev2-escalation@mattermost
 
 All four use the `Sev1_2 #radar Email Template`.
 
-The Technical Escalation Playbook task "Share any material updates to the #radar email thread" is optional
-(workspace convention); `/sev-email` has no stage for it. Regular progress updates go into the Playbook run
-(Sev1/Sev2 Support Ticket Workflow step 7). Playbook run creation and postmortem-meeting scheduling are
-non-email steps no skill performs; `/escalation-helper` tracks them.
-
 `/sev-email` drafts these emails and sends each only after explicit engineer review.
 
 **`gmail-escalation-thread.md` schema:**
@@ -340,9 +333,6 @@ non-email steps no skill performs; `/escalation-helper` tracks them.
 Each entry stores the sent email verbatim, not a summary.
 
 ## Technical escalation process
-
-Sources: Technical Escalation Process, Support Escalation Process, Sev1/Sev2 Support Ticket Workflow, and the
-Technical Escalation Playbook (run prefix `TESC`).
 
 - **Ownership:** Support owns intake, triage, the ticket and the customer relationship for the full lifecycle;
   escalating never transfers it.
@@ -371,25 +361,21 @@ Technical Escalation Playbook (run prefix `TESC`).
   co-piloted by the technical owner.
 
 **`escalation-packet.md` schema:**
-- **Writer:** `/escalation-helper`, into `tickets/<ID>/escalation-packet.md`, rendered 1:1 from the Support to
-  Engineering Escalation Template.
+- **Writer:** `/escalation-helper`, into `tickets/<ID>/escalation-packet.md`.
 - **Header fields:** `Escalation Date`, `Escalation Priority / Severity`, `Assigned Support Escalation Owner`.
   `Escalation Priority / Severity` is `Sev1 - Blocker | Sev2 - Major | Sev3 | Sev4` (template labels, not
   `Critical`/`Serious`; `Sev2` and Sev3/Sev4 are workspace conventions).
-- **Headings (fixed, the template's own):** `1. Escalation Overview`, `2. Environment & Deployment
-  Configuration`, `3. Problem Statement & Behavior`, `4. Investigation & Findings`, `5. Supporting Artifacts &
-  Attachments`.
+- **Headings (fixed):** `1. Escalation Overview`, `2. Environment & Deployment Configuration`, `3. Problem
+  Statement & Behavior`, `4. Investigation & Findings`, `5. Supporting Artifacts & Attachments`.
 - **Placeholders:** a field with no source is `[unknown - <who to ask>]`.
-- **Keyed consumers:** `/escalation-helper` only (existence check for the playbook's packet task).
+- **Keyed consumers:** `/escalation-helper` only.
 
 **`postmortem.md` schema:**
-- **Writer:** `/escalation-helper`, into `tickets/<ID>/postmortem.md`, rendered from the Technical Escalation
-  Playbook's retrospective template; a draft the post-mortem session completes.
-- **Headings (fixed, the template's own):** `1. Incident Summary`, `2. Incident Timeline`, `3. Root Cause
-  Analysis`, `Action Items`, `Open Questions`.
+- **Writer:** `/escalation-helper`, into `tickets/<ID>/postmortem.md`.
+- **Headings (fixed):** `1. Incident Summary`, `2. Incident Timeline`, `3. Root Cause Analysis`, `Action Items`,
+  `Open Questions`.
 - **Placeholders:** session content `[to fill in the post-mortem session]`, other gaps `[unknown - <who to ask>]`.
-- **Keyed consumers:** `/escalation-helper` (existence check for the post-mortem task); `/sev-email` attaches it to
-  Postmortem Information.
+- **Keyed consumers:** `/escalation-helper`; `/sev-email` attaches it to Postmortem Information.
 
 ## Working with the cloned repos
 
