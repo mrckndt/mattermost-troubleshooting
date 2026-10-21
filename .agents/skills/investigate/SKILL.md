@@ -44,7 +44,6 @@ Determine mode from the remaining text:
   nested skill call.
   - ID returned: **ticket mode** - set `<ID>` to that value.
   - `no-match`: **description mode** - treat the argument as a problem description; skip Phase 1 and file-based version detection in Phase 3.
-- **Ticket mode (either way above):** rename the session per `AGENTS.md`'s Session behavior convention (ticket number + customer name).
 
 Complete this phase before proceeding.
 
@@ -69,6 +68,10 @@ fd --no-ignore --hidden . "$PROJECT_ROOT/tickets/<ID>/" -x ls -lh
 **Topology detection.** From the listing above, determine whether `tickets/<ID>/` is single-node or HA.
 HA signature: node-labeled subdirectories (`node-1/`, `node-2/`, etc.) each with their own log file(s).
 Note the node count; carries into Phase 9's `Deployment` field (`Type: single-node | HA (<n> nodes)`).
+
+**Escalation Packet fields.** While reading a support packet (`metadata.yaml`, `diagnostics.yaml`,
+`stats.yaml`, `plugins.json`, `sanitized_config.json`), fill Phase 9's `Deployment` sub-keys (`AGENTS.md`'s
+`analysis.md` schema).
 
 **Hard stop on unreadable files.** If any file cannot be read or parsed (corrupt archive, unsupported
 binary/unknown format, encoding error, etc.), stop immediately and report which file(s) are inaccessible
@@ -428,13 +431,22 @@ value and enough of why it looked right at the time that a later session doesn't
 outright only when it never carried diagnostic value (a typo, an exact duplicate). **Investigated with:**
 set once; update only if it changes mid-ticket.
 
-**`Severity`** (Fault investigation only; `N/A` for Advisory / research - no defect to classify): tag
+**`Severity`** (Fault investigation): tag
 `Customer-stated` when `zendesk-thread.md`'s `Priority` field is present, translated via `AGENTS.md`'s
 mapping table. If `Priority` is blank, fall back to scanning the conversation for an explicit customer
 severity/urgency claim - still `Customer-stated` if found. Only when neither source yields one, tag
 `Inferred` (a read against `AGENTS.md`'s Defect and incident severity scale from technical evidence alone).
 Write `Confirmed by engineer` only if the engineer explicitly states the confirmed severity during this same
-run - never assumed from the LLM's own confidence or from silence.
+run - never assumed from the LLM's own confidence or from silence. Reach (per `AGENTS.md`'s Reach x severity
+table): `Inferred`, or `Confirmed by engineer` if the engineer states it. Priority: untagged, looked up from that
+table. A part already `Confirmed by engineer` carries forward unless the engineer changes it this run.
+
+**`Workaround`** and **`Scope`** (Fault investigation): fill from evidence (customer confirmation, KB article,
+internal repro, `/search-tickets` hits for other customers, `Timeline` for recent changes).
+
+**`Tracking` (append-only):** Jira tickets tracking this issue, from the thread, ticket files, or a Jira search,
+per `AGENTS.md`'s `analysis.md` schema (format, skip and `none` rules). Related or causing tickets stay in
+`Evidence collected`.
 
 **`Session log` (append-only):** one bullet per `/investigate` run - a "session" is one run, not a turn. Append,
 never rewrite: `<YYYY-MM-DD> - <model, effort/thinking> - <what changed> - <what it superseded, if anything>`.
@@ -520,6 +532,11 @@ Section shape on first creation, populated with real content, not left empty:
 - Type: single-node | HA (<n> nodes)
 - Database:
 - Deployment method: (Docker / K8s / bare metal / unknown)
+- Hardware: (CPU / RAM per node)
+- License: (Professional / Enterprise / Premier / unknown)
+- Scale: (channels / teams / active users / posts)
+- Search engine: (Elasticsearch / OpenSearch <version> / database search)
+- Plugins: (enabled plugins with versions)
 
 ## Timeline
 
@@ -530,12 +547,25 @@ Section shape on first creation, populated with real content, not left empty:
 ## Evidence collected
 
 ## Reported symptom
+- Customer impact:
+- Steps to reproduce:
+- Expected:
+- Actual:
 
 ## Correlation
 
 ## Current hypothesis
 
 ## Severity
+<SevN> (<tag>) / Reach <High|Narrow> (<tag>) / Priority <HIGH|MEDIUM|LOW|Not an escalation>
+
+## Workaround
+- Available: yes | no | unknown
+
+## Scope
+- Reproducible internally:
+- Other customers impacted:
+- Recent changes:
 
 ## Steps and outcomes
 
@@ -546,6 +576,9 @@ Section shape on first creation, populated with real content, not left empty:
 ## Next steps
 
 ## Resolution
+
+## Tracking
+- Jira: MM-<n> - <URL> - <what it tracks>, <date recorded> (none yet: `none`)
 
 ## Session log
 ```
@@ -561,4 +594,4 @@ fault-investigation phrasing:
 - `Ruled out` -> alternatives considered and why rejected.
 
 Sections genuinely not applicable (e.g. `Timeline` for a single-session question) may be written as `N/A`
-instead of forced content. `Severity` is always `N/A` here - no defect to classify.
+instead of forced content. Defect fields are `N/A` per `AGENTS.md`'s `analysis.md` schema.
