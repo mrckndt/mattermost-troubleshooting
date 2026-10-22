@@ -121,7 +121,8 @@ and repos on a branch, behaving as before.
 - Use MCP-backed sources when the runtime exposes their tools; skip with a noted reason when it does not. Never block an investigation on a missing MCP; fall back to local data.
 - **Mattermost Hub:** `mcp__claude_ai_Mattermost_Hub__*` (enterprise Claude connector); `/product-request` also
   uses it to DM the PDE Intake Agent; `/escalation-helper` reads the run channel and posts the Escalation Packet.
-- **GitHub issues/PRs:** claude.ai GitHub MCP `mcp__claude_ai_GitHub_MCP__*`; falls back to WebFetch/WebSearch if unavailable. Setup is in README.
+- **GitHub issues/PRs:** claude.ai GitHub MCP `mcp__claude_ai_GitHub_MCP__*`, or the `gh` CLI, which offers similar
+  access and covers when the MCP is unavailable; then WebFetch/WebSearch. Setup is in README.
 - **Internal Jira (engineering tickets):** claude.ai Atlassian MCP `mcp__claude_ai_Atlassian__*`; project `MM` only. Setup is in README.
 - **Gmail:** claude.ai Gmail MCP `mcp__claude_ai_Gmail__*`; used by `/sev-email` to draft and send
   Sev1/Sev2 escalation emails. Setup is in README.

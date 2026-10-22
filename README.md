@@ -4,33 +4,53 @@ AI agent workspace for Mattermost Technical Support Engineers. Given a ticket, t
 
 The workspace currently runs on Claude Code only. Support for other agent frameworks is a long-term goal, which is why instructions live in `AGENTS.md` and skills in `.agents/skills/`.
 
-## Getting started
+## Quickstart
 
-Setup at a glance:
-1. Clone the repo and run `/bootstrap`.
-2. (Optional) Install CLI tools (`fd`, `rg`).
-3. (Optional) Enable integrations: enterprise repo access.
+```
+git clone git@github.com:mrckndt/mattermost-troubleshooting.git
+cd mattermost-troubleshooting
+claude
+```
 
-### Recommended CLI tools (optional)
+Then inside Claude:
+```
+/bootstrap
+/hub-harvest 12345
+/investigate 12345
+```
 
-Skill instructions show `rg`/`fd` first, with the plain `grep`/`find` form in parentheses as a no-install
-fallback: both are Rust, so parsing the untrusted ticket files this pipeline reads (logs,
-config dumps, support packets) isn't exposed to C's memory-corruption bug classes, and both are faster
-on large files. See `AGENTS.md`'s Search tools bullet for the flags that keep them equivalent.
+`/bootstrap` clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
+`/hub-harvest` and `/investigate` are covered in "Working a ticket".
+
+> `/bootstrap` and `/git-pull` are mechanical shell operations - **Claude Haiku 5.5** or **Claude Sonnet 5.5** at default effort is enough.
+
+## Recommended setup
+
+Not required to get started, but strongly recommended: each item below widens what the pipeline can search or do.
+`gh` and codebase memory are the least load-bearing and the safest to skip: no core workflow depends on them
+(`/investigate` runs without either).
+
+### CLI tools (`fd`, `rg`, `gh`)
+
+Skill instructions show `rg`/`fd` first, with `grep`/`find` as the no-install fallback. Both are faster and,
+being Rust, memory-safe on untrusted ticket files; `AGENTS.md`'s Search tools bullet lists the flags that keep them equivalent.
+
+`gh` (GitHub CLI) gives access to GitHub issues and PRs similar to the GitHub MCP connector, and covers for
+it when the connector is unavailable, ahead of WebFetch/WebSearch. Authenticate once with `gh auth login`.
 
 **macOS:**
 ```
-brew install fd ripgrep
+brew install fd ripgrep gh
 ```
 
 **Linux (Debian/Ubuntu):**
 ```
-apt install fd-find ripgrep
+apt install fd-find ripgrep gh
 ```
 
 **Linux (Red Hat/Fedora):**
 ```
-dnf install fd-find ripgrep
+dnf install fd-find ripgrep gh
 ```
 
 **Windows:** Use WSL (Windows Subsystem for Linux) and follow the Linux instructions above. Native Windows is not supported.
@@ -47,34 +67,18 @@ The `enterprise` repo is private. To access it:
 
 `/bootstrap` will then clone `git@github.com:mattermost/enterprise` alongside the public repos. If SSH auth fails, it reports the error and continues.
 
-### First-time setup
+### MCP integrations
 
-```
-git clone git@github.com:mrckndt/mattermost-troubleshooting.git
-cd mattermost-troubleshooting
-claude
-```
-
-Then inside Claude:
-```
-/bootstrap
-```
-
-This clones all upstream repos under `upstream/` and creates the `tickets/` directory. Idempotent - safe to re-run.
-
-> `/bootstrap` is a mechanical shell operation (clone/mkdir) - a mid-tier model at low effort/thinking (e.g. **Claude Sonnet 5**, low) is right for this; no need for a flagship model or higher effort here.
-
-### Optional MCP integrations
-
-Set these up after the repo is cloned. The investigation pipeline consults these MCP-backed sources when their tools are available:
+The investigation pipeline consults these MCP-backed sources when their tools are available:
 
 - **Mattermost Hub** - the enterprise Claude connector (`mcp__claude_ai_Mattermost_Hub__*`). No local setup; available when your Claude account has the connector enabled.
-- **GitHub issues/PRs** - `github.com/mattermost/*`, via the claude.ai GitHub MCP connector; falls back to WebFetch/WebSearch if unavailable.
+- **GitHub issues/PRs** - `github.com/mattermost/*`, via the claude.ai GitHub MCP connector.
 - **Internal Jira (engineering tickets)** - project `MM` only, via the claude.ai Atlassian MCP connector.
 - **Gmail** - drafts and sends Sev1/Sev2 escalation-workflow emails (`/sev-email`), via the claude.ai Gmail connector.
-- **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally.
+- **Codebase memory** - a knowledge-graph index of `upstream/<repo>/` clones via [`DeusData/codebase-memory-mcp`](https://github.com/DeusData/codebase-memory-mcp), run locally. Lets `/investigate`
+  attribute text matches to the functions that contain them and trace call chains (who calls what).
 
-All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
+When a source's tools are not present, `/investigate` skips it with a noted reason and relies on local data (`fragments/`, `upstream/`) and the fallbacks listed below.
 
 #### GitHub, Jira, and Gmail connector setup
 
@@ -85,7 +89,7 @@ These three all connect the same way, through the Anthropic connectors page:
 
 Per-connector specifics:
 
-- **GitHub** - registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. This is the pipeline's GitHub source; falls back to WebFetch/WebSearch if unavailable. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
+- **GitHub** - registers as `claude.ai GitHub MCP`, tools under `mcp__claude_ai_GitHub_MCP__*`. This is the pipeline's GitHub source, alongside the `gh` CLI, which offers similar access and covers when the connector is unavailable; then WebFetch/WebSearch. If a query fails with an org SAML SSO error, disconnect and reconnect via `/mcp` and retry.
 - **Jira (Atlassian connector)** - this is the pipeline's internal Jira source (project `MM` only); no public fallback if unavailable.
 - **Gmail** - registers as `claude.ai Gmail`, tools under `mcp__claude_ai_Gmail__*`. This is `/sev-email`'s only send path; no fallback if unavailable - the skill says so and stops before drafting.
 
@@ -103,11 +107,8 @@ brew trust --formula deusdata/codebase-memory-mcp/codebase-memory-mcp
 curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --skip-config
 ```
 
-`--skip-config` installs the binary only. Without it, the installer's own `install` subcommand also
-runs, registering the MCP under the name `codebase-memory-mcp` (not the `codebase_memory_local` name
-this pipeline requires) and writing a global `~/.claude` skill, a Grep/Glob pre-tool hook, and a
-SessionStart reminder that duplicate this repo's `cbm-*` skills. Run `codebase-memory-mcp uninstall`
-to remove that global config if it was already applied.
+`--skip-config` installs the binary only; without it the installer registers a conflicting MCP name and global
+hooks/skills that duplicate this repo's. Undo with `codebase-memory-mcp uninstall`.
 
 Register with Claude Code - the name must be `codebase_memory_local` exactly (the pipeline looks for the `mcp__codebase_memory_local__*` prefix):
 ```
@@ -115,33 +116,32 @@ claude mcp add codebase_memory_local "$(command -v codebase-memory-mcp)"
 ```
 Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
 
-Indexing happens automatically in `/investigate` Phase 5, or manually via `/cbm-index-repository`. Data lives in `~/.cache/codebase-memory-mcp/`; delete that directory to reset.
+Indexing happens automatically during `/investigate`. Data lives in `~/.cache/codebase-memory-mcp/`; delete that directory to reset.
 
-### Working a ticket
+## Working a ticket
 
 Run all commands from the repo root (`mattermost-troubleshooting/`).
 
-1. Create a folder under `tickets/` for the ticket:
+1. Open Claude Code:
    ```
-   mkdir -p tickets/12345
+   claude
    ```
-2. Drop relevant files there (logs, config dumps, support packets, screenshots, etc.):
+
+   > **Claude Opus 5.5** or **Claude Sonnet 5.5** at default effort (medium); raise it to high or xhigh for hard cases.
+   > Auto mode is recommended from `/hub-harvest` on.
+
+2. Fetch the ticket thread: `/hub-harvest 12345`. This creates `tickets/12345/` and writes the full Zendesk
+   thread to `zendesk-thread.md`.
+
+   You may also want to add ticket files the thread doesn't carry (logs, config dumps, support packets,
+   screenshots) to the same folder before investigating:
    ```
    cp ~/Downloads/mattermost.log tickets/12345/
    cp ~/Downloads/support_packet.zip tickets/12345/
    ```
 
-   If the ticket is mirrored to the Mattermost Hub from Zendesk, skip the manual copy: run `/hub-harvest 12345` (or paste a Hub thread permalink) to fetch the full thread into `tickets/12345/zendesk-thread.md`.
-3. Open Claude Code:
-   ```
-   claude
-   ```
-
-   > Default: a **flagship-tier model** (e.g. **Claude Opus 5** or an equivalent model) with **1M context** and **high or xhigh effort/thinking** (xhigh sits one step below Claude's "max" tier, reserved for genuinely stuck sessions, not routine use). A **mid-tier model** (e.g. **Claude Sonnet 5**) at high or xhigh effort/thinking is also worth evaluating for `/investigate` itself - not just a cost fallback, potentially faster or a differently-useful result profile. Auto-mode is recommended once the investigation starts - the skill enforces phase order and search completeness regardless of model.
-
-   > `/bootstrap` and `/git-pull` are mechanical shell operations - a mid-tier model at low effort/thinking (e.g. **Claude Sonnet 5**, low) is right for these; no need for a flagship model or higher effort here.
-
-4. Run the investigation pipeline: `/investigate 12345`.
+   If the ticket isn't mirrored to the Hub, create the folder yourself (`mkdir -p tickets/12345`) and drop the files there.
+3. Run the investigation pipeline: `/investigate 12345`.
 
    This command reads every ticket file, pins `mattermost`, `enterprise`, and any in-scope plugin repos to the customer's exact version, then searches exhaustively before forming a hypothesis:
    - Searches source code at five angles (exact error strings, config keys, stack trace functions, feature flag and setting key names, symptom keywords) - all required, no skipping.
@@ -153,23 +153,17 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    Source search then uses `rg --no-ignore --hidden` (or `grep`)/`git` alone: coverage is unchanged, and what you give up is symbol
    attribution for text matches and call-chain tracing. Useful for config questions and known-issue
    lookups where speed matters more than structural evidence.
-5. When you have a conclusion, generate the customer-facing output:
-   - `/draft-reply` - reply to the customer.
-   - `/kb-article 12345` - generate a KB article scoped to this ticket (saves to `tickets/12345/`).
-   - `/product-request` - create a feature request, bug report, or security issue and, after you confirm, DM it to the PDE Intake Agent on the Hub (`/pde-intake` is a deprecated alias).
-   - `/rca 12345` - customer-facing Root Cause Analysis report.
-   - `/eir 12345` - internal Engineering Incident Report plus a channel-post summary.
-   - `/retro 12345` - post-resolution retrospective, once the root cause is confirmed.
-   - `/upgrade-advisor 12345` - upgrade recommendation report (security fixes, urgent vs quality-of-life bugs, plugin updates); doesn't require `analysis.md`.
+4. When you have a conclusion, generate the output (customer reply, KB article, RCA, PD&E intake, and more) with
+   the skills listed under "Skills / slash commands > Output".
 
 ## Skills / slash commands
 
-Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude Code slash commands via the symlinks in `.claude/commands/`.
+Skills under `.agents/skills/` double as Claude Code slash commands via the symlinks in `.claude/commands/`.
 
 ### Investigation
 
 - **`/hub-harvest <ticket-ID|assignee-email|hub-thread-link> [time-range]`** - fetch a Zendesk ticket thread from the Mattermost Hub into `tickets/<zd#>/zendesk-thread.md`, ready for `/investigate`. Accepts a pasted Hub thread permalink directly. Given an assignee email instead, harvests every thread assigned to that TSE in the time window (default: last 30 days) and additionally writes an index at `tickets/hub-harvest/<emaillocalpart>-<date>.md`, grouped by status.
-- **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 5.
+- **`/investigate <ticket-ID|ticket-URL|description>`** - the core skill. See the expanded description in "Working a ticket", step 3.
 
 ### Output
 
@@ -202,24 +196,6 @@ Skills under `.agents/skills/` carry `user-invocable: true` and double as Claude
   - `<repo>`: defaults to `mattermost` when omitted.
   - `<query>`: `latest esr`, `latest`/`latest release`, `X.Y`/`X.Y.Z`, or `main`/`default`.
 
-### Codebase memory
-
-Standalone access to the codebase-memory knowledge graph, usable independently of `/investigate`. `<repo>` defaults to `mattermost` when omitted from any of these.
-
-Each skill name matches the codebase-memory MCP tool it wraps.
-
-- **`/cbm-index-repository [<repo>...]`** - index one or more repos into the graph.
-  - No argument: indexes every non-excluded repo in `.agents/config/repos.json`.
-  - `<repo>...`: indexes one or more named repos.
-  - Skips any repo whose graph is already current: clean worktree, `index_mode: full`, and a graph built
-    after `.git/HEAD` last changed. This also detects refreshes made by the `auto_watch` background
-    watcher, which a stored-sha check cannot see.
-
-- **`/cbm-search-graph [<repo>] <query>`** - find a symbol or definition by keyword or natural language.
-- **`/cbm-search-code [<repo>] <pattern>`** - find a string literal, error message, or config value (graph-augmented grep).
-- **`/cbm-trace-path [<repo>] <question or function>`** - trace callers/callees of a function (e.g. "what calls ProcessOrder?").
-- **`/cbm-get-code-snippet [<repo>] <name>`** - pull source for a symbol (qualified or short name).
-
 ### Ticket management
 
 - **`/resume-investigation <ticket-ID>`** - reconstruct context from `analysis.md` if present, then ask before re-running `/investigate`; runs `/investigate` unprompted only if no prior analysis exists.
@@ -239,7 +215,7 @@ Each skill name matches the codebase-memory MCP tool it wraps.
 ├── kb-articles/             # Standalone KB articles from /kb-article when no ticket is in play
 ├── .agents/
 │   ├── config/
-│   │   └── repos.json       # Upstream repo list; cbm_excluded flags repos /cbm-index-repository must skip
+│   │   └── repos.json       # Upstream repo list; cbm_excluded flags repos excluded from codebase-memory indexing
 │   └── skills/              # Canonical skill definitions (SKILL.md per skill)
 └── .claude/
     ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
