@@ -14,10 +14,12 @@ documents are silent, say so and ask the engineer.
 1. Parse `$ARGUMENTS`: first token is the ticket reference, second (optional) token `packet` or `postmortem`
    jumps to that phase after Phase 0, Phase 1, and Phase 2 step 1.
 2. Always re-read ticket files from disk, never trust session memory.
-3. Evidence comes from ticket files, the run channel's posts when the engineer opts in (Phase 2 step 3), and the
-   engineer; checked checklist items and calls come from the engineer only. Never infer a task as done from
-   silence.
-4. Packet and Postmortem phases: overwrite an existing output file only after showing what changed and the
+3. An item is `done` from evidence (ticket files, the run channel's posts when read per Phase 2 step 4) or from
+   the engineer (live, or recorded in `escalation-status.md`). Calls (severity, path, waivers) come from the engineer
+   only. Never infer a task as done from silence.
+4. Write `escalation-status.md` per `AGENTS.md`'s schema and `<escalation_status_template>` below; file missing:
+   create it from the template on the first answer. Write right after each answer, so state survives an interruption.
+5. Packet and Postmortem phases: overwrite an existing output file only after showing what changed and the
    engineer confirms.
 
 ## Phase 0 - Resolve ticket
@@ -33,6 +35,7 @@ Read whichever exist under `tickets/<ID>/`:
   `Priority`); latest posts for customer confirmations.
 - `gmail-escalation-thread.md` - `Severity`, `Last stage sent`.
 - `escalation-packet.md`, `kb-article.md`, `postmortem.md`.
+- `escalation-status.md` - header fields; the latest line per item under `## Engineer-confirmed items`.
 
 No `analysis.md`, or one missing the `Workaround`/`Scope` headings or the `Deployment`/`Reported symptom`
 sub-keys (`AGENTS.md` schema): say so (partial: the packet would be mostly `[unknown]`) and offer
@@ -40,21 +43,28 @@ sub-keys (`AGENTS.md` schema): say so (partial: the packet would be mostly `[unk
 
 ## Phase 2 - Classify and place
 
-1. **Severity, reach, priority:** take them from `analysis.md`'s `Severity`. Any part `Inferred`/
-   `Customer-stated` or missing: show the value with its source and ask the engineer to confirm (cite
-   `AGENTS.md`'s Defect and incident severity scale and Reach x severity table). Once confirmed, patch
-   `analysis.md`'s `Severity` to the `AGENTS.md` format, each confirmed part tagged `Confirmed by engineer`, superseding the prior value in place.
+**Recorded state:** steps 2-4 take `Path`, `Run`, `Run channel`, `Run start`, `Run state` and `Channel read` from
+the `escalation-status.md` header when set (not `unknown`): state them and re-ask only an unset field, or one the
+engineer flags as changed. Patch the header after each answer.
+
+1. **Severity, reach, priority:** take them from `analysis.md`'s `Severity`; no severity there: map
+   `zendesk-thread.md`'s `Priority` per `AGENTS.md`'s Zendesk `Priority` mapping, tagged `Customer-stated`. Any
+   part `Inferred`/`Customer-stated` or missing: show the value with its source and ask the engineer to confirm
+   (cite `AGENTS.md`'s Defect and incident severity scale and Reach x severity table). Once confirmed, patch
+   `analysis.md`'s `Severity` to the `AGENTS.md` format, each confirmed part tagged `Confirmed by engineer`,
+   superseding the prior value in place.
 2. **Path:** ask which applies, offering the `AGENTS.md` criteria for each: L1 only (Support resolves), L2 CSE,
    or L3 Engineering. L1 only or L2 at priority HIGH: point out that `AGENTS.md`'s L3 criteria include HIGH.
 3. **Playbook run:** required per `AGENTS.md`'s Playbook run rule. Ask whether the run (`TESC-<n>`) exists;
    required and none: report it `missing`. Run exists: in the same question, ask whether the responder closed it
    (false positive or LOW, `AGENTS.md`'s Response), its start time (for due times), and offer to read its channel
-   (optional; declined: channel items stay `ask`). Closed: Track B ends at task 7; at LOW, the Jira key in
-   `Tracking` and the AOR owner routing (ask) are the remaining items.
-4. **Run channel (only after a yes in step 3):** needs the Mattermost Hub MCP; absent: `AGENTS.md` Skip convention.
+   (optional; declined: channel items stay `ask`). Record the reply in `Channel read`. Closed: Track B ends at task 7;
+   at LOW, the Jira key in `Tracking` and the AOR owner routing (ask) are the remaining items.
+4. **Run channel (only when `Channel read` is `yes`):** needs the Mattermost Hub MCP; absent: `AGENTS.md` Skip convention.
    - Find it: run channels are named `Technical Escalation: <summary>` (playbook channel name template).
      `search_channels` for `Technical Escalation`, never the customer name (`AGENTS.md` Boundaries); match the
-     results locally against the ticket ID and customer; zero or several matches: ask for the channel link.
+     results locally against the ticket ID and customer; zero or several matches: ask for the channel link. Record
+     a newly found ID in the header's `Run channel`.
    - Read it with `read_channel` (`limit` 100, paging back with `before` to the first post) and take: Escalation
      Packet posted, initial assessment, the named Customer and Technical Owner, status updates
      (`custom_run_update` posts), run field changes and the run start (the playbooks bot's posts, with their
@@ -66,18 +76,52 @@ sub-keys (`AGENTS.md` schema): say so (partial: the packet would be mostly `[unk
 
 ## Phase 3 - Status report
 
-Print one block per applicable track. Mark each item `done` (with evidence), `missing`, or `ask` (not visible
-here - ask in one batched question at the end, not item by item).
+Print one block per applicable track. Mark each item with one status:
+- **From evidence or the checks below:** `done` (with evidence), `partial` (compound check, part met), `missing`,
+  `ask` (not visible here), `n/a` (a Track A item whose path or severity condition doesn't match).
+- **From a recorded line:** the recorded state (`AGENTS.md`'s `escalation-status.md` Item states), with its date.
+
+**Reading the checks:**
+- **Channel posts** count as evidence for every check, including `ask` ones and file-only checks (e.g. `B3`: an
+  engineer pulled into the channel; `B8`: the published URL in a channel post or `gmail-escalation-thread.md`;
+  `B9`: fix PRs merged).
+- **Compound checks** (`B2`, `B5`, `B8`, `B15`, `B17`, `C3`, `C4`): `done` when every part is met, `missing` when
+  none is; otherwise `partial`, naming the met parts, each unmet part its own `ask`. `B5`'s channel part counts a
+  post carrying the packet's content; a free-form summary is an `ask`.
+
+**Precedence per item:**
+1. Evidence showing it done: `done`.
+2. Else the latest `escalation-status.md` line for it:
+   - **`waived`:** applies even when evidence looks open (e.g. `B12` while `Open questions` lists items).
+   - **`done`:** stands, covering a `partial` item's unmet parts, unless the evidence check positively shows the
+     item open (e.g. a recorded `B16` while `gmail-escalation-thread.md` lacks Resolution & De-escalation); then
+     `ask (recorded done <date>, evidence: <what>)`. An unevaluable file check (empty source, e.g. `B14` with no
+     `Resolution`) or a missing channel post (e.g. `B6` owners never named) doesn't show it open.
+   - **`not done`:** shows as `missing` (owner and skill) and goes back into the batched question as one.
+   - **Other states:** apply as recorded; `not yet due` goes under **Waiting**, not **Missing**.
+3. Else `missing` or `ask` per the checks.
+
+**Batched question:** one, at the end. `ask` and `missing` items also offer `n/a` (ask the reason), and `skipped`
+for the optional `B10`/`B11`:
+- Every `ask` item, including `partial` items' unmet parts: `done`, `not done`, or `not yet due`.
+- Every `missing` item: `done`, `waived` (ask the reason, unless given), `not yet due`, or leave missing.
+- **Waiting** items: is the blocker cleared?
+
+`not yet due` asks the blocker; where evidence names one (e.g. a release date posted in the channel), suggest
+`not yet due (<blocker>)`, recorded only when the engineer picks it.
+
+**Recording answers:** append one line per answer to `## Engineer-confirmed items`; a changed answer adds a new line,
+"leave missing" adds none. Item IDs (`A1`-`A5`, `B1`-`B18`, `C1`-`C4` below) are stable.
 
 **Track A - Zendesk / escalation path (always):**
-- Severity field set in Zendesk (Sev1/Sev2 triggers the workflow below) - ask.
-- L2 CSE: internal note with context and the specific ask; `Escalated To` = Ben or Vishal - ask.
-- L3 Engineering Sev1/Sev2: `Escalated To` = Incident Response Team - ask.
-- L3 Engineering Sev3/Sev4: Jira ticket or designated channel - a key in `analysis.md` `Tracking`, else ask.
-- L2 or L3: Escalation Packet - `escalation-packet.md`; next skill the Packet phase.
+- **A1:** Severity field set in Zendesk (Sev1/Sev2 triggers the workflow below) - ask.
+- **A2:** L2 CSE: internal note with context and the specific ask; `Escalated To` = Ben or Vishal - ask.
+- **A3:** L3 Engineering Sev1/Sev2: `Escalated To` = Incident Response Team - ask.
+- **A4:** L3 Engineering Sev3/Sev4: Jira ticket or designated channel - a key in `analysis.md` `Tracking`, else ask.
+- **A5:** L2 or L3: Escalation Packet - `escalation-packet.md`; next skill the Packet phase.
 
 **Track B - Technical Escalation Playbook checklist (when the run exists or is required):** `[SEV1/2]` items
-only appear when the run's Severity is SEV1 or SEV2. Due times are relative to run start.
+only appear when the run's Severity is SEV1 or SEV2. Due times are relative to run start. Item ID = `B<#>`.
 
 | # | Phase | Task | Owner | Due | Evidence here | Next skill |
 |---|---|---|---|---|---|---|
@@ -91,11 +135,11 @@ only appear when the run's Severity is SEV1 or SEV2. Due times are relative to r
 | 8 | Investigate | Post a public KB article based on the initial assessment | Customer Owner | - | `kb-article.md` exists; published: ask | `/kb-article <ID>` |
 | 9 | Investigate | Drive to a technical resolution (share findings and workarounds in channel) | Technical Owner | - | `analysis.md` `Resolution`, `Workaround` | - |
 | 10 | Investigate | [SEV1/2] Start a MM call to coordinate investigation (optional, workspace convention) | Customer Owner | - | ask | - |
-| 11 | Investigate | [SEV1/2] Share any material updates to the `func-sev1sev2-escalation@mattermost.com` #radar email thread (optional) | Customer Owner | - | ask | - |
+| 11 | Investigate | [SEV1/2] Share any material updates to the `func-sev1sev2-escalation@mattermost.com` #radar email thread (optional, workspace convention) | Customer Owner | - | ask | - |
 | 12 | Investigate | Collect additional logs, environment and other data from customers as needed | Customer Owner | - | `analysis.md` `Open questions`, `unknown` sub-keys | `/draft-reply` |
 | 13 | Resolve | Ship a patch release, if needed | Technical Owner | - | ask | - |
 | 14 | Resolve | Update the KB article with the resolution and any required steps to fix | Customer Owner | - | `kb-article.md` reflects `Resolution` | `/kb-article <ID>` |
-| 15 | Resolve | Confirm with affected customers that the issue is resolved | Customer Owner | - | customer confirmation in `zendesk-thread.md` | `/draft-reply` |
+| 15 | Resolve | Confirm with affected customers that the issue is resolved | Customer Owner | - | customer confirmation in `zendesk-thread.md`; confirmation post in channel, else ask | `/draft-reply` |
 | 16 | Resolve | [SEV1/2] Close the loop on the `func-sev1sev2-escalation@mattermost.com` #radar email thread | Customer Owner | - | `gmail-escalation-thread.md` has Resolution & De-escalation | `/sev-email <ID> resolution` |
 | 17 | Retrospect | [SEV1/2] Schedule a blameless post-mortem within 2 business days (include all responders) | Customer Owner | - | scheduled: ask; draft: `postmortem.md` exists | Postmortem phase |
 | 18 | Retrospect | Ensure any follow-up technical tasks are tracked in Jira | Technical Owner | - | Jira keys in `analysis.md` `Tracking`, else ask | - |
@@ -103,27 +147,43 @@ only appear when the run's Severity is SEV1 or SEV2. Due times are relative to r
 **Track C - Sev1/Sev2 Support Ticket Workflow (Zendesk Severity Sev1/Sev2, with or without a run):** the 4
 mandatory emails from `AGENTS.md`, each checked against `gmail-escalation-thread.md`; a missing one runs via
 `/sev-email <ID> <stage>`.
-- **With a run:** Resolution & De-escalation pairs with the resolution and customer-facing summary posted in the
-  run channel (`AGENTS.md`'s Close-out): run channel post, else ask.
-- **Without a run:** add the post-mortem (`AGENTS.md`'s Retro): scheduled - ask; draft - `postmortem.md` exists,
-  next skill the Postmortem phase.
+- **C1:** Initial Notification.
+- **C2:** Workaround Guidance.
+- **C3:** Resolution & De-escalation. With a run, it pairs with the resolution and customer-facing summary posted
+  in the run channel (`AGENTS.md`'s Close-out): run channel post, else ask.
+- **C4:** Postmortem Information. Without a run, it adds the post-mortem (`AGENTS.md`'s Retro): scheduled - ask;
+  draft - `postmortem.md` exists, next skill the Postmortem phase.
 
 End the report with:
 - **Missing:** every `missing` item, in checklist order, with its owner and skill.
-- **Flags:** overdue relative due times (run start known), `Inferred` values still unconfirmed.
+- **Waiting:** every `not yet due` item, with its blocker.
+- **Flags:** overdue relative due times (run start known), `Inferred` values still unconfirmed, recorded `done`
+  items whose file check couldn't be evaluated.
 
 ## Phase 4 - Hand off
 
 Ask (AskUserQuestion): which `missing` item to run now, or stop.
 - Run: invoke the item's skill (as listed under **Missing**) inline with the ticket ID. The invoked skill keeps
   its own review and confirmation gates; `/sev-email` still sends nothing without its own explicit confirmation.
-- Afterwards, re-run Phase 1, Phase 2 steps 4-5 (when the channel was read), and Phase 3.
+- Afterwards, re-run Phase 1, Phase 2 steps 4-5 (when `Channel read` is `yes`), and Phase 3.
+
+<escalation_status_template>
+- Path: <L1 only | L2 CSE | L3 Engineering | unknown>
+- Run: <run ID | none | unknown>
+- Run channel: <channel ID | unknown>
+- Run start: <YYYY-MM-DD HH:MMZ | unknown>
+- Run state: <open | closed (false positive | downgraded to LOW) | unknown>
+- Channel read: <yes | no | unknown>
+
+## Engineer-confirmed items
+- <item ID>: <task> - <state> - <YYYY-MM-DD>
+</escalation_status_template>
 
 ## Packet phase
 
 Render the Support to Engineering Escalation Template into `tickets/<ID>/escalation-packet.md`, 1:1: same
-headings, labels, order, and table. Sources: `AGENTS.md`'s `analysis.md` schema sub-keys and the
-`zendesk-thread.md` header.
+headings, labels, order, and table (workspace conventions: title without "Template", Scale Metrics in one cell).
+Sources: `AGENTS.md`'s `analysis.md` schema sub-keys and the `zendesk-thread.md` header.
 
 - A field with no source value, or `unknown`, is written `[unknown - <who to ask: customer | engineer |
   /investigate>]` and listed as missing after the file is written.
@@ -142,7 +202,7 @@ headings, labels, order, and table. Sources: `AGENTS.md`'s `analysis.md` schema 
 # Support to Engineering Escalation
 
 Escalation Date: <YYYY-MM-DD>
-Escalation Priority / Severity: <Sev1 - Blocker | Sev2 - Major> - Refer to the severity definitions.
+Escalation Priority / Severity: <Sev1 - Blocker | Sev2 - Major | Sev3 | Sev4> - Refer to the severity definitions.
 Assigned Support Escalation Owner: <name>
 
 ## 1. Escalation Overview
@@ -161,7 +221,7 @@ Assigned Support Escalation Owner: <name>
 | Database | <`Deployment` `Database`> |
 | Hardware Resources | <`Deployment` `Hardware`> |
 | License Level | <`Deployment` `License`> |
-| Scale Metrics | Number of Channels: <n>; Number of Teams: <n>; Number of Active Users: <n>; Number of Posts: <n> |
+| Scale Metrics | <`Deployment` `Scale`: Number of Channels: <n>; Number of Teams: <n>; Number of Active Users: <n>; Number of Posts: <n>> |
 | Search Engine | <`Deployment` `Search engine`> |
 | Active Plugins / Extensions | <`Deployment` `Plugins`> |
 

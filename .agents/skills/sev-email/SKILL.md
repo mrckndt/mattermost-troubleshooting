@@ -60,7 +60,7 @@ Zendesk reference and org, so there is no no-ticket mode:
 
 Always re-read from disk, never trust session memory.
 
-**Identity fields (`Customer`, `Organization`, `Zendesk`, `Support level`):** `zendesk-thread.md`'s header
+**Identity fields (`Customer`, `Organization` (`Zendesk Organization`), `Zendesk`):** `zendesk-thread.md`'s header
 first. If that file is missing or a field is blank there, check `analysis.md`'s `Deployment`/`Correlation`
 prose for a mention (it's often derived from the same conversation). Still missing: ask the engineer to
 hand-fill it - never guess. `Customer` is the human-readable name; `Zendesk Organization` is the org record
