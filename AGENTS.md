@@ -249,7 +249,7 @@ ticket directory, never speculate.
   - `/product-request` - optional Salesforce Account URL.
   - `/retro` - indirect only, via invoking `/kb-article`.
   - `/draft-reply` - implicit only, as part of "review everything known".
-  - `/sev-email` - identity header fields (`Customer`, `Zendesk Organization`, `Zendesk`, `Support level`);
+  - `/sev-email` - identity header fields (`Customer`, `Zendesk Organization`, `Zendesk`);
     fallback read of `Priority`, mapped per the Defect and incident severity contract; the raw conversation when
     `analysis.md` is missing.
   - `/escalation-helper` - header (`Customer`, `Zendesk Organization`, `Zendesk`, `Priority`) for the
@@ -288,7 +288,7 @@ unavailable via Hub (workspace convention). Translate at read time; `Priority` i
 
 **Reach x severity -> response priority:**
 
-| | High reach (default config, latest+ESR, core workflow) | Narrow reach (edge config, single platform) |
+| | High reach (default config, latest+ESR, core workflow) | Narrow reach (edge config, single platform; workspace convention: no "workaround exists") |
 |---|---|---|
 | Sev1 | HIGH | MEDIUM |
 | Sev2 | HIGH | MEDIUM |
@@ -297,7 +297,7 @@ unavailable via Hub (workspace convention). Translate at read time; `Priority` i
 
 HIGH: all hands on-deck, page the escalation chain, work until resolved or downgraded. MEDIUM: notify the
 escalation chain, first priority next business day until resolved or downgraded. LOW: loop in AOR owners,
-next priority after current tasks.
+next priority after current tasks resolved.
 
 **Keyed consumers:** `/sev-email` gates entry on Sev1/Sev2 (Sev3/Sev4 don't trigger the escalation
 workflow below). `/product-request`'s `Urgency / Severity` input keys off this scale. `/rca`'s `Severity`
@@ -341,7 +341,8 @@ Each entry stores the sent email verbatim, not a summary.
 - **Roles (HIGH and MEDIUM runs, both named in the channel):**
   - **Customer owner (Support):** status updates internally to stakeholders and externally to customers.
   - **Technical owner (L2 CSE or L3 Engineering):** drives to technical resolution.
-- **Playbook run:** Sev1/Sev2 as soon as CSE or Engineering is involved. Sev3/Sev4 have no run.
+- **Playbook run:** Sev1/Sev2 as soon as CSE or Engineering is involved (workspace convention). A run started at
+  triage for a lower severity is closed per Response.
 - **Escalation Packet:** every escalation to CSE or Engineering carries it.
 - **Paths:**
   - **L2 CSE:** customer-specific environment, configuration, integration or implementation, or troubleshooting
@@ -355,7 +356,7 @@ Each entry stores the sent email verbatim, not a summary.
 - **Resolved:** permanent fix or a customer-accepted workaround; either triggers the Resolution & De-escalation
   email and close-out.
 - **Close-out:** resolution posted in the channel with a customer-facing summary; Support confirms with affected
-  customers; KB updated; outstanding work tracked in Jira by the technical owner.
+  customers, then posts that confirmation in the channel; KB updated; outstanding work tracked in Jira by the technical owner.
 - **KB article:** every escalation gets one, posted after the initial assessment and updated with the resolution.
 - **Retro:** Sev1/Sev2 get a blameless post-mortem within 2 business days, piloted by the customer owner,
   co-piloted by the technical owner.
@@ -376,6 +377,16 @@ Each entry stores the sent email verbatim, not a summary.
   `Open Questions`.
 - **Placeholders:** session content `[to fill in the post-mortem session]`, other gaps `[unknown - <who to ask>]`.
 - **Keyed consumers:** `/escalation-helper`; `/sev-email` attaches it to Postmortem Information.
+
+**`escalation-status.md` schema:**
+- **Writer:** `/escalation-helper`, into `tickets/<ID>/escalation-status.md`.
+- **Header fields:** `Path`, `Run`, `Run channel`, `Run start`, `Run state`, `Channel read`; patched in place;
+  `unknown` means not yet established.
+- **Body:** append-only `## Engineer-confirmed items`, one line per engineer answer, never rewritten; each line
+  starts with the item's stable ID (`/escalation-helper` checklist), and the latest line per ID wins.
+- **Item states:** `done`, `waived (<reason>)`, `skipped` (optional items only), `not yet due (<blocker>)`,
+  `not done`, `n/a (<reason>)`.
+- **Keyed consumers:** `/escalation-helper` only.
 
 ## Working with the cloned repos
 
