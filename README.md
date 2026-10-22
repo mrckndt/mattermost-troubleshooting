@@ -76,8 +76,6 @@ Set these up after the repo is cloned. The investigation pipeline consults these
 
 All are optional. When their tools are not present, `/investigate` skips that source with a noted reason and relies on local data (`fragments/`, `upstream/`) plus the GitHub web search. No colleague is blocked for not setting one up.
 
-codebase-memory-mcp is a local stdio binary with no Docker service - see its setup section below.
-
 #### GitHub, Jira, and Gmail connector setup
 
 These three all connect the same way, through the Anthropic connectors page:
@@ -92,8 +90,6 @@ Per-connector specifics:
 - **Gmail** - registers as `claude.ai Gmail`, tools under `mcp__claude_ai_Gmail__*`. This is `/sev-email`'s only send path; no fallback if unavailable - the skill says so and stops before drafting.
 
 #### Codebase memory MCP setup
-
-A local stdio binary.
 
 **macOS:**
 ```
@@ -249,9 +245,3 @@ Each skill name matches the codebase-memory MCP tool it wraps.
     ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
     └── settings.local.json  # Claude Code-specific: allowed tools and project-level settings
 ```
-
-## TODO
-
-- [ ] Revisit `https://github.com/CodeGraphContext/CodeGraphContext` or `ast-grep` if codebase-memory-mcp's indexing approach doesn't pan out (chosen and integrated - see "Codebase memory MCP setup").
-- [ ] Add a `/docs-pr` skill: create a feature branch in `upstream/docs`, commit improvements to pages identified during investigation, push, and open a GitHub PR - without leaving the session.
-- [ ] Backfill `fragments/<repo>.md` incrementally from commit [`5936874`](https://github.com/mrckndt/mattermost-troubleshooting/commit/5936874e561203f4336e509e9c89f6a539f69ebe), keeping only the irreducible TSE wisdom (misleading log signatures, license-tier traps, customer-misunderstanding decoders, version-specific gotchas).
