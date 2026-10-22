@@ -289,7 +289,7 @@ unavailable via Hub (workspace convention). Translate at read time; `Priority` i
 
 **Reach x severity -> response priority:**
 
-| | High reach (default config, latest+ESR, core workflow) | Narrow reach (edge config, single platform; workspace convention: no "workaround exists") |
+| | High reach (default config, latest+ESR, core workflow) | Narrow reach (edge config, single platform) |
 |---|---|---|
 | Sev1 | HIGH | MEDIUM |
 | Sev2 | HIGH | MEDIUM |
