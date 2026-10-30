@@ -41,65 +41,117 @@ Save targets:
   already covered.
 - Check whether the following are known from the conversation:
   - Product and version(s) affected
-  - Problem description
+  - Problem description, or the question asked
   - Observable symptoms (errors, logs, UI behavior)
-  - Solution/resolution steps
+  - Solution/resolution steps, with prerequisites and how to verify them
   - Warnings, caveats, or security considerations
   - Relevant external links
-  - Fix status, and whether this is a confirmed defect, an advisory answer, or an open investigation - drives the Status field and the second-section heading below
+  - Fix status, and whether this is a confirmed defect, an advisory answer, or an open investigation - drives the article
+    type, the Status field, and the second-section heading below
+  - Confidence: which claims `analysis.md` records as confirmed and which as hypothesis
 - Ask for any missing items. Ask at most one follow-up before proceeding with what is available.
 
 **Phase 2 - Generate Markdown**
 - Follow the template below.
-- Required: `**Applies to:**`, `**Symptoms:**`, `## 🛑 Problem`, exactly one second-section heading.
-- The `**Symptoms:**` header field is always required, even when the `### Symptoms` subsection below is omitted - they are two different things with the same name.
-- Optional: `**Status:**`, the whole `### Symptoms` subsection (heading and all), its code block, `> ⚠️ Important` blocks, `### Additional Resources`.
+- Required: `**Applies to:**`, the header field and first section of the article type, exactly one second-section heading.
+- Optional: `**Status:**`, the whole `### Symptoms` subsection (heading and all), its code block, `> ⚠️ Important` blocks,
+  `### Additional Resources`.
 - **Omit rather than pad.** Never write `N/A` to fill a section or invent content to justify a heading.
+- **Confidence:** state a hypothesis from `analysis.md` as a condition the admin can check ("If the paired warning shows
+  `broken pipe`, ..."), never as fact.
 - Output under a `##` heading summarizing the topic. Print raw Markdown (not in a code block).
+
+**Article type - pick one; it sets the header field and the first section:**
+
+| Type | Use when | Header field | First section |
+|---|---|---|---|
+| Issue | Something fails or misbehaves: defect, misconfiguration, environment state, performance | `**Symptoms:**` | `## 🛑 Problem`, optional `### Symptoms` |
+| Advisory | A question, no fault: CVE or compatibility applicability, "expected or harmful?", "can I...?", availability, sizing | `**Context:**` | `## 👓 Overview`, no `### Symptoms` |
+
+- Pick by what the customer needed, not by `analysis.md`'s `Ticket type`: a log line sent as "is this harmful?" is
+  Advisory, even when investigated as a fault.
+- A ticket with both (a defect plus how-to questions) is Issue; answer the questions inside its steps.
+- `**Symptoms:**` is one sentence from a sysadmin's perspective. `**Context:**` is one sentence on who asks and why
+  (e.g. "Guidance for security teams evaluating PHP-related CVEs.").
+
+**First section, both types: one paragraph, 2-4 sentences.** No sub-sections other than `### Symptoms`.
+- **Problem (Issue):** what goes wrong, under which condition, and why, in one sentence at the level the admin can see
+  or act on (e.g. "each upload over 50 MB leaves a temporary file in `/tmp`").
+- **Overview (Advisory):** open with the answer as a bold sentence (e.g. **PHP CVEs do not apply to Mattermost
+  Server.**), then the reason it holds, at the depth the reader needs to trust it. A bold lead-in label may open the
+  reasoning (e.g. **Why this holds:**).
+- **Bold** the facts that decide whether the article applies to the reader: version cutoff, platform, trigger.
+- Apply the delete test to every sentence: would the admin act differently without it? If not, cut it.
+- Describe causes as conditions, not code paths: no evaluation order, guards, or fallbacks.
+- No source symbols, `function:file` references, or runtime primitives (goroutines, mutexes) in prose. Verbatim quoted log or stack output is exempt.
+- Depth is fine when it's load-bearing (it explains why the fix works), judged by the delete test, not by how technical it sounds.
+- Don't repeat the header field sentence; add to it.
+- Cut material relocates, it isn't discarded:
+  - An actionable cause becomes a step in the second section.
+  - Scope goes to `**Applies to:**` or a `### Symptoms` bullet.
+  - Only mechanism with no admin consequence is dropped entirely.
+- No SQL, shell, or command blocks here. If a query or command proves the condition, it belongs in a step under the
+  second section.
+
+**Symptoms (Issue only):**
+- Add only what the Problem and the header field don't already say: verbatim errors, scope boundaries, misleading signals.
+- Omit the whole subsection when the Problem already covers everything observable, or when nothing is observable
+  (an internal misconfiguration with no visible effect). Don't invent a symptom to fill it.
+- When present, the code block is for verbatim machine output only, never a UI paraphrase or a log line already shown.
+  Omit it if none exists; never `N/A` or invented content.
+- One bullet list. No "Additional symptoms:" split.
+- Include misleading signals (things that look healthy but aren't), led by `**Misleading:**` - the highest-value content here.
 
 **Second section - pick exactly one heading:**
 
-| Heading | Use when |
-|---|---|
-| `✅ Solution` | Confirmed fix the admin applies (default case) |
-| `🔧 Workaround` | Root cause known, no fix shipped; mitigation only |
-| `💡 Recommendation` | Advisory: expected behavior or architecture guidance, no defect |
-| `🔍 Diagnostic Steps` | Root cause not yet isolated; a procedure narrows it down |
-| `🚧 Known Issue` | Nothing actionable for the customer yet; states the issue exists, no more |
+| Heading | Type | Use when |
+|---|---|---|
+| `✅ Solution` | Issue | The steps remove the cause: shipped fix, config correction, environment repair |
+| `🔧 Workaround` | Issue | The cause is an unfixed defect; the steps only mitigate it |
+| `🔍 Diagnostic Steps` | Issue | Root cause not yet isolated; a procedure narrows it down |
+| `🚧 Known Issue` | Issue | Nothing actionable for the customer yet; states the issue exists, no more |
+| `🛠️ How-To` | Advisory | A supported goal reached through a procedure: configuration, setup, sizing, migration |
+| `💡 Recommendation` | Advisory | Guidance on expected behavior, applicability, or architecture; no procedure required |
+| `🚫 Limitation` | Advisory | Not supported or by design; states the boundary, then the supported alternatives as steps |
 
+- If the product defect remains after the steps, it is `Workaround`, even when the steps fully restore service.
+- An environment the admin can repair (left-over state after a downgrade, a missing opt-in) is `Solution`, not `Workaround`.
 - If the admin can do something, it is never `Known Issue`.
 - `Known Issue` bans forward-looking language: no "will be updated", no ETA, no "check back".
-- `Diagnostic Steps` and `Known Issue` both close with `### Contact Mattermost Support`. The other three never include it - they already give the admin an action.
+- A `Solution` whose fix ships in a release may add a `### Until You Upgrade` step for interim mitigation.
+- `Solution` and `Workaround` may end with `### If the Issue Persists`: the next cause to rule out (e.g. a proxy
+  body-size limit recorded in `analysis.md`'s `Ruled out` or `Correlation`), then opening a case.
+- `Diagnostic Steps` and `Known Issue` close with `### Contact Mattermost Support`. Advisory headings include neither closing section.
 
-**Problem: 2-4 sentences, one paragraph.** No sub-sections.
-- Apply the delete test to every sentence: would the admin act differently without it? If not, cut it.
-- Write what the admin observes, not what the code does. No evaluation order, guards, or fallbacks.
-- No source symbols, `function:file` references, or runtime primitives (goroutines, mutexes) in prose. Verbatim quoted log or stack output is exempt.
-- Depth is fine when it's load-bearing (it explains why the fix works), judged by the delete test, not by how technical it sounds.
-- Cut material relocates, it isn't discarded:
-  - An actionable cause becomes a Solution step.
-  - Scope goes to `**Applies to:**` or a `### Symptoms` bullet.
-  - Only mechanism with no admin consequence is dropped entirely.
-- No SQL, shell, or command blocks in the Problem section. If a query or command proves the
-  condition, it belongs in a verification step under the second section, not here.
+**Steps - what the second section must carry:**
+- Open with 1-2 sentences: what this delivers and what it does not.
+- Prerequisites (license tier, role, tool such as `mmctl`, network access) go in `**Applies to:**` or the first step,
+  never discovered mid-procedure.
+- Every admin action is a step. Never leave one only in a `### Symptoms` bullet or an Important block.
+- Before a destructive step or a direct database edit, an Important block names the backup to take. For a
+  reversible config change, one line says how to revert it.
+- State a restart or reload requirement, bolded, in the step that needs it.
+- Close `Solution`, `Workaround`, and `How-To` with a `### Verify ...` step naming the healthy state (metric, log line,
+  UI check). Omit it only when nothing can be checked.
+- In an upgrade step, bold the fixed-in version.
 
-**Symptoms:**
-- Omit the whole subsection when there's nothing observable to report: a pure advisory question, an architecture recommendation, or an internal misconfiguration with no visible effect.
-- Don't invent a symptom to fill it.
-- When present, the code block is for verbatim machine output only. Omit it if none exists; never `N/A` or invented content.
-- One bullet list. No "Additional symptoms:" split.
-- Include misleading signals (things that look healthy but aren't) - the highest-value content here.
+**Bold:**
+- Bold the decisive facts: the answer, version cutoffs, platform or scope limits, the key action or "don't", restart
+  requirements. Also UI labels, config keys, and exact values in steps.
+- At most two decisive facts per paragraph or step; never a whole paragraph.
 
 **Status field:**
-- Optional, except required for `Known Issue` and any claim that can expire.
+- Optional, except required for `Known Issue`, `Limitation`, and any claim that can expire.
 - Then carry an `as of <date>` qualifier, e.g. "Open, no fix available (as of 2026-08-05)".
 - A shipped fix dates itself ("Fixed in v2.42.3") and needs no qualifier.
+- No scheduled release dates or "under internal review": state only what is true today.
 - Source the value from `analysis.md`'s `Resolution` section (in ticket mode), not from fresh
-  reasoning; otherwise state only what's confirmed in the conversation and don't guess a version.
+  reasoning; otherwise state only what's confirmed in the conversation and don't guess a version. If `Resolution`
+  shows no released fix, an upgrade cannot be the `Solution`; use `Workaround`.
 
 **Important blocks:**
 - Only for a real caveat: destructive action, restart requirement, security implication, licensing gate, or a scope trap (a condition that's easy to miss, e.g. "this only fixes X, not Y").
-- Max one per step, your own words, 1-3 sentences.
+- Max one per step, three per article, your own words, 1-3 sentences.
 - Never paste a doc paragraph or leave a sentence truncated.
 
 **Links - check every one before writing, inline and under Additional Resources:**
@@ -119,7 +171,8 @@ Save targets:
 - Never construct a specific article path, anchor, or ID from guesswork, confirmed or not - if unsure whether an anchor is correct, link the page without it.
 - Never reference an internal Jira key.
 - URLs with angle-bracket placeholders (e.g. `<tenant>`, `<mattermost-url>`) inside code blocks are exempt - they're deliberately not real.
-- Omit Additional Resources entirely rather than link a bare domain root or repeat a link already cited inline.
+- Omit Additional Resources entirely rather than link a bare domain root or repeat a link already cited inline. List at most
+  three links, preferring docs and KB articles over pull requests.
 
 **Phase 3 - Convert to HTML**
 - Convert to HTML using only tags with a direct 1:1 Markdown equivalent:
@@ -138,41 +191,43 @@ Save targets:
 - Second person, present tense for instructions ("Navigate to...", not "You should navigate to...").
 - Full navigation path for settings (e.g., **System Console > Environment > Web Server**).
 - No vague language ("may", "might", "sometimes"); state conditions explicitly.
-- Keep the **Symptoms** header field to one sentence; detail goes in `### Symptoms`.
+- Keep the `**Symptoms:**` or `**Context:**` header field to one sentence; detail goes in the first section.
 - No preamble before or after the article.
 
 <article_template>
-**Applies to:** [Product and version range, plus any qualifying condition. One line.]
+**Applies to:** [Product and version range, plus any qualifying condition or prerequisite. One line.]
 
-**Status:** [Optional; required for Known Issue. e.g. "Fixed in v2.42.3" / "Open, no fix available (as of 2026-08-05)"]
+**Status:** [Optional; required for Known Issue and Limitation. e.g. "Fixed in v2.42.3" / "Open, no fix available (as of 2026-08-05)"]
 
-**Symptoms:** [Always required, even if the ### Symptoms subsection below is omitted. One-sentence summary from a sysadmin's perspective.]
+**Symptoms:** [Issue only. One-sentence summary from a sysadmin's perspective.]
+**Context:** [Advisory only, in place of Symptoms. One sentence: who asks and why.]
 
 ---
 
-## 🛑 Problem
+## 🛑 Problem [Issue] / 👓 Overview [Advisory]
 
-[2-4 sentences, one paragraph. What the admin observes, under what condition, and why - at the level of things they can see or act on.]
+[2-4 sentences, one paragraph. Problem: what goes wrong, under which condition, and why. Overview: **the answer as a
+bold sentence**, then why it holds. Bold the facts that decide whether this applies to the reader.]
 
-### Symptoms [OMIT this whole subsection if there's nothing observable to report, e.g. a pure advisory question]
+### Symptoms [Issue only. OMIT if the Problem already covers everything observable]
 
 ```
 [Verbatim log line, error string, or API response. OMIT entirely if none exists.]
 ```
 
-- [Observable behavior]
+- [Observable behavior not already in the Problem]
 - [Scope boundary: what is and is not affected]
-- [Misleading signal: something that looks healthy but is not]
+- **Misleading:** [something that looks healthy but is not]
 
 ---
 
-## [Pick exactly one: ✅ Solution / 🔧 Workaround / 💡 Recommendation / 🔍 Diagnostic Steps / 🚧 Known Issue - see table above]
+## [Pick exactly one heading from the table above, matching the article type]
 
 [1-2 sentences: what this delivers and what it does not.]
 
 ### [Step Title - action verb, e.g., "Update the System Console Setting"]
 
-[Step instructions. **Bold** for UI labels, config keys, or exact values.]
+[Step instructions. **Bold** for UI labels, config keys, exact values, and the decisive fact.]
 
 ```
 [Command, config snippet, or code example if applicable]
@@ -180,9 +235,13 @@ Save targets:
 
 > ⚠️ **Important:** [Only if there is a real caveat, in your own words.]
 
-[Repeat ### Step Title blocks as needed, for Solution / Workaround / Recommendation.]
+[Repeat ### Step Title blocks as needed.]
 
-### Contact Mattermost Support [ONLY for Diagnostic Steps or Known Issue - omit entirely for the other three]
+### Verify [the Result] [Solution / Workaround / How-To: the healthy state to check. OMIT only if nothing can be checked]
+
+### If the Issue Persists [Optional, Solution / Workaround only: next cause to rule out, then open a case]
+
+### Contact Mattermost Support [ONLY for Diagnostic Steps or Known Issue]
 
 [Diagnostic Steps: recommend opening a case if these steps don't resolve or explain the issue. Known Issue: recommend opening a case so it can be tracked. 1-2 sentences.]
 
