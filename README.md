@@ -150,7 +150,7 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - Returns a `function:file` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
 
    Add `--no-cbm` (e.g. `/investigate 12345 --no-cbm`) to run without the codebase-memory knowledge graph.
-   Source search then uses `rg --no-ignore --hidden` (or `grep`)/`git` alone: coverage is unchanged, and what you give up is symbol
+   Source search then uses `rg --no-ignore --hidden` (or `grep -r`)/`git` alone: coverage is unchanged, and what you give up is symbol
    attribution for text matches and call-chain tracing. Useful for config questions and known-issue
    lookups where speed matters more than structural evidence.
 4. When you have a conclusion, generate the output (customer reply, KB article, RCA, PD&E intake, and more) with
@@ -159,6 +159,13 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
 ## Skills / slash commands
 
 Skills under `.agents/skills/` double as Claude Code slash commands via the symlinks in `.claude/commands/`.
+
+`/investigate`, `/hub-harvest`, `/kb-batch`, and `/upgrade-advisor` delegate work to subagents (workers) defined next to the skill in
+`.agents/skills/<skill>/agents/`, registered via the symlinks in `.claude/agents/`. `/hub-harvest` runs one worker per
+thread; `/investigate` runs file readers, per-repo source searchers, docs and issue searchers, and one verifier per
+hypothesis in parallel; `/kb-batch` drafts one article per worker; `/upgrade-advisor` analyzes one patch release per
+worker. Each `/investigate` run keeps its worker reports and gate blocks in
+`tickets/<ID>/subagent-reports/<run>/`. The handoff contract is in `AGENTS.md` (Subagent handoffs).
 
 ### Investigation
 
@@ -169,12 +176,12 @@ Skills under `.agents/skills/` double as Claude Code slash commands via the syml
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
 - **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `zendesk-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
-- **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article`, then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
+- **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article` (one worker per ticket, in parallel), then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
 - **`/product-request [title]`** - generate a structured PD&E intake post (feature request, bug report, or security issue). After printing, asks whether to send it as a Hub DM to the PDE Intake Agent (`@pde-intake`, requires the Mattermost Hub connector). `/pde-intake [title]` is a deprecated alias.
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
 - **`/retro [ticket-ID]`** - run a post-resolution retrospective (investigation retrospective, follow-ups, KB article, docs/KB review); saves to `tickets/<ID>/retro.md`. Requires a confirmed root cause in `analysis.md`.
-- **`/upgrade-advisor [ticket-ID|version]`** - generate an upgrade recommendation report comparing a ticket's support-packet/config version (or an explicit version) to the latest patch: security fixes, urgent vs quality-of-life bugs, plugin updates; saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket. Does not require `analysis.md`.
+- **`/upgrade-advisor [ticket-ID|version]`** - generate an upgrade recommendation report comparing a ticket's support-packet/config version (or an explicit version) to the latest patch: security fixes, urgent vs quality-of-life bugs, plugin updates (one worker per patch release); saves to `tickets/<ID>/upgrade-advisor.md` when run from a ticket. Does not require `analysis.md`.
 - **`/sev-email <ticket-ID> [stage]`** - draft (and, after review, send via Gmail) a Sev1/Sev2 escalation-workflow email: Initial Notification, Workaround Guidance, Resolution & De-escalation, or Postmortem Information. `/sev-escalation` is a deprecated alias. Tracks the Gmail thread in `tickets/<ID>/gmail-escalation-thread.md`.
 - **`/escalation-helper <ticket-ID> [packet | postmortem]`** - show where a ticket stands in the escalation process (path, Technical Escalation Playbook checklist, #radar emails, optionally the run channel's posts via Hub): done and missing, then runs the chosen item's skill (`/sev-email`, `/kb-article`, `/investigate`, `/draft-reply`) on confirmation. Engineer answers persist in `tickets/<ID>/escalation-status.md` across runs. `packet` exports the Escalation Packet (Support to Engineering Escalation Template) from `analysis.md` to `tickets/<ID>/escalation-packet.md` and, on confirmation, posts it to the run channel. `postmortem` drafts `tickets/<ID>/postmortem.md` from the playbook's retrospective template.
 - **`/clipboard [content]`** - copy to OS clipboard (`pbcopy` / `Set-Clipboard` / `wl-copy`). No arg = most recent artifact.
@@ -216,8 +223,9 @@ Skills under `.agents/skills/` double as Claude Code slash commands via the syml
 ├── .agents/
 │   ├── config/
 │   │   └── repos.json       # Upstream repo list; cbm_excluded flags repos excluded from codebase-memory indexing
-│   └── skills/              # Canonical skill definitions (SKILL.md per skill)
+│   └── skills/              # Canonical skill definitions (SKILL.md per skill; agents/<role>.md for a skill's subagents)
 └── .claude/
+    ├── agents/              # Symlinks to .agents/skills/*/agents/*.md - required for Claude Code subagent discovery
     ├── commands/            # Symlinks to .agents/skills/*/SKILL.md - required for Claude Code slash command discovery
     └── settings.local.json  # Claude Code-specific: allowed tools and project-level settings
 ```

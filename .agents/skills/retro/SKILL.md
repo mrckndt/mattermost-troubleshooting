@@ -102,7 +102,7 @@ For each one, state clearly what the action is and why.
 - Was there a feature gap (missing config option, missing API, etc.) that
   contributed to the issue?
 
-Use `mcp__claude_ai_Atlassian__*` (project `MM` only) to check for existing tickets before
+Use `mcp__claude_ai_Atlassian_MCP__*` (project `MM` only) to check for existing tickets before
 recommending a new one. Use `mcp__claude_ai_GitHub_MCP__*` to check for existing issues or PRs.
 Query terms per `AGENTS.md` Boundaries; absent tools per its Skip convention - never block.
 

@@ -1,0 +1,1 @@
+../../.agents/skills/investigate/agents/issue-searcher.md

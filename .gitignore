@@ -28,6 +28,8 @@ upstream/.last-pull.json
 !.claude/settings.local.json
 !.claude/commands/
 !.claude/commands/**
+!.claude/agents/
+!.claude/agents/**
 
 # Track Claude Code entry point
 !CLAUDE.md

@@ -6,6 +6,8 @@
       "Grep",
       "WebSearch",
       "WebFetch",
+      "Edit(tickets/*/subagent-reports/**)",
+      "Edit(tickets/*/zendesk-thread.md)",
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(fd:*)",
@@ -16,12 +18,12 @@
       "Bash(wc:*)",
       "Bash(echo:*)",
       "Bash(sort:*)",
+      "Bash(uniq:*)",
       "Bash(diff:*)",
       "Bash(git log:*)",
       "Bash(git diff:*)",
       "Bash(git show:*)",
       "Bash(git status:*)",
-      "Bash(git checkout *)",
       "Bash(codebase-memory-mcp cli:*)",
       "Bash(pbcopy)",
       "Bash(pbcopy:*)",
@@ -29,8 +31,23 @@
       "Bash(clip.exe:*)",
       "Bash(Set-Clipboard:*)",
       "mcp__claude_ai_Mattermost_Hub__search_posts",
+      "mcp__claude_ai_Mattermost_Hub__search_users",
       "mcp__claude_ai_Mattermost_Hub__read_post",
-      "mcp__codebase_memory_local__index_repository"
+      "mcp__claude_ai_GitHub_MCP__search_issues",
+      "mcp__claude_ai_GitHub_MCP__search_pull_requests",
+      "mcp__claude_ai_GitHub_MCP__issue_read",
+      "mcp__claude_ai_GitHub_MCP__pull_request_read",
+      "mcp__claude_ai_Atlassian_MCP__searchJiraIssuesUsingJql",
+      "mcp__claude_ai_Atlassian_MCP__getJiraIssue",
+      "mcp__claude_ai_Atlassian_MCP__getAccessibleAtlassianResources",
+      "mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql",
+      "mcp__claude_ai_Atlassian__getJiraIssue",
+      "mcp__claude_ai_Atlassian__getAccessibleAtlassianResources",
+      "mcp__codebase_memory_local__index_repository",
+      "mcp__codebase_memory_local__search_code",
+      "mcp__codebase_memory_local__search_graph",
+      "mcp__codebase_memory_local__trace_path",
+      "mcp__codebase_memory_local__get_code_snippet"
     ],
     "deny": [
       "Bash(git push:*)",
@@ -39,3 +56,4 @@
     ]
   }
 }
+

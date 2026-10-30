@@ -30,11 +30,11 @@ Save target: `tickets/<ID>/eir.md`.
 2. If `analysis.md` is missing or incomplete, say so and ask whether to run `/investigate <ID>`
    first before proceeding.
 
-3. Search `tickets/<ID>/` (and subdirectories) for any additional artifacts that may add relevant
+3. Search `tickets/<ID>/` (and subdirectories, excluding `subagent-reports/`) for any additional artifacts that may add relevant
    detail - config.json, DB query output, node logs, etc.
 
 4. Look for related issues, PRs, or known bugs that should be referenced in the report:
-   - GitHub: `mcp__claude_ai_GitHub_MCP__*`. Jira: `mcp__claude_ai_Atlassian__*` (project `MM` only).
+   - GitHub: `mcp__claude_ai_GitHub_MCP__*`. Jira: `mcp__claude_ai_Atlassian_MCP__*` (project `MM` only).
    - Query terms per `AGENTS.md` Boundaries; absent tools per its Skip convention - never block.
 
 5. Produce two outputs:

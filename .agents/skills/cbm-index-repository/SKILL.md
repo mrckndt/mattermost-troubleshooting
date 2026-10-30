@@ -32,7 +32,7 @@ report row, not two.
 **Filter the target list against `excluded` before any other step, and run everything below only on the
 survivors.** This filter is decided from `repos.json` alone and holds for every argument and phrasing.
 For each name in the target list that is also in `excluded`: report
-`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg/grep against
+`<repo> excluded from codebase-memory (<cbm_excluded_reason>); use rg --no-ignore --hidden (or grep -r) against
 "$PROJECT_ROOT/upstream/<repo>/" directly` and drop it. Excluded names reach zero codebase-memory MCP
 calls and zero CLI calls.
 

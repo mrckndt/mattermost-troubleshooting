@@ -68,9 +68,9 @@ Preference order (first match wins):
 1. **Support packet node config** - inside the support packet, node subdirectories (one per node, named after its hostname) each
    contain a `sanitized_config.json`. Use the first one - in HA the config is typically identical across nodes.
    ```bash
-   fd --no-ignore --hidden -t f "sanitized_config.json" "$PROJECT_ROOT/tickets/<ID>" | head -1
+   fd --no-ignore --hidden -t f -g "sanitized_config.json" "$PROJECT_ROOT/tickets/<ID>" | head -1
    ```
-   (or `find "$PROJECT_ROOT/tickets/<ID>"/mm_support_packet_*/ -name "sanitized_config.json" 2>/dev/null | head -1`)
+   (or `find "$PROJECT_ROOT/tickets/<ID>" -type f -name "sanitized_config.json" | head -1`)
 2. **Bare `config.json` in `tickets/<ID>/`** - if there's no support packet, fall back to `tickets/<ID>/config.json`.
 3. **Neither** - stop and tell the user no config was found. Suggest they either re-run with a version argument
    (`/upgrade-advisor vX.Y.Z`) or drop a `config.json` or support packet into `tickets/<ID>/`.
@@ -141,10 +141,12 @@ community-only coverage and call this out in the report summary.
 ### Check 4 - Jira (Atlassian) MCP
 
 ```
-mcp__claude_ai_Atlassian__atlassianUserInfo
+mcp__claude_ai_Atlassian_MCP__getAccessibleAtlassianResources
 ```
 
-A successful response confirms the Atlassian MCP is connected. A failure means Jira priority enrichment won't
+(older connector installs: `mcp__claude_ai_Atlassian__getAccessibleAtlassianResources`)
+
+A successful response confirms the Atlassian MCP is connected; record its `cloudId` for the patch analyzers. A failure means Jira priority enrichment won't
 work - the skill will still produce a report, just without Jira priority labels on commits.
 
 ### Pre-flight summary
@@ -167,10 +169,10 @@ Stop and ask the user if:
 Proceed with a noted degradation if:
 - Enterprise unavailable - note in report summary that Enterprise-only fixes were not analyzed.
 - Jira MCP unavailable - omit `Jira priority: X` fragments entirely.
-- WebFetch to `mattermost.com/security-updates/` fails - fall back to the commit-keyword heuristic described in Phase 5b.
+- WebFetch to `mattermost.com/security-updates/` fails - fall back to the workers' security-keyword counts (Phase 5).
 
 Record your per-repo source decision (local vs MCP). Every subsequent step that touches git (Phase 2, Phase 4,
-Phase 5) must use the corresponding source for that repo.
+and the patch analyzers) must use the corresponding source for that repo.
 
 ## Phase 2 - Determine the target version
 
@@ -229,7 +231,12 @@ Read the config file. Pay attention to which features are enabled or disabled. K
 Understand their setup holistically. Don't just check booleans - a customer on Postgres with S3 storage, SAML
 via Okta, and clustering has a very different profile than one on MySQL with local storage.
 
-## Phase 4 - Get the commits, grouped by patch version
+**Config profile (required):** print one `<Section>.<Key>: <value>` line per setting above and every other enabled
+feature you noted, quoted from the config file, followed by the installed plugin map (`<plugin_id>: <version>`, or
+`none` without a support packet). Workers receive both verbatim; they see nothing else of the config. Mode 2: both
+are `none`.
+
+## Phase 4 - Collect commits and dispatch the patch analyzers
 
 Check **both** repos for commits:
 - Community: `mattermost/mattermost` (`upstream/mattermost`)
@@ -245,19 +252,19 @@ the target.
 ### Get commits between two tags
 
 For each consecutive pair of versions (e.g. vX.Y.8 → vX.Y.9), get the list of commits introduced in the
-later version from each repo:
+later version from each repo, with the files each commit changed:
 
 **Local git:**
 ```bash
-git -C "$PROJECT_ROOT/upstream/mattermost" log <earlier_tag>..<later_tag> --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%n---END---"
-git -C "$PROJECT_ROOT/upstream/enterprise" log <earlier_tag>..<later_tag> --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%n---END---"
+git -C "$PROJECT_ROOT/upstream/mattermost" log <earlier_tag>..<later_tag> --name-only --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%nFILES:"
+git -C "$PROJECT_ROOT/upstream/enterprise" log <earlier_tag>..<later_tag> --name-only --format="COMMIT:%H%nSUBJECT:%s%nBODY:%b%nFILES:"
 ```
 
 **GitHub MCP:** the MCP doesn't expose a direct "compare two tags" call, so use either of these patterns:
 
-1. **Preferred** - `get_file_contents` doesn't apply here; instead use `list_commits` with `sha=<later_tag>`
-   to walk commits backwards in time, stopping when you hit the SHA of `<earlier_tag>`. Request a reasonable
-   `perPage` (e.g. 100) and paginate until you find the boundary SHA.
+1. **Preferred** - use `list_commits` with `sha=<later_tag>` to walk commits backwards in time, stopping when you
+   hit the SHA of `<earlier_tag>`. Request a reasonable `perPage` (e.g. 100) and paginate until you find the
+   boundary SHA.
 
    ```
    mcp__claude_ai_GitHub_MCP__list_commits owner=mattermost repo=mattermost sha=<later_tag> perPage=100
@@ -270,73 +277,29 @@ git -C "$PROJECT_ROOT/upstream/enterprise" log <earlier_tag>..<later_tag> --form
    ```
    Use this only if `list_commits` pagination is impractical for the range.
 
-Track which patch version and which repo each commit belongs to.
+MCP lists carry no file names; the worker inspects unclear commits itself. Record the commit count per patch and
+repo: the completeness check below compares against it.
 
-### Inspecting a commit's diff (for unclear subjects)
+### Dispatch
 
-**Local git:**
-```bash
-git -C "$PROJECT_ROOT/upstream/mattermost" diff <hash>^..<hash> --stat
-git -C "$PROJECT_ROOT/upstream/mattermost" show <hash> -- <specific-file>
-```
+Each patch release is analyzed by one `upgrade-patch-analyzer` worker (`agents/patch-analyzer.md`, next to this
+file). It owns the include/exclude rules, the per-commit analysis, the buckets, the Jira priority lookup, the PR
+link rule, and the honesty rules; `AGENTS.md` § Subagent handoffs owns its inputs.
 
-**GitHub MCP:**
-```
-mcp__claude_ai_GitHub_MCP__get_commit owner=mattermost repo=mattermost sha=<hash>
-```
-This returns the commit with a `files` array (path, status, patch). If you need the full file at that commit,
-use `mcp__claude_ai_GitHub_MCP__get_file_contents` with `ref=<hash>`.
+1. Launch one worker per patch version, all in one message (at most 10 per message), with the inputs `AGENTS.md`
+   § Subagent handoffs lists (Jira and its `cloudId` from Phase 1B Check 4). End every prompt with: "Write the report in your Report skeleton: header lines and every ## heading in order, none
+   renamed, merged, or dropped."
+2. Run the completeness check from `AGENTS.md` § Subagent handoffs on each report, against the recorded counts.
+3. **Failure** (no return or failed check): retry that patch once; after `maxTurns`, go inline directly. A second
+   failure: analyze it
+   inline following `agents/patch-analyzer.md`, and note `patch-analyzer fallback: inline (<patch>, <reason>)` in
+   the report summary's preface to the user (not in the report).
+4. **Workers unavailable** (no Agent tool, or the agent type is missing): print `subagents: off (<reason>)` once and
+   apply `agents/patch-analyzer.md` inline, one patch at a time.
+5. Print one line per patch: `patch <vX.Y.N>: <u> urgent, <q> qol, <p> plugin, <s> security, <e> excluded`. Relay
+   any `Open leads` and `Injection flags` lines to the engineer.
 
-For enterprise commits, substitute `repo=enterprise` in the MCP calls or use `upstream/enterprise` locally.
-
-## Phase 5 - Analyze each commit
-
-### What to include
-- **Bug fixes** - changes that fix broken behavior users would actually experience (UI bugs, incorrect data, crashes, broken workflows)
-- **Behavioral changes** - anything that changes how a feature works in a way a user or admin would notice
-- **Plugin updates** - bundled plugin version bumps (for plugins the customer has installed only)
-
-### What to exclude
-- Test-only changes (adding/modifying test cases with no production code changes)
-- CI/CD and workflow file changes
-- Linter/formatting fixes
-- Build toolchain updates (Go version bumps, base image changes)
-- Internal dependency version bumps with no user-facing impact
-- Version bump commits ("Update latest patch version to X.Y.Z")
-- Automated merge commits
-- Code comments or documentation-only changes
-- **Individual security-fix commits.** Per Mattermost's responsible disclosure policy, security fixes are NOT
-  described individually. They are summarized aggregately in the Security Fixes table (see Phase 5b). If a
-  commit looks like a security patch (sanitization, CSRF, XSS, SSRF, auth bypass, MMSA/CVE reference,
-  constant-time comparison), exclude it from the per-commit analysis - it will already be counted in the table.
-- **Plugin updates for plugins the customer does not have installed.** If a commit updates a prepackaged plugin
-  (e.g. Calls, Boards, Playbooks) and that plugin does not appear in the customer's `plugins.json`, omit it
-  entirely. Do not list it with a note that it's not installed - just skip it.
-
-### For each included commit
-
-1. Read the commit subject and body
-2. **If the subject is unclear** (e.g. "MM 65084 server-side", "Automated cherry pick of #34247"), inspect the
-   diff using the Phase 4 "Inspecting a commit's diff" approach - local git if you have it,
-   `mcp__claude_ai_GitHub_MCP__get_commit` otherwise.
-3. Write a **1-2 sentence plain-English summary** of what the fix does and why it matters
-4. Determine if it's relevant to the customer's enabled features - if so, note the relevance **inline** in the
-   description (e.g. "Your instance has persistent notifications enabled (`AllowPersistentNotifications: true`),
-   making this directly relevant.")
-5. **Categorize** the fix into one of two buckets:
-   - **Upgrade urgently** - server crashes/panics, data loss, silent config loss, significant functional
-     breakage, anything that could cause an outage or degraded service for a meaningful population of users
-   - **Quality of life** - functional improvements, minor bug fixes, UI/UX polish, performance tweaks, fixes
-     for narrow edge cases
-
-### Jira priority lookup (optional but preferred)
-
-If a commit references a Jira ID (e.g. `MM-65575`), fetch the issue via `mcp__claude_ai_Atlassian__getJiraIssue`
-and include its priority in the report entry, formatted as `(MM-65575, Jira priority: High)`. If no Jira ID is
-present, the lookup fails, or the TAM running the skill doesn't have Jira access, just omit the Jira fragment -
-do not invent a priority.
-
-## Phase 5b - Build the security fixes summary
+## Phase 5 - Build the security fixes summary
 
 Do NOT list individual security commits. Instead, for each patch release in the range (vX.Y.9, vX.Y.10,
 etc.), determine:
@@ -352,28 +315,22 @@ WebFetch: https://mattermost.com/security-updates/
 Prompt: "List all MMSA entries affecting Mattermost <major>.<minor>.<N> for each N between <current+1> and <target>. For each patch version, return the count of MMSA entries and the highest severity across them."
 ```
 
-If the fetch fails or returns nothing, fall back to counting commits in each patch range whose subject or body
-references MMSA/CVE/security keywords, and mark the counts as "approximate" without severity. Never fabricate
-severities.
+If the fetch fails or returns nothing, fall back to each worker's `Security` count for its patch, and mark the
+counts as "approximate" without severity. Never fabricate severities.
 
-## Rules - CRITICAL
+## Honesty
 
-### Honesty above all
-- **Do NOT guess or assume what a commit does.** If the commit subject is vague and the diff doesn't make it
-  clear, say: *"Unable to determine the impact of this change from the available information."*
-- **Do NOT invent details.** If you can't tell whether a fix is relevant to the customer's config, say so. It
-  is always better to say "I'm not sure if this affects your setup" than to fabricate a connection.
-- **Do NOT embellish.** Describe what the fix does factually. Don't add urgency or severity that isn't
-  supported by the code change.
-- **Do NOT make up Jira ticket descriptions.** You only know what is in the commit message and the diff. If the
-  Jira ID is `MM-65084` and the commit subject just says "server-side", do not invent what MM-65084 is about.
-
-### Config relevance
-When you have the customer's config, note which fixes are relevant to features they have **enabled**. But be
-honest - if you're not sure whether a fix relates to a config setting, don't force the connection. Just list it
-as a general fix.
+The workers apply the honesty and config-relevance rules in `agents/patch-analyzer.md` § Rules to every entry. The
+report's header and Summary follow the same rules: state only what the entries and the security summary support,
+and never oversell.
 
 ## Phase 6 - Generate the report
+
+Assemble the report from the patch analyzers' reports:
+- **Fixes:** copy each `Upgrade urgently` and `Quality of life` entry verbatim into its section, in patch order.
+- **Plugins:** merge `Plugin updates` entries of the same `plugin_id` across patches into one bullet (latest version in
+  the title, every patch and PR listed), as in the Zoom example below.
+- **Summary:** written here, from the entries and the Phase 5 security summary.
 
 Output a markdown report following this **exact** template. Do not rename sections, reorder them, change heading levels, or restructure the bullet format. This format is the contract - deviations are regressions.
 
@@ -425,9 +382,6 @@ These are functional improvements and minor bug fixes.
 - **Plugin entries** have a second italic segment `_<Plugin name> (currently <version>)_` between the title and the "Introduced in" fragment.
 - **SiteURL in header** is a linked markdown URL, not bare text.
 - **Config relevance is inline**, never a separate section. Use language like "Your instance has X enabled (`SettingName: true`), making this directly relevant." when it applies, and omit entirely when it doesn't.
-
-### PR links
-Use the **first** PR number from the commit subject (the original PR, not the cherry-pick backport number).
 
 ### Empty sections
 If a section has no entries, omit that section entirely - but always include **Security Fixes** (even if the count is 0, the table still documents the absence) and always include the final **Summary**.

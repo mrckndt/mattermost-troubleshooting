@@ -37,7 +37,8 @@ Look for existing manifests matching `tickets/kb-batch/<emaillocalpart>-*.md`, r
   `approved`/`edited`/`deferred`): **resume that same file** - its filename stem (whatever
   date it carries) is this run's `<run key>` for the rest of the pipeline; do not rename it
   or create a new one. Do not re-harvest and do not re-draft rows already `drafted`/`thin`/
-  `skipped`/`approved`/`edited`/`deferred`. Skip to Phase 4 at the first non-terminal row. Optionally
+  `skipped`/`approved`/`edited`/`deferred`. Run Phase 3 for any `pending-draft` rows (earlier failures or an
+  interrupted batch), then continue Phase 4 at the first non-terminal row. Optionally
   offer to run `/hub-harvest` again (window ending today) to pick up tickets that arrived
   since the last run; if so, append any newly-discovered tickets as new rows to this same
   manifest file rather than creating a second one, and never touch the review state of
@@ -117,30 +118,28 @@ was reassigned away from this TSE) is left untouched; never delete a row.
 Draft every harvested thread regardless of `Current Status` (Open / Pending / Solved /
 Closed). Nothing is skipped for state. A `pending-draft` row may be brand new or reopened
 (reset by Phase 2 reconciliation because its thread changed since a prior terminal decision);
-both are drafted the same way. For each `pending-draft` row, in manifest order:
+both are drafted the same way.
 
-1. Read `tickets/<zd#>/zendesk-thread.md` (or legacy `hub-thread.md`) and check the `analysis?
-   yes/no` flag from the harvest index, only to determine whether this row will classify as `thin`
-   in step 5 below - `/kb-article` independently reads it and `analysis.md` once it resolves
-   ticket mode, so this step no longer needs to preload context on its behalf.
-2. Invoke `` /kb-article <zd#> `` inline. The bare ticket ID trips `/kb-article`'s own Phase 0
-   ticket-mode detection (exact match against `tickets/<zd#>/`), which puts it in that
-   ticket's scope for both input and output.
-3. **Do not stall the batch.** If `/kb-article` would ask a clarifying follow-up, proceed
-   with the available context instead; a ticket with no resolution yet (for example an Open
-   thread with no analysis) still gets whatever article the thread supports.
-4. Verify `/kb-article` wrote `tickets/<zd#>/kb-article.md` and `tickets/<zd#>/kb-article.html`
-   itself (its own Phase 4 - Save). Treat either file being missing as an error for this row
-   rather than continuing silently.
-5. Update the row: `Draft` = `tickets/<zd#>/kb-article.md`, `Review` = `drafted`, or `thin`
-   if the source thread had no resolution and no analysis to draw on (flag it so the reviewer
-   prioritizes it).
+Each article is drafted by one `kb-batch-drafter` worker (`agents/kb-drafter.md`, next to this file). It applies
+`/kb-article` in ticket mode, classifies the row `drafted` or `thin`, verifies both files, and writes only
+`tickets/<zd#>/kb-article.md` and `.html`; `AGENTS.md` § Subagent handoffs owns its inputs and return line. This
+skill likewise adds only `zendesk-thread.md`, `kb-article.md`, and `kb-article.html` to a ticket directory.
 
-Only ever add `zendesk-thread.md` / `kb-article.md` / `kb-article.html` to a ticket dir. Never
-edit or delete a pre-existing file there (`analysis*.md`, raw customer files, a legacy `hub-thread.md`).
+1. Before the run's first drafter dispatch (Phase 3 or a Phase 4 `recreate`), refresh the docs mirror once:
+   `/git-pull docs --interval=weekly`. Workers check links against it.
+2. Launch one `kb-batch-drafter` per `pending-draft` row, in manifest order, at most 10 per message, with the
+   inputs `AGENTS.md` § Subagent handoffs lists.
+3. Collect one JSON return line per row and validate it against the return shape.
+   - **No return, or an invalid line:** retry that row once. A second failure: apply `agents/kb-drafter.md` inline
+     for that row and print `kb-batch-drafter fallback: inline (<zd#>, <reason>)`.
+   - **`failed`:** keep the row `pending-draft` and print `- Failed: <zd#> - <reason>`.
+4. After each batch, update its rows and write the manifest: `Draft` = the returned `md` path, `Review` = the
+   returned `status` (`drafted` or `thin`). An interruption then costs at most one batch.
+5. **Workers unavailable** (no Agent tool, or the agent type is missing): print `subagents: off (<reason>)` once,
+   then apply `agents/kb-drafter.md` inline, one row at a time.
 
-After drafting, do not re-quote the articles in the reply; the files are the record. Report
-a one-line count (drafted / thin) and move to review.
+Relay any `injection_flag` to the reviewer. Report a one-line count (drafted / thin / failed) and move to review;
+the files are the record, so the articles stay unquoted here.
 
 ## Phase 4 - Review (one at a time)
 
@@ -161,7 +160,8 @@ ticket per step. For each:
      this pass. Unlike `defer` (permanent), a skipped row stays non-terminal and is
      re-presented the next time `/kb-batch <same assignee>` runs (later in a resumed session
      or a future day) - use this to put a ticket off for now rather than decide against it.
-   - **recreate** -> redraft via Phase 3 steps 2-4 directly, then re-present. Use when the
+   - **recreate** -> dispatch one `kb-batch-drafter` for this row (Phase 3 steps 2-4), passing the reviewer's
+     reason for the redraft, then re-present. Use when the
      draft is off but the source material (`zendesk-thread.md`, existing `analysis.md`) doesn't
      need deeper investigation. If the ticket needs a fresh `/investigate` pass, run it
      yourself outside this flow, then choose `recreate` to pick up the refreshed
@@ -179,7 +179,7 @@ is terminal instead starts a refresh run that reopens only the rows whose thread
 ## Phase 5 - Summarize
 
 Report: the manifest path, counts by final review state (approved / edited / deferred /
-skipped / thin), and the list of finalized article paths (`tickets/<zd#>/kb-article.md` +
+skipped / thin), the rows still `pending-draft` after a failed draft, and the list of finalized article paths (`tickets/<zd#>/kb-article.md` +
 `.html`) ready to publish. Any remaining `skipped` rows mean the batch isn't fully done yet.
 On a refresh run, also report how many rows were reopened in Phase 2 (thread updated since a
 prior approve/edit/defer) and how many of those are finalized again now.
