@@ -71,6 +71,7 @@ Save targets:
 - Pick by what the customer needed, not by `analysis.md`'s `Ticket type`: a log line sent as "is this harmful?" is
   Advisory, even when investigated as a fault.
 - A ticket with both (a defect plus how-to questions) is Issue; answer the questions inside its steps.
+- A reported bug that turns out to be by design is Advisory with `🚫 Limitation`.
 - `**Symptoms:**` is one sentence from a sysadmin's perspective. `**Context:**` is one sentence on who asks and why
   (e.g. "Guidance for security teams evaluating PHP-related CVEs.").
 
@@ -93,6 +94,9 @@ Save targets:
 - No SQL, shell, or command blocks here. If a query or command proves the condition, it belongs in a step under the
   second section.
 
+**Applies to:** state only the version range the evidence covers (a tag, a changelog line, or a customer-stated version);
+write "verified on vX" rather than "vX and later" when the range is unchecked.
+
 **Symptoms (Issue only):**
 - Add only what the Problem and the header field don't already say: verbatim errors, scope boundaries, misleading signals.
 - Omit the whole subsection when the Problem already covers everything observable, or when nothing is observable
@@ -101,6 +105,7 @@ Save targets:
   Omit it if none exists; never `N/A` or invented content.
 - One bullet list. No "Additional symptoms:" split.
 - Include misleading signals (things that look healthy but aren't), led by `**Misleading:**` - the highest-value content here.
+  Source each from the ticket's logs or `analysis.md`; never assert what logs show when none were supplied.
 
 **Second section - pick exactly one heading:**
 
@@ -110,15 +115,24 @@ Save targets:
 | `🔧 Workaround` | Issue | The cause is an unfixed defect; the steps only mitigate it |
 | `🔍 Diagnostic Steps` | Issue | Root cause not yet isolated; a procedure narrows it down |
 | `🚧 Known Issue` | Issue | Nothing actionable for the customer yet; states the issue exists, no more |
-| `🛠️ How-To` | Advisory | A supported goal reached through a procedure: configuration, setup, sizing, migration |
+| `🛠️ How-To` | Advisory | The customer's outcome is reachable through a procedure, including a different supported route than the one asked about |
 | `💡 Recommendation` | Advisory | Guidance on expected behavior, applicability, or architecture; no procedure required |
-| `🚫 Limitation` | Advisory | Not supported or by design; states the boundary, then the supported alternatives as steps |
+| `🚫 Limitation` | Advisory | The outcome itself is not supported or is by design; states the boundary, then any partial alternatives as steps |
 
 - If the product defect remains after the steps, it is `Workaround`, even when the steps fully restore service.
-- An environment the admin can repair (left-over state after a downgrade, a missing opt-in) is `Solution`, not `Workaround`.
+- An environment the admin can repair (left-over state after a downgrade, a missing opt-in) is `Solution`, not `Workaround`;
+  upgrading to a release that recognizes the left-over state counts as that repair.
+- A ticket with a resolved cause and a separate open defect takes the heading of the cause the customer reported; the open
+  defect goes in one Important block (a scope trap) with its own `as of <date>`. `**Status:**` describes only the article's own cause.
+- Judge Limitation vs How-To by the outcome the customer wants, not the mechanism they asked about: a role that cannot do X
+  is a How-To when another supported route gives the same result.
+- When a default grants a permission to everyone, an inheritance-based setup starts by removing it (e.g. clear Create Channels
+  for All Members before relying on Team Admins).
 - If the admin can do something, it is never `Known Issue`.
 - `Known Issue` bans forward-looking language: no "will be updated", no ETA, no "check back".
-- A `Solution` whose fix ships in a release may add a `### Until You Upgrade` step for interim mitigation.
+- A `Solution` whose fix ships in a release may add a `### Until You Upgrade` step for interim mitigation, placed before `### Verify`.
+- A fix that skips a release line the customer must stay on (e.g. fixed in v6.3.0, absent from the v6.2.x ESR) is still a
+  `Solution`; name the gap in `**Applies to:**` and in one Important block.
 - `Solution` and `Workaround` may end with `### If the Issue Persists`: the next cause to rule out (e.g. a proxy
   body-size limit recorded in `analysis.md`'s `Ruled out` or `Correlation`), then opening a case.
 - `Diagnostic Steps` and `Known Issue` close with `### Contact Mattermost Support`. Advisory headings include neither closing section.
@@ -131,23 +145,26 @@ Save targets:
 - Before a destructive step or a direct database edit, an Important block names the backup to take. For a
   reversible config change, one line says how to revert it.
 - State a restart or reload requirement, bolded, in the step that needs it.
-- Close `Solution`, `Workaround`, and `How-To` with a `### Verify ...` step naming the healthy state (metric, log line,
-  UI check). Omit it only when nothing can be checked.
+- Close `Solution`, `Workaround`, `How-To`, and any `Limitation` or `Recommendation` that gives steps with a `### Verify ...`
+  step naming the healthy state (metric, log line, UI check). Omit it only when nothing can be checked.
 - In an upgrade step, bold the fixed-in version.
 
 **Bold:**
 - Bold the decisive facts: the answer, version cutoffs, platform or scope limits, the key action or "don't", restart
   requirements. Also UI labels, config keys, and exact values in steps.
-- At most two decisive facts per paragraph or step; never a whole paragraph.
+- At most two decisive facts per paragraph or step, not counting UI labels, config keys, and exact values; never a whole paragraph.
 
 **Status field:**
 - Optional, except required for `Known Issue`, `Limitation`, and any claim that can expire.
 - Then carry an `as of <date>` qualifier, e.g. "Open, no fix available (as of 2026-08-05)".
 - A shipped fix dates itself ("Fixed in v2.42.3") and needs no qualifier.
 - No scheduled release dates or "under internal review": state only what is true today.
-- Source the value from `analysis.md`'s `Resolution` section (in ticket mode), not from fresh
-  reasoning; otherwise state only what's confirmed in the conversation and don't guess a version. If `Resolution`
-  shows no released fix, an upgrade cannot be the `Solution`; use `Workaround`.
+- Start from `analysis.md`'s `Resolution` section (in ticket mode); otherwise state only what's confirmed in the conversation.
+- When `Resolution` is empty or older than the evidence, verify fix status against the tag or changelog
+  (`git tag --contains <commit>`, the release notes) and let the checked result win; `as of` carries the date checked.
+- Never guess a version. With no released fix confirmed, an upgrade is not the `Solution` for the defect; use `Workaround`.
+- Name a "current" or "latest" version only when a tag, changelog line, or the thread confirms it; if the local tags stop earlier,
+  write "verified through vX".
 
 **Important blocks:**
 - Only for a real caveat: destructive action, restart requirement, security implication, licensing gate, or a scope trap (a condition that's easy to miss, e.g. "this only fixes X, not Y").
@@ -172,7 +189,7 @@ Save targets:
 - Never reference an internal Jira key.
 - URLs with angle-bracket placeholders (e.g. `<tenant>`, `<mattermost-url>`) inside code blocks are exempt - they're deliberately not real.
 - Omit Additional Resources entirely rather than link a bare domain root or repeat a link already cited inline. List at most
-  three links, preferring docs and KB articles over pull requests.
+  three links as a bullet list, preferring docs and KB articles over pull requests.
 
 **Phase 3 - Convert to HTML**
 - Convert to HTML using only tags with a direct 1:1 Markdown equivalent:
@@ -247,5 +264,5 @@ bold sentence**, then why it holds. Bold the facts that decide whether this appl
 
 ### Additional Resources [OMIT this whole section if there are no specific verified links]
 
-[Link Label](https://url)
+- [Link Label](https://url)
 </article_template>
