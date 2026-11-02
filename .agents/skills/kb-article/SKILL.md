@@ -46,8 +46,8 @@ Save targets:
   - Solution/resolution steps, with prerequisites and how to verify them
   - Warnings, caveats, or security considerations
   - Relevant external links
-  - Fix status, and whether this is a confirmed defect, an advisory answer, or an open investigation - drives the article
-    type, the Status field, and the second-section heading below
+  - Fix status, and whether this is a confirmed defect, a candidate fix not yet confirmed, an advisory answer, or an
+    open investigation - drives the article type, the Status field, and the second-section heading below
   - Confidence: which claims `analysis.md` records as confirmed and which as hypothesis
 - Ask for any missing items. Ask at most one follow-up before proceeding with what is available.
 
@@ -115,10 +115,21 @@ write "verified on vX" rather than "vX and later" when the range is unchecked.
 | `🔧 Workaround` | Issue | The cause is an unfixed defect; the steps only mitigate it |
 | `🔍 Diagnostic Steps` | Issue | Root cause not yet isolated; a procedure narrows it down |
 | `🚧 Known Issue` | Issue | Nothing actionable for the customer yet; states the issue exists, no more |
+| `🧪 Things to Try` | Issue | A candidate fix or mitigation is identified but neither the customer nor Mattermost has confirmed it resolves the issue |
 | `🛠️ How-To` | Advisory | The customer's outcome is reachable through a procedure, including a different supported route than the one asked about |
 | `💡 Recommendation` | Advisory | Guidance on expected behavior, applicability, or architecture; no procedure required |
 | `🚫 Limitation` | Advisory | The outcome itself is not supported or is by design; states the boundary, then any partial alternatives as steps |
 
+- `Things to Try` is provisional, not a weaker `Diagnostic Steps`: `Diagnostic Steps` narrows down an unknown cause;
+  `Things to Try` proposes the fix itself, with its effectiveness unconfirmed.
+- "Unconfirmed" means neither side has validated the candidate fix: not the customer (no reply yet, or tried it with
+  no result either way) and not Mattermost (the fix itself hasn't been tested internally; reproducing the original
+  defect doesn't count as testing the fix).
+- Publish `Things to Try` as soon as the candidate exists rather than waiting on confirmation (every escalation's KB
+  article is due after the initial assessment, per the Technical escalation process).
+- Picked instead of `Solution`/`Workaround`, never alongside: once either side confirms the fix works, regenerate the
+  article under `Solution` or `Workaround` per whether the defect remains (next bullet), replacing the `Things to
+  Try` heading rather than adding to it, and update `**Status:**` to match.
 - If the product defect remains after the steps, it is `Workaround`, even when the steps fully restore service.
 - An environment the admin can repair (left-over state after a downgrade, a missing opt-in) is `Solution`, not `Workaround`;
   upgrading to a release that recognizes the left-over state counts as that repair.
@@ -135,7 +146,8 @@ write "verified on vX" rather than "vX and later" when the range is unchecked.
   `Solution`; name the gap in `**Applies to:**` and in one Important block.
 - `Solution` and `Workaround` may end with `### If the Issue Persists`: the next cause to rule out (e.g. a proxy
   body-size limit recorded in `analysis.md`'s `Ruled out` or `Correlation`), then opening a case.
-- `Diagnostic Steps` and `Known Issue` close with `### Contact Mattermost Support`. Advisory headings include neither closing section.
+- `Diagnostic Steps` and `Known Issue` close with `### Contact Mattermost Support`. Advisory headings include neither
+  closing section. `Things to Try` closes with `### Report Back` in place of `### Verify` (see Steps rules below).
 
 **Steps - what the second section must carry:**
 - Open with 1-2 sentences: what this delivers and what it does not.
@@ -147,6 +159,8 @@ write "verified on vX" rather than "vX and later" when the range is unchecked.
 - State a restart or reload requirement, bolded, in the step that needs it.
 - Close `Solution`, `Workaround`, `How-To`, and any `Limitation` or `Recommendation` that gives steps with a `### Verify ...`
   step naming the healthy state (metric, log line, UI check). Omit it only when nothing can be checked.
+- `Things to Try` closes with `### Report Back` instead of `### Verify ...`: name the healthy state to check, then ask
+  the customer to confirm whether the symptom recurs and what to attach if it does (logs, timestamps, error output).
 - In an upgrade step, bold the fixed-in version.
 
 **Bold:**
@@ -155,8 +169,9 @@ write "verified on vX" rather than "vX and later" when the range is unchecked.
 - At most two decisive facts per paragraph or step, not counting UI labels, config keys, and exact values; never a whole paragraph.
 
 **Status field:**
-- Optional, except required for `Known Issue`, `Limitation`, and any claim that can expire.
+- Optional, except required for `Known Issue`, `Limitation`, `Things to Try`, and any claim that can expire.
 - Then carry an `as of <date>` qualifier, e.g. "Open, no fix available (as of 2026-08-05)".
+- `Things to Try`: "Awaiting confirmation (as of 2026-08-05)".
 - A shipped fix dates itself ("Fixed in v2.42.3") and needs no qualifier.
 - No scheduled release dates or "under internal review": state only what is true today.
 - Start from `analysis.md`'s `Resolution` section (in ticket mode); otherwise state only what's confirmed in the conversation.
@@ -257,6 +272,9 @@ bold sentence**, then why it holds. Bold the facts that decide whether this appl
 ### Verify [the Result] [Solution / Workaround / How-To: the healthy state to check. OMIT only if nothing can be checked]
 
 ### If the Issue Persists [Optional, Solution / Workaround only: next cause to rule out, then open a case]
+
+### Report Back [ONLY for Things to Try, in place of Verify: the healthy state to check, then ask the customer to confirm
+whether the symptom recurs and what to attach if it does]
 
 ### Contact Mattermost Support [ONLY for Diagnostic Steps or Known Issue]
 
