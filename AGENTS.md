@@ -301,7 +301,7 @@ escalation chain, first priority next business day until resolved or downgraded.
 next priority after current tasks resolved.
 
 **Keyed consumers:** `/sev-email` gates entry on Sev1/Sev2 (Sev3/Sev4 don't trigger the escalation
-workflow below). `/product-request`'s `Urgency / Severity` input keys off this scale. `/rca`'s `Severity`
+workflow below). `/product-request`'s `Urgency / deadline` field keys off this scale for bugs. `/rca`'s `Severity`
 field uses the same scale (no `Sev4` - that tier doesn't warrant a customer RCA). `/investigate` and
 `/sev-email` also apply the `Priority` mapping above when reading `zendesk-thread.md`. `/escalation-helper`
 reads severity, reach and priority to place a ticket in the Technical escalation process below.
