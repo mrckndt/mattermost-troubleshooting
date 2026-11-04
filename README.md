@@ -116,7 +116,8 @@ claude mcp add codebase_memory_local "$(command -v codebase-memory-mcp)"
 ```
 Restart Claude Code so the session loads the tools; verify with `claude mcp list`.
 
-Indexing happens automatically during `/investigate`. Data lives in `~/.cache/codebase-memory-mcp/`; delete that directory to reset.
+Indexing runs during `/investigate --cbm`; the graph path is off by default while the index is being fixed. Data lives in
+`~/.cache/codebase-memory-mcp/`; delete that directory to reset.
 
 ## Working a ticket
 
@@ -149,10 +150,9 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
    - Blocks the hypothesis until all search angles are exhausted and at least two alternatives have been actively disproved.
    - Returns a `function:file` root cause, a Hub/GitHub cross-reference if the issue is known, and writes `tickets/12345/analysis.md` once the investigation concludes, ready for handoffs or a later `/resume-investigation`.
 
-   Add `--no-cbm` (e.g. `/investigate 12345 --no-cbm`) to run without the codebase-memory knowledge graph.
-   Source search then uses `rg --no-ignore --hidden` (or `grep -r`)/`git` alone: coverage is unchanged, and what you give up is symbol
-   attribution for text matches and call-chain tracing. Useful for config questions and known-issue
-   lookups where speed matters more than structural evidence.
+   The codebase-memory knowledge graph is off by default while its index is being fixed (`--no-cbm` is accepted and selects the same
+   default). Source search then uses `rg --no-ignore --hidden` (or `grep -r`)/`git` alone: coverage is unchanged, and what you give up
+   is symbol attribution for text matches and call-chain tracing. Add `--cbm` (e.g. `/investigate 12345 --cbm`) to opt in to the graph.
 4. When you have a conclusion, generate the output (customer reply, KB article, RCA, PD&E intake, and more) with
    the skills listed under "Skills / slash commands > Output".
 
@@ -161,11 +161,13 @@ Run all commands from the repo root (`mattermost-troubleshooting/`).
 Skills under `.agents/skills/` double as Claude Code slash commands via the symlinks in `.claude/commands/`.
 
 `/investigate`, `/hub-harvest`, `/kb-batch`, and `/upgrade-advisor` delegate work to subagents (workers) defined next to the skill in
-`.agents/skills/<skill>/agents/`, registered via the symlinks in `.claude/agents/`. `/hub-harvest` runs one worker per
-thread; `/investigate` runs file readers, per-repo source searchers, docs and issue searchers, and one verifier per
-hypothesis in parallel; `/kb-batch` drafts one article per worker; `/upgrade-advisor` analyzes one patch release per
-worker. Each `/investigate` run keeps its worker reports and gate blocks in
-`tickets/<ID>/subagent-reports/<run>/`. The handoff contract is in `AGENTS.md` (Subagent handoffs).
+`.agents/skills/<skill>/agents/`, registered via the symlinks in `.claude/agents/`. Workers are used only where they pay off:
+`/hub-harvest` and `/kb-batch` run one worker per thread or article when there are two or more (a single one runs inline);
+`/investigate` uses one file reader per ~300 KB read group when the ticket files make up two or more groups (a smaller ticket is read
+inline, Phase 1) and one verifier per hypothesis (Phase 7), and runs scope, version, source, docs, and issue search itself;
+`/upgrade-advisor` analyzes one patch release per worker. Each `/investigate` run keeps its worker reports in
+`tickets/<ID>/subagent-reports/<run>/`. The handoff contract, including the rule to wait for every worker before continuing, is in
+`AGENTS.md` (Subagent handoffs).
 
 ### Investigation
 
@@ -176,7 +178,7 @@ worker. Each `/investigate` run keeps its worker reports and gate blocks in
 
 - **`/draft-reply [description]`** - draft a customer reply (email, Zendesk, hub thread) from the current troubleshooting context.
 - **`/kb-article [ticket-ID|description]`** - generate a KB article (Markdown + HTML). Given a ticket ID (or one already active in the session), reads that ticket's `zendesk-thread.md`/`analysis.md` and saves to `tickets/<ID>/kb-article.md`+`.html`; otherwise saves to `kb-articles/<slug>-<date>.md`+`.html` at the project root.
-- **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article` (one worker per ticket, in parallel), then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
+- **`/kb-batch <assignee-email> [time-range]`** - bulk-draft KB articles for a TSE's assigned Zendesk tickets in a window: harvests threads via `/hub-harvest`, drafts one article per ticket with `/kb-article` (one worker per ticket in parallel when there are two or more), then walks you through proofreading one at a time. Tracks progress in `tickets/kb-batch/<emaillocalpart>-<date>.md`; resumable and re-runnable to pick up new/updated tickets.
 - **`/product-request [title]`** - generate a PD&E intake post (bug, design, security, or feature request). After printing, asks whether to send it as a Hub DM to the PDE Intake Agent (`@pde-intake`, requires the Mattermost Hub connector). `/pde-intake [title]` is a deprecated alias.
 - **`/rca [ticket-ID]`** - generate a customer-facing Root Cause Analysis report from `tickets/<ID>/analysis.md` (and `eir.md` if present); saves to `tickets/<ID>/rca.md`.
 - **`/eir [ticket-ID]`** - generate an internal Engineering Incident Report from `tickets/<ID>/analysis.md`, plus GitHub/Jira lookups; saves the full report to `tickets/<ID>/eir.md` and prints a compact channel-post summary.
