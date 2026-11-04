@@ -229,7 +229,7 @@ write "verified on vX" rather than "vX and later" when the range is unchecked.
 <article_template>
 **Applies to:** [Product and version range, plus any qualifying condition or prerequisite. One line.]
 
-**Status:** [Optional; required for Known Issue and Limitation. e.g. "Fixed in v2.42.3" / "Open, no fix available (as of 2026-08-05)"]
+**Status:** [Optional; required for Known Issue, Limitation, and Things to Try. e.g. "Fixed in v2.42.3" / "Open, no fix available (as of 2026-08-05)" / "Awaiting confirmation (as of 2026-08-05)"]
 
 **Symptoms:** [Issue only. One-sentence summary from a sysadmin's perspective.]
 **Context:** [Advisory only, in place of Symptoms. One sentence: who asks and why.]
