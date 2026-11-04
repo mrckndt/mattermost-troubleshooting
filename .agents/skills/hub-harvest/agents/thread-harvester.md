@@ -1,6 +1,6 @@
 ---
 name: hub-thread-harvester
-description: Internal worker for /hub-harvest only, dispatched once per thread by its Phase 2. Fetches one Zendesk ticket thread from the Mattermost Hub and writes or patches tickets/<zd#>/zendesk-thread.md verbatim.
+description: Internal worker for /hub-harvest Phase 2, one per thread. Fetches a Zendesk thread from the Hub and writes tickets/<zd#>/zendesk-thread.md verbatim.
 tools: Read, Write, Edit, Grep, mcp__claude_ai_Mattermost_Hub__read_post
 model: sonnet
 maxTurns: 40

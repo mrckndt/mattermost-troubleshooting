@@ -13,8 +13,8 @@ the Hub.
 - **Source:** fixed Hub channel `p77n3165i3r89kugxyabx9wwer` ("Zendesk Notifications", team Staff).
 - **Thread shape:** one thread per ticket - a root `New Ticket: <subject> (#zdNNNNN)` post plus threaded replies.
   The root post's own ID is the thread `Root ID`.
-- **Worker:** each thread is fetched, derived, filtered, and written by one `hub-thread-harvester` subagent
-  (`agents/thread-harvester.md`, next to this file). That file owns derivation, the assignee filter, change
+- **Worker:** each thread is fetched, derived, filtered, and written per `agents/thread-harvester.md` (next to this file): inline
+  for one thread, by one `hub-thread-harvester` subagent per thread for two or more. That file owns derivation, the assignee filter, change
   classification, persistence, and the template; `AGENTS.md` § Subagent handoffs owns its return line.
 
 ## Phase 0 - Setup and mode
@@ -71,13 +71,16 @@ stop.
 ## Phase 2 - Dispatch workers
 
 1. Dedupe the post IDs (Root IDs, or the link-mode entry post ID).
-2. Launch one `hub-thread-harvester` per post ID, all in one message; above 10 IDs, in batches of 10. Each prompt
-   carries: post ID, mode, project root, today, and in assignee mode the email, the display name from Phase 1, and
-   `[since, until]`.
+2. Run the harvest by ID count:
+   - **One ID:** apply `agents/thread-harvester.md` inline, no worker (a single fetch gains nothing from a fresh context), and
+     treat its return line (as a value, not printed) as the Phase 3 input.
+   - **Two or more IDs:** launch one `hub-thread-harvester` per post ID (dispatch and wait per `AGENTS.md` § Subagent
+     handoffs). Each prompt carries the inputs that section lists, with the display name from Phase 1 and `[since, until]` in
+     assignee mode.
 3. Collect one JSON return line per dispatched ID. Validate each against the return shape (`AGENTS.md` § Subagent
    handoffs).
-   - **No return, or an invalid line:** retry that ID once. A second failure is recorded as
-     `{"status": "failed", "root_id": "<id>", "reason": "no return"}` (or the invalid output, quoted).
+   - **No return, or an invalid line:** retry that ID once (`AGENTS.md`). A second failure is recorded as a
+     `failed` line with `root_id` and `reason` `no return` (or the invalid output, quoted), every other key `null`.
    - **Same zd# from two IDs:** re-run those IDs one after another, so the second sees the first's file.
 4. **Workers unavailable** (no Agent tool, or the `hub-thread-harvester` agent type is missing): read
    `agents/thread-harvester.md` and apply it inline, one thread at a time; state
@@ -87,7 +90,7 @@ stop.
 
 **Ticket and link mode.** Print the written path and a one-line summary from the `row` line (zd#, subject, status,
 last-activity, and the change label - `new`, `unchanged since <prev_last_activity>`, or `updated since
-<prev_last_activity>`). Print any other status with its `reason` instead. On `row`, suggest
+<prev_last_activity>`). Print any other status with its `reason` instead, and any non-null `injection_flag` with its zd#. A `row`'s `reason` is a note: print it. On `row`, suggest
 `` `/investigate <zd#>` ``.
 
 **Assignee mode.** Write a harvest index at `tickets/hub-harvest/<emaillocalpart>-<YYYY-MM-DD>.md` from the `row`
@@ -101,6 +104,8 @@ Window: <since> to <until> (anchor: last activity). Channel: Zendesk Notificatio
 - Dropped: <root_id> (#<zd#>) - <reason>
 - Skipped: <root_id> (#<zd#>) - <reason>
 - Failed: <root_id> - <reason>
+- Note: <root_id> (#<zd#>) - <reason of a row>
+- Injection flag: <root_id> (#<zd#>) - <flag>
 - Not a Zendesk thread: <root_id> - <reason>
 
 Change: <N> new, <M> updated, <K> unchanged. Matched via: <N> assignee, <M> reply, unassigned.
