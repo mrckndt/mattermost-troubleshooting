@@ -17,54 +17,106 @@ Activate when the user asks to file a feature request, bug report, or security i
 
 ## Inputs
 
-Required (ask once, batched, if any are missing):
-- Issue type: Feature Request / Bug Report / Security Issue / Other.
-- Customer / organization name.
-- At least one source URL: Zendesk ticket OR Hub link. Use both if known; if neither, ask before proceeding.
-- Feature title (imperative).
-- Problem today + desired behavior.
-- Affected role.
-- How often it comes up.
-- Deployment type: Cloud / On-premises / Air-gapped.
-- Product tier: Professional / Enterprise / Enterprise Advanced.
-- Urgency / Severity: for bugs, classify per AGENTS.md's Defect and incident severity scale (Sev1-Sev4); for feature requests, deal/renewal tie-in or none.
+Fill the template best effort from `./tickets/<name>/` (`zendesk-thread.md`, `analysis.md`), the conversation and
+$ARGUMENTS. Write `Unknown` for any field not established; the intake accepts gaps, so ask only for:
+- **Request type** (bug / design / security / feature), only when it can't be inferred.
+- **Source link:** a Zendesk ticket or Hub link, only when neither is known.
+
+Field sources, when present:
+- **Mattermost version, deployment type, tier, scale:** `analysis.md` `Deployment`.
+- **Actual, expected, steps to reproduce, impact:** `analysis.md` `Reported symptom`.
+- **Workaround available?:** `analysis.md` `Workaround`.
+- **Logs / error messages:** a short snippet from `Evidence collected` or the ticket files.
+- **Urgency / deadline:** for bugs, the Sev level per AGENTS.md's Defect and incident severity scale, plus any
+  renewal, escalation or deadline signal; for other types, the renewal/deal/deadline signal only.
+- **Affected customer(s), contact, Salesforce Account URL:** `zendesk-thread.md` header.
+- **ARR, seats, potential ARR:** only when stated in the ticket files or conversation.
+- **Jira key:** `analysis.md` `Tracking` or the conversation.
 
 A customer-facing Sev1/Sev2 incident also needs `/sev-email` (notifies the internal escalation chain
 via email).
 
-Optional (never ask; use if known): contact full name + title + email; Jira URL/key; scope of change (UI / API / admin policy / other); related links; Salesforce Account URL (zendesk-thread.md).
-
 ## Output
 
 Print raw Markdown, not in a code block. Follow the template exactly.
-- Render every URL as a Markdown link; never append the bare URL. Labels: Zendesk `#<ID>` (e.g. `#48217`), Jira key (e.g. `MM-12345`), other: 1-3 word descriptor.
+- Render the common fields, then only the details section matching the request type. Bugs also get the
+  `Instructions for PDE Intake Agent` section.
+- Render every URL as a Markdown link. Labels: Zendesk `#<ID>` (e.g. `#48217`), Jira key (e.g. `MM-12345`), other:
+  1-3 word descriptor. Exception: the Zendesk URL in `Instructions for PDE Intake Agent` stays bare (a Jira field value).
+- **Evidence:** list the Zendesk, Hub, Jira and Salesforce links first, then related tickets, docs, customer quotes.
+- **Contact:** name, title, email (plain text) as known; under `Customer technical contact` for bugs, appended to
+  `Affected customer(s)` otherwise.
 - Citing a code-level root cause (e.g. from `analysis.md`): use `function:file`, not a raw line number - line numbers drift and outlive this report's accuracy.
-- Never invent or guess a URL, key, or email. Per-field rules for unknowns:
-  - **Contact:** omit the line if name unknown. Drop `, Title` or `, email` if unknown. Render email as plain text.
-  - **Jira Ticket:** omit the line if URL unknown.
-  - **Salesforce Account:** omit the line if URL unknown.
-  - **Zendesk Ticket** / **Hub Post:** at least one must render; omit the other if unknown.
-  - All other fields: write `N/A` if not applicable.
+- Never invent or guess a URL, key, email, ARR or seat count; write `Unknown` instead.
 
 ## Template
 
 ```
-### [Issue Type]: [Customer] - [Short, Descriptive Title]
+### [Request type]: [Customer] - [Title]
 
-**Customer:** [Company Name]
-**Contact:** [First Surname][, Title][, email]
-**Salesforce Account:** [Account](URL)
-**Zendesk Ticket:** [#ID](URL)
-**Hub Post:** [Label](URL)
-**Jira Ticket:** [KEY](URL)
-**Deployment:** Cloud / On-premises / Air-gapped
-**Tier:** Professional / Enterprise / Enterprise Advanced
-**Affected Role:** [affected role]
-**Frequency:** [how often it comes up]
-**Scope:** [UI / API / admin policy / other]
-**Urgency / Severity:** [Sev1 - Critical / Sev2 - Serious / Sev3 - Moderate / Sev4 - Minor for bugs; deal/renewal tie-in or none for feature requests]
-**Problem:** [current behavior → desired behavior]
+**Request type:** [Bug / Design / Security / Feature]
+**Title:** [short summary, under 10 words]
+**Problem or request:** [what is happening or needed, and why it matters]
+**Affected customer(s):** [customer][; contact]
+**Users / seats affected:** [count]
+**ARR (approx.):** [amount]
+**Product tier:** [Professional / Enterprise / Enterprise Advanced / Unknown]
+**Deployment type:** [cloud / on-prem / air-gapped / BYOC]
+**Urgency / deadline:** [SevN - Label for bugs; renewal risk, escalation, hard date, deal at risk]
+**Evidence:** [#ID](URL), [Hub post](URL), [KEY](URL), [Account](URL), [other links, quotes]
+**Recurrence:** [one-off, or seen across multiple accounts]
+
+#### Bug details
+
+**Affected area:** [messaging, notifications, admin console, mobile, channels, etc.]
+**What the user was trying to do:** [goal]
+**Actual behavior:** [actual]
+**Expected behavior:** [expected]
+**Steps to reproduce:**
+1. [step]
+2. [step]
+3. [step]
+**Frequency:** [every time / intermittent]
+**Workaround available?:** [yes (describe) / no]
+**Mattermost version:** [vX.Y.Z]
+**Logs / error messages:** [short snippet]
+**Screenshot or link:** [Label](URL)
+**Customer technical contact:** [name, role, email]
+**Renewal risk / escalation / deadline:** [details]
+
+#### Feature request details
+
+**Specific capability requested:** [what the customer wants to do that they can't today]
+**Current gap, from the customer's point of view:** [what happens today, and the operational consequence]
+**Who is affected and how badly:** [customers, user count, what they can't do]
+**Customer size:** [headcount or ARR band]
+**Operationally critical or convenience?:** [critical / convenience]
+**Potential ARR:** [if prospect or expansion]
+**Feasibility input:** [anything an SE, TAM, engineer or customer admin has said]
+
+#### Design request details
+
+**Current friction:** [friction]
+**Who is affected:** [roles, users]
+**What should improve:** [improvement]
+**Screenshot or link:** [Label](URL)
+
+#### Security details
+
+**Vulnerability description:** [description]
+**Affected area / version:** [area, version]
+**Reproduction steps:** [steps, if available]
+**Exposure / impact:** [impact]
+**Confidentiality concerns:** [concerns]
+
+#### Instructions for PDE Intake Agent
+
+For every Jira ticket created from this request: add the label `customer-bug` and set the Zendesk URL field to
+[bare Zendesk URL].
 ```
+
+In `Instructions for PDE Intake Agent`, drop the `and set the Zendesk URL field to ...` clause when no Zendesk URL is
+known.
 
 ## Send to PDE Intake Agent
 
