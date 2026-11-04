@@ -125,16 +125,19 @@ Each article is drafted by one `kb-batch-drafter` worker (`agents/kb-drafter.md`
 `tickets/<zd#>/kb-article.md` and `.html`; `AGENTS.md` § Subagent handoffs owns its inputs and return line. This
 skill likewise adds only `zendesk-thread.md`, `kb-article.md`, and `kb-article.html` to a ticket directory.
 
-1. Before the run's first drafter dispatch (Phase 3 or a Phase 4 `recreate`), refresh the docs mirror once:
-   `/git-pull docs --interval=weekly`. Workers check links against it.
-2. Launch one `kb-batch-drafter` per `pending-draft` row, in manifest order, at most 10 per message, with the
-   inputs `AGENTS.md` § Subagent handoffs lists.
+1. Before the run's first draft (Phase 3 or a Phase 4 `recreate`, inline or dispatched), refresh the docs mirror once:
+   `/git-pull docs --interval=weekly`. Drafters check links against it.
+2. Draft by row count:
+   - **One `pending-draft` row:** apply `agents/kb-drafter.md` inline, no worker.
+   - **Two or more:** launch one `kb-batch-drafter` per row in manifest order, with the inputs `AGENTS.md` § Subagent handoffs
+     lists (dispatch and wait per that section).
 3. Collect one JSON return line per row and validate it against the return shape.
-   - **No return, or an invalid line:** retry that row once. A second failure: apply `agents/kb-drafter.md` inline
+   - **No return, or an invalid line:** retry that row once (`AGENTS.md`). A second failure: apply `agents/kb-drafter.md` inline
      for that row and print `kb-batch-drafter fallback: inline (<zd#>, <reason>)`.
    - **`failed`:** keep the row `pending-draft` and print `- Failed: <zd#> - <reason>`.
 4. After each batch, update its rows and write the manifest: `Draft` = the returned `md` path, `Review` = the
-   returned `status` (`drafted` or `thin`). An interruption then costs at most one batch.
+   returned `status` (`drafted` or `thin`). For a `thin` row, add a `Reviewer flags` bullet `- **<zd#>**: thin - <reason>`
+   so Phase 4 shows it. An interruption then costs at most one batch.
 5. **Workers unavailable** (no Agent tool, or the agent type is missing): print `subagents: off (<reason>)` once,
    then apply `agents/kb-drafter.md` inline, one row at a time.
 
@@ -160,8 +163,9 @@ ticket per step. For each:
      this pass. Unlike `defer` (permanent), a skipped row stays non-terminal and is
      re-presented the next time `/kb-batch <same assignee>` runs (later in a resumed session
      or a future day) - use this to put a ticket off for now rather than decide against it.
-   - **recreate** -> dispatch one `kb-batch-drafter` for this row (Phase 3 steps 2-4), passing the reviewer's
-     reason for the redraft, then re-present. Use when the
+   - **recreate** -> dispatch one `kb-batch-drafter` for this row (Phase 3 steps 3-5 and the `injection_flag` relay; its fresh
+     context keeps other tickets' articles out), passing the reviewer's reason for the redraft, then re-present. On `failed`,
+     leave `Review` and `Draft` unchanged (Phase 3 step 3's `pending-draft` reset does not apply), print the failure, and re-present. Use when the
      draft is off but the source material (`zendesk-thread.md`, existing `analysis.md`) doesn't
      need deeper investigation. If the ticket needs a fresh `/investigate` pass, run it
      yourself outside this flow, then choose `recreate` to pick up the refreshed
