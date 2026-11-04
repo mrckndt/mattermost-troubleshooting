@@ -1,1 +1,0 @@
-../../.agents/skills/investigate/agents/source-searcher.md
